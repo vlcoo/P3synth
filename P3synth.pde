@@ -10,7 +10,7 @@ import javax.sound.midi.*;
 import drop.*;
 
 processing.core.PApplet PARENT = this;
-int VER_CODE = 7;
+int VER_CODE = 10;
 
 
 // Custom waveform of width 32 and height 16 (will be normalized)
@@ -19,9 +19,7 @@ class Wave32 extends BufferFactory {
   boolean normalized = false;
   
   
-  Wave32() {
-      
-  }
+  Wave32() {}
   
   
   Wave32(int[] data) {
@@ -75,9 +73,12 @@ class Wave32 extends BufferFactory {
 
 class Player {
     Sequencer seq;
+    int tempo_res = 0;
     int channel_num = 16;
     Channel[] channels = new Channel[channel_num];
     Wave32[] wave32_list;
+    long prev_ticks;
+    String curr_filename;
     // midi file...
     
     
@@ -97,10 +98,6 @@ class Player {
                 int data1 = event.getData1();
                 int data2 = event.getData2();
                 //println(chan + " " + comm + " " + data1 + " " + data2);
-                
-                if(chan == 9) {
-                    return;        // channel 10 is percussion, TODO
-                }
             
                 if(comm == ShortMessage.NOTE_ON && data2 > 0) {
                     channels[chan].play(midi_to_freq(data1), data2);
@@ -109,12 +106,24 @@ class Player {
                 else if(comm == ShortMessage.NOTE_OFF || (comm == ShortMessage.NOTE_ON && data2 <= 0)) {
                     channels[chan].stop(midi_to_freq(data1));
                 }
-                else if(comm == ShortMessage.PROGRAM_CHANGE && data1 >= 112) {
-                    channels[chan].silent = true;    //if program change to percussion, silence (TODO)
+                else if(comm == ShortMessage.PROGRAM_CHANGE) {
+                    //println(chan + " " + data1);
+                    if (data1 >= 112) channels[chan].silent = true;    //if program change to percussion, silence (TODO)
+                    else {
+                        init_chan_osc(chan, program_to_osc(data1));
+                    }
                 }
                 else if(comm == ShortMessage.PITCH_BEND) {
-                    //channels[chan].bend(data1, data2);
+                    channels[chan].bend(data1, data2);
                 }
+            }
+            else if (msg instanceof MetaMessage) {
+                MetaMessage event = (MetaMessage) msg;
+                println("meta " + event.getData().toString());
+            }
+            else if (msg instanceof SysexMessage) {
+                SysexMessage event = (SysexMessage) msg;
+                println("sysex " + event.getData().toString());
             }
         }
         
@@ -127,55 +136,66 @@ class Player {
     
     Player(Wave32[] wave32_list) {
         this.wave32_list = wave32_list;
-        int wave_num = 0;
-        println("using wave " + wave_num);
         
-        for (int i = 0; i < channel_num; i++) {
-            channels[i] = new Channel();
-        }
-        
-        set_all_oscs("Saw");
-        //channels[9].silent = true;    //midi ch 10 is for percussion (TODO)
+        init_all_oscs("Saw");
+        //init_all_wave32s(0);
+        channels[9] = new ChannelDrum(new WhiteNoise(PARENT));    //midi ch 10 is for percussion (TODO)
+        channels[9].init_display(59+36*9, 51, 9);
+        channels[9].disp.upd_wave("Noise");
     }
     
     
-    void set_all_wave32s(int wave_num) {
-        for (int i = 0; i < channel_num; i++) {
-            channels[i].set_wave(wave32_list[wave_num]);
+    void init_all_wave32s(int wave_num) {
+        for (int i = 0; i < 16; i++) {    
+            init_chan_wave32(i, wave_num);
         }
     }
     
     
-    void set_all_oscs(String osc_name) {
+    void init_chan_wave32(int which, int wave_num) {
+        if(which == 9 || (wave_num < 0 || wave_num > 31)) return;
+        if(channels[which] != null) channels[which].empty();
+        channels[which] = new ChannelBeads(wave32_list[wave_num]);
+        channels[which].init_display(59+36*which, 51, which);
+        channels[which].disp.upd_wave("WV" + String.valueOf(wave_num));
+    }
+    
+    
+    void init_all_oscs(String osc_name) {
+        for (int i = 0; i < 16; i++) {    
+            init_chan_osc(i, osc_name);
+        }
+    }
+    
+    
+    void init_chan_osc(int which, String osc_name) {
+        if(which == 9) return;
+        if(channels[which] != null) channels[which].empty();
         switch(osc_name) {
             case "Sine": {
-                for (int i = 0; i < channel_num; i++) {
-                    channels[i].set_osc(new SinOsc(PARENT));
-                }
+                channels[which] = new ChannelOsc(new SinOsc(PARENT));
                 break;
             }
             case "Square": {
-                for (int i = 0; i < channel_num; i++) {
-                    channels[i].set_osc(new SqrOsc(PARENT));
-                }
+                channels[which] = new ChannelOsc(new SqrOsc(PARENT));
                 break;
             }
             case "Saw": {
-                for (int i = 0; i < channel_num; i++) {
-                    channels[i].set_osc(new SawOsc(PARENT));
-                }
+                channels[which] = new ChannelOsc(new SawOsc(PARENT));
                 break;
             }
             case "Triangle": {
-                for (int i = 0; i < channel_num; i++) {
-                    channels[i].set_osc(new TriOsc(PARENT));
-                }
+                channels[which] = new ChannelOsc(new TriOsc(PARENT));
                 break;
             }
             default: {
+                println("no valid osc");
+                osc_name = "???";
                 break;
             }
         }
+        channels[which].init_display(59+36*which, 51, which);
+        channels[which].disp.upd_wave(osc_name);
     }
     
     
@@ -184,6 +204,7 @@ class Player {
         quit();
         
         File file = new File(filename);
+        curr_filename = filename; 
         
         try {
             seq = MidiSystem.getSequencer(false);
@@ -196,14 +217,20 @@ class Player {
             Sequence mid = MidiSystem.getSequence(file);
             seq.setSequence(mid);
             seq.start();
+            
+            tempo_res = mid.getResolution();
+            println("res " + tempo_res);
         }
         catch(MidiUnavailableException mue) {
+            seq = null;
             return "Midi device unavailable!";
         }
         catch(InvalidMidiDataException imde) {
+            seq = null;
             return "Invalid Midi data!";
         }
         catch(IOException ioe) {
+            seq = null;
             return "I/O Error!";
         }
         
@@ -227,6 +254,31 @@ class Player {
     }
     
     
+    boolean set_paused(boolean how) {
+        if (how) {
+            if (seq == null) return false;
+            prev_ticks = seq.getTickPosition();
+            quit();
+        }
+        else {
+            update(curr_filename);
+            seq.setTickPosition(prev_ticks);
+        }
+        return true;
+    }
+    
+    
+    void update_display() {
+        for(Channel c : channels) {
+            if (c == null || c.disp == null) continue;
+            c.disp.upd_chan_cont(c.toString());
+            c.disp.upd_o_meter(c.last_vel, 0, 127);
+            c.disp.upd_freq(c.last_freq);
+            //c.disp.upd_bend_meter(c.last_bend);
+        }
+    }
+    
+    
     @Override
     String toString() {
         String s = "[";
@@ -239,72 +291,74 @@ class Player {
 
 
 
-Wave32[] load_waves() {
-    Wave32[] wave_list = new Wave32[32];    //There seem to be 32 different waveforms in GXSCC.
-    
-    int[] wd_00 = {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7};
-    wave_list[0] = new Wave32(wd_00);
-    int[] wd_07 = {0, 0, 0, -7, 0, 6, 6, 6, 0, 0, 0, -7, 0, 0, 0, -7, -7, -7, -7, 0, -7, -7, 0, 0, 0, 0, -7, -7, -7, 0, -7, -7};
-    wave_list[7] = new Wave32(wd_07);
-    int[] wd_12 = {2, 4, 4, 2, 0, 0, 0, 3, 5, 6, 5, 2, 0, -1, -1, 0, 1, 1, 0, -3, -5, -6, -5, -3, 0, 0, -2, -4, -4, -2, 0, 0};
-    wave_list[12] = new Wave32(wd_12);
-    int[] wd_25 = {0, 3, 7, 3, 0, -3, 0, -3, 0, -1, -2, -3, -4, -4, -5, -5, -6, -6, -7, -7, -7, -7, -7, -6, -6, -5, -5, -4, -4, -3, -2, -1};
-    wave_list[25] = new Wave32(wd_25);
-    
-    return wave_list;
-}
-
-
-
 Player p;
-PFont f14;
-PFont f8;
+PFont font;
+PFont font_med;
+PFont font_bold;
+PFont font_boldit;
 String name;
+PImage[] logo_anim = new PImage[8];
 ThemeEngine t;
 ButtonToolbar bt;
+ButtonToolbar bst;
 UiBooster ui = new UiBooster();
 
 void setup() {
     noSmooth();
-    size(640, 446);
-    t = new ThemeEngine("Default Blue");
-    noStroke();
+    size(680, 300);
+    t = new ThemeEngine("Fresh Blue");
     background(t.theme[2]);
     surface.setTitle("vlco_o P3synth v" + VER_CODE);
     
-    f14 = loadFont("pixel14.vlw");
-    textFont(f14, 14);
+    font = loadFont("TerminusTTF-12.vlw");
+    font_med = loadFont("TerminusTTF-14.vlw");
+    font_bold = loadFont("TerminusTTF-Bold-14.vlw");
+    font_boldit = loadFont("TerminusTTF-Bold_Italic-14.vlw");
+    textFont(font, 12);
     Button b1 = new Button("play");
     Button b2 = new Button("stop");
-    Button b3 = new Button("config");
-    Button[] buttons = {b1, b2, b3};
-    bt = new ButtonToolbar(200, 16, 1.2, 0, buttons);
+    Button b3 = new Button("pause");
+    Button[] buttons_ctrl = {b1, b2, b3};
+    bt = new ButtonToolbar(200, 16, 1.2, 0, buttons_ctrl);
+    b1 = new Button("config");
+    b2 = new Button("wave");
+    b3 = new Button("info");
+    Button[] buttons_set = {b2, b1, b3};
+    bst = new ButtonToolbar(400, 16, 1.2, 0, buttons_set);
     
     //f14 = loadFont("pixel14.vlw");
-    //textFont(f14, 14);
+    textFont(font, 12);
     fill(t.theme[4]);
-    text("pre-release", 32, 50);
-    text("This is proof-of-concept work.", 20, 260);
-    text("Beware of loud popping sounds (lowering volume is recommended).", 20, 280);
-    text("Before loading a second file, it's advised to close and re-open program.", 20, 300);
+    text("pre-release", 32, 48);
+    text("Hello Mario.", 20, 260);
     
-    PImage img = loadImage("graphics/logo.png");
-    image(img, 12, 4);
+    fill(t.theme[0]);
+    textFont(font_bold, 14);
+    text("usage", 14, 61);
+    text("  vel", 14, 100);
+    text("instr", 14, 183);
+    text(" freq", 14, 49+148);
+    text("chan#", 14, 220);
+    
+    textFont(font, 12);
+    for (int i = 0; i < 8; i++) {
+        PImage img = loadImage("graphics/logo" + i + ".png");
+        logo_anim[i] = img;
+    }
+    image(logo_anim[0], 12, 4);
     
     Wave32[] wave32_list = load_waves();
     p = new Player(wave32_list);
-    
-    fill(t.theme[0]);
-    text("CHANNEL CONTENTS", 20, 180);
 }
 
 
 
 void draw() {
-    fill(t.theme[2]);
-    rect(10, 180, 640, 40);
-    fill(t.theme[0]);
-    text(p.toString(), 20, 200);
+    p.update_display();
+    if(p.seq != null) {
+        int n = (int) (p.seq.getTickPosition() / (p.tempo_res/4)) % 8;
+        image(logo_anim[n], 12, 4);
+    }
 }
 
 
@@ -312,12 +366,14 @@ void mouseClicked() {
     if(mouseButton == LEFT) {
         if(bt.collided("play")) {
             Button b = bt.get_button("play");
+            /*
             if(b.pressed) {
                 ui.showInfoDialog("Already playing. Due to a bug, it is necessary to restart program to play another file!");
                 return;
             }
+            */
             b.set_pressed(true);
-            File file = ui.showFileSelection();
+            File file = ui.showFileSelection("MIDI files", "mid", "midi");
             fileSelected(file);
         }
         
@@ -328,12 +384,43 @@ void mouseClicked() {
             exit();
         }
         
-        else if(bt.collided("config")) {
-            bt.get_button("config").set_pressed(true);
-            Form f = show_config_win();
-            String new_wave = f.getByIndex(0).asString();
-            p.set_all_oscs(new_wave);
-            bt.get_button("config").set_pressed(false);
+        else if(bst.collided("wave")) {
+            bst.get_button("wave").set_pressed(true);
+            String new_wave = ui.showSelectionDialog("This will override all current instruments.", "Which oscillator to use?", 
+                                Arrays.asList("Square", "Sine", "Saw", "Triangle"));
+            bst.get_button("wave").set_pressed(false);
+            if (new_wave == null) return;
+            p.init_all_oscs(new_wave);
+        }
+        
+        else if(bst.collided("config")) {
+            bst.get_button("config").set_pressed(true);
+            String sel = ui.showTextInputDialog("Code of Wave32? (1-31)");
+            bst.get_button("config").set_pressed(false);
+            if (sel == null) return;
+            int new_wave = int(sel);
+            p.init_all_wave32s(new_wave);
+        }
+        
+        else if(bt.collided("pause")) {
+            Button b = bt.get_button("pause");
+            if (!p.set_paused(!b.pressed)) return;
+            b.set_pressed(!b.pressed);
+        }
+        
+        else if(bst.collided("info")) {
+            ui.showInfoDialog(
+                "Thanks! For using P3synth\n\n" + 
+                
+                "PLAY: press this to open a new MIDI file.\n" +
+                "STOP: press this to exit.\n" +
+                "PAUSE: press this to pause currently playing song or resume currently paused song.\n" +
+                "WAVE/CONFIG: (unstable) press any of these to check out custom waveforms.\n\n" +
+                
+                "This is proof of concept software. Beware of the plenty of bugs.\n" + 
+                "UI and sound refinements coming soon.\n" + 
+                "For more, check out: https://vlcoo.github.io"
+            );
         }
     }
 }
@@ -343,9 +430,22 @@ void fileSelected(File selection) {
     if(selection != null) {
         name = selection.getAbsolutePath();
         String response = p.update(name);
+        
+        fill(t.theme[2]);
+        noStroke();
+        rect(0, 265, 720, 20);
+        
         if(!response.equals("")) {
-            bt.get_button("play").set_pressed(false);
             ui.showErrorDialog(response, "Failed");
+            bt.get_button("play").set_pressed(false);
+            fill(#ff0000);
         }
+        else fill(t.theme[4]);
+        delay(80);    // this may be a sin but don't worry about it
+        textFont(font_boldit, 16);
+        text(name, 16, 280);
+        textFont(font, 12);
+        bt.get_button("pause").set_pressed(false);
     }
+    else bt.get_button("play").set_pressed(false);
 }
