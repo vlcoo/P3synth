@@ -23,9 +23,12 @@ class ChannelDisplay {
     float meter_ch_volume = 1.0;    // aka channel's curr_global_amp
     float meter_velocity = 0.0;     // aka channel's last_amp
     int label_frequency = 0;
-    int label_osc_type = 0;
+    int label_osc_type = -1;
+    int label_pulse_width = 5;
+    float meter_bend = 0.0;
+    float meter_pan = 0.0;
     
-    final float METER_LERP_QUICKNESS = 0.1;
+    final float METER_LERP_QUICKNESS = 0.5;
     final int METER_VU_LENGTH = 30;
     
     
@@ -42,15 +45,18 @@ class ChannelDisplay {
     private void update_all_values() {
         meter_vu_target = parent.curr_global_amp * parent.last_amp;
         
-        if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS;
-        if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS;
-        if (abs(meter_vu_lerped - meter_vu_target) < METER_LERP_QUICKNESS)
-            meter_vu_lerped = meter_vu_target;
+        if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
+        if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/2 * abs(meter_vu_lerped - meter_vu_target);
+        //if (abs(meter_vu_lerped - meter_vu_target) < METER_LERP_QUICKNESS)
+        //    meter_vu_lerped = meter_vu_target;
         
         meter_ch_volume = parent.curr_global_amp;
         meter_velocity = parent.last_amp;
         label_frequency = int(parent.last_freq);
         label_osc_type = parent.osc_type;
+        label_pulse_width = int(parent.pulse_width * 10);
+        meter_bend = parent.curr_global_bend / 2;    // channel's bend is in range +/- 2.0, we need +/- 1.0
+        meter_pan = parent.curr_global_pan;
     }
     
     
@@ -140,12 +146,26 @@ class ChannelDisplay {
             }
             else {
                 image(osc_type_textures[label_osc_type+1], x+133, y+5);
+                //if (label_osc_type == 0) text(label_pulse_width, x+145, y+16);    // maybe also show pulse width when applicable
             }
         
-        // more to come...
+        // Pitch bend curve
+            stroke(t.theme[0]);
+            strokeWeight(2);
+            noFill();
+            if (id != 9) bezier(x+104, y+42, x+104 + 12 * meter_bend, y+42 + -12 * meter_bend, x+120 + 12 * meter_bend, y+56 + -12 * meter_bend, x+120, y+56);
+            else text("x", x+113, y+48);    // no bend for drums...
+        
+        // Panning meter
+            strokeWeight(1);
             textFont(fonts[0]);
-            text("x", x+113, y+48);
-            text("x", x+145, y+48);
+            fill(t.theme[1]);
+            triangle(x+134, y+38, x+134, y+58, x+144, y+48);
+            triangle(x+154, y+38, x+154, y+58, x+144, y+48);
+            noStroke();
+            fill(t.theme[3]);
+            if (meter_pan != 0) triangle(x+144 + 9 * meter_pan, y+48 - 9 * abs(meter_pan), x+144 + 9 * meter_pan, y+48 + 9 * abs(meter_pan), x+144, y+48);
+            //text(meter_pan, x+145, y+48);
         
         button_mute.redraw();
     }
@@ -156,8 +176,15 @@ class PlayerDisplay {
     int x, y;
     Player parent;
     
+    final int POS_X_POSBAR = 12;
+    final int POS_Y_POSBAR = 64;
+    final int POS_X_MESSAGEBAR = 374;
+    final int WIDTH_POSBAR = 338;
+    final int HEIGHT_POSBAR = 16;
+    
     String label_filename;
     float meter_midi_pos;
+    String label_message = "- no message -";
     
     
     PlayerDisplay(int x, int y, Player parent) {
@@ -168,8 +195,20 @@ class PlayerDisplay {
     
     
     private void update_all_values() {
-        label_filename = parent.curr_filename;
+        label_filename = java.nio.file.Paths.get(parent.curr_filename)
+            .getFileName().toString().replaceFirst("[.][^.]+$", "");
+            // what a mess... but it works
+        
         meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
+        label_message = player.last_text_message;
+    }
+    
+    
+    void check_buttons() {
+        if (collided_posbar()) {
+            int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, player.seq.getTickLength()) );
+            parent.setTicks(new_pos);
+        }
     }
     
     
@@ -180,17 +219,32 @@ class PlayerDisplay {
         noStroke();
         rect(x+1, y+1, 720, 63);
         
-        fill(t.theme[0]);
-        textFont(fonts[3]);
-        text(label_filename, x, y+48);
+        // File name label
+            textAlign(CENTER, CENTER);
+            fill(t.theme[0]);
+            textFont(fonts[3]);
+            text(label_filename, x + POS_X_POSBAR + WIDTH_POSBAR/2, y + POS_Y_POSBAR - 12);
         
         // Pos meter
             stroke(t.theme[0]);
             fill(t.theme[1]);
-            rect(x, y, 300, 16);
+            rect(x + POS_X_POSBAR, y + POS_Y_POSBAR, WIDTH_POSBAR, HEIGHT_POSBAR);
             noStroke();
             fill(t.theme[3]);
-            rect(x+1, y+1, 299 * meter_midi_pos, 15);
+            rect(x+1 + POS_X_POSBAR, y+1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1);
+        
+        // Messages label
+            stroke(t.theme[0]);
+            fill(t.theme[1]);
+            rect(x + POS_X_MESSAGEBAR, y + POS_Y_POSBAR, WIDTH_POSBAR, HEIGHT_POSBAR);    // reusing some dimensions...
+            fill(t.theme[4]);
+            textFont(fonts[0]);
+            text(label_message,  x + POS_X_MESSAGEBAR + WIDTH_POSBAR/2, y + POS_Y_POSBAR + 8);
+    }
+    
+    
+    boolean collided_posbar() {
+        return (mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (mouseY > y + POS_Y_POSBAR && mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
     }
 }
 

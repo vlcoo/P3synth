@@ -1,5 +1,6 @@
-processing.core.PApplet PARENT = this;
+import java.io.*;
 
+processing.core.PApplet PARENT = this;
 
 Player player;
 PImage[] logo_anim;
@@ -8,15 +9,15 @@ PFont[] fonts;
 ThemeEngine t;
 ButtonToolbar media_buttons;
 ButtonToolbar setting_buttons;
+HashMap<String, String> config_map;
 
 void setup() {
     SinOsc warmup = new SinOsc(PARENT);
     warmup.freq(100);
     warmup.amp(0.2);
-    warmup.play();    // has to be done so the audio driver is prepared for what we're about to do to 'em...
+    warmup.play();    // has to be done so the audio driver is prepared for what we're about to do to 'em...*/
     
     size(724, 480);
-    t = new ThemeEngine("Hot Red");
     surface.setTitle("vlco_o P3synth");
     
     logo_anim = new PImage[8];
@@ -32,17 +33,19 @@ void setup() {
     
     setup_fonts();
     setup_buttons();
+    setup_config();
     
+    t = new ThemeEngine(config_map.get("theme name"));
     player = new Player();
     
     warmup.stop();
     warmup = null;
     redraw_all();
     
-    ui.showInfoDialog(
+    /*ui.showInfoDialog(
         "Welcome! Press PLAY to begin.\n\n" + 
         "Please mind the flashing lights and glitching audio."
-    );
+    );*/
 }
 
 
@@ -60,12 +63,56 @@ void draw() {
 }
 
 
+void load_config() {
+    try {
+        BufferedReader br = new BufferedReader(new FileReader("P3synth config"));
+        while (br.ready()) {
+            String param_n = br.readLine();
+            String param_v = br.readLine();
+            if (!param_n.equals("") && param_n != null && !param_v.equals("") && param_v != null) config_map.put(param_n, param_v);
+        }
+        br.close();
+    }
+    catch (FileNotFoundException fnfe) {
+        println("load fnfe");
+        save_config();
+    }
+    catch (IOException ioe) {
+        println("load ioe");
+    }
+}
+
+
+void save_config() {
+    try {
+        PrintStream f = new PrintStream(new File("P3synth config"));
+        for (Entry<String, String> config_pair : config_map.entrySet()) {
+            f.println(config_pair.getKey());
+            f.println(config_pair.getValue());
+        }
+        f.flush();
+        f.close();
+    }
+    catch (IOException ioe) {
+        println("save ioe");
+    }
+}
+
+
 void redraw_all() {
     background(t.theme[2]);
     media_buttons.redraw();
     setting_buttons.redraw();
     image(logo_anim[0], 12, 10);
     player.redraw();
+}
+
+
+void setup_config() {
+    config_map = new HashMap<String, String>();
+    config_map.put("theme name", "Fresh Blue");
+    
+    load_config();
 }
 
 
@@ -85,7 +132,8 @@ void setup_buttons() {
     Button[] buttons_ctrl = {b1, b3, b2};
     media_buttons = new ButtonToolbar(150, 16, 1.2, 0, buttons_ctrl);
     b1 = new Button("info", "Help");
-    Button[] buttons_set = {b1};
+    b2 = new Button("confTheme", "Theme");
+    Button[] buttons_set = {b2, b1};
     setting_buttons = new ButtonToolbar(300, 16, 1.2, 0, buttons_set);
 }
 
@@ -113,6 +161,20 @@ void mouseClicked() {
             b.set_pressed(!b.pressed);
         }
         
+        else if(setting_buttons.collided("Theme")) {
+            String selection = new UiBooster().showSelectionDialog(
+                "What color scheme?",
+                "Config",
+                Arrays.asList("Fresh Blue", "Hot Red", "Crispy Green", "GX Peach")
+            );
+
+            
+            config_map.put("theme name", selection);
+            save_config();
+            t.set_theme(selection);
+            redraw_all();
+        }
+        
         else if(setting_buttons.collided("Help")) {
             ui.showInfoDialog(
                 "Thanks for getting P3synth.\n\n" + 
@@ -121,12 +183,19 @@ void mouseClicked() {
                 "PAUSE: pause any playing music or resume if paused.\n" +
                 "EXIT: safely close the program.\n\n" +
                 
+                "Press the X on any channel to mute it.\n" +
+                "Press anywhere on the position bar to jump to that time.\n\n" +
+                
                 "This is proof of concept software. Beware of the bugs.\n" +
                 "For more, check out: https://vlcoo.github.io"
             );
         }
         
-        else player.check_chan_disp_buttons();
+        else {
+            player.disp.check_buttons();        // check for any presses on the player controls
+            player.check_chan_disp_buttons();   // check for any presses on the channel display
+        }
+        
     }
     
     media_buttons.redraw();

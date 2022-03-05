@@ -12,6 +12,9 @@ class Player {
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
     
+    // values to be read by the display...
+    String last_text_message = "";
+    
     
     Player() {
         channels = new ChannelOsc[16];
@@ -24,7 +27,7 @@ class Player {
             channels[i].disp.redraw(false);    // draw meters at value 0
         }
         
-        create_display(12, 400);
+        create_display(0, 380);
     }
     
     
@@ -47,6 +50,7 @@ class Player {
             transmitter.setReceiver(event_listener);
             
             Sequence mid = MidiSystem.getSequence(file);
+            //last_text_message = (String) mid.getTracks()[0];
             seq.setSequence(mid);
             seq.start();
             
@@ -98,6 +102,12 @@ class Player {
     }
     
     
+    void setTicks(int ticks) {
+        //stop_all();
+        seq.setTickPosition(ticks);
+    }
+    
+    
     void stop_all() {
         for (ChannelOsc c : channels) c.reset();
         if (seq != null) {
@@ -143,7 +153,6 @@ class Player {
             
                 if (comm == ShortMessage.NOTE_ON && data2 > 0) {
                     channels[chan].play_note(data1, data2);
-                    //println(channels[chan].toString());
                 }
                 
                 else if (comm == ShortMessage.NOTE_OFF || (comm == ShortMessage.NOTE_ON && data2 <= 0)) {
@@ -152,34 +161,45 @@ class Player {
                 
                 else if (comm == ShortMessage.PROGRAM_CHANGE) {
                     if (data1 >= 112) channels[chan].curr_global_amp = 0.0;
-                    else channels[chan].set_osc_type(program_to_osc(data1));
+                    else {
+                        channels[chan].set_osc_type(program_to_osc(data1));
+                    }
                 }
                 
                 else if (comm == ShortMessage.PITCH_BEND) {
-                    //channels[chan].bend(data1, data2);
+                    channels[chan].set_bend(data1, data2);
                 }
                 
                 else if (comm == ShortMessage.CONTROL_CHANGE && data1 == 7) { // data1 == 7 is channel volume...
                     channels[chan].set_volume(data2);
                 }
+                
+                else if (comm == ShortMessage.CONTROL_CHANGE && data1 == 10) { // data1 == 10 is channel pan...
+                    channels[chan].set_pan(data2);
+                }
+            }
+            
+            else if (msg instanceof MetaMessage) {
+                //MetaMessage event = (MetaMessage) msg;
+                //int type = event.getType();
+                //byte[] data = event.getData();
+                println("m");
+                /*
+                if (type == 5) {
+                    println("lyrics!");
+                }
+                
+                else if (type == 3) {
+                    println("tracc");
+                }
+                
+                else if (type == 1) {
+                    println("text!");
+                }*/
             }
         }
         
         
         void close() {}
     };
-}
-
-
-
-int program_to_osc(int prog) {
-    if (prog >= 1 && prog <= 8) return 0;
-    if (prog >= 9 && prog <= 16) return 2;
-    if (prog >= 17 && prog <= 24) return 1;
-    if (prog >= 25 && prog <= 32) return 0;
-    if (prog >= 33 && prog <= 40) return 1;
-    if (prog >= 41 && prog <= 48) return 3;
-    if (prog >= 49 && prog <= 56) return 3;
-    if (prog >= 57 && prog <= 64) return 3;
-    return 0;
 }
