@@ -30,8 +30,22 @@ class ThemeEngine {
     }
 }
 
+float[] prog_osc_relationship = {
+    2, 1, 1, 0.5, 0.5, 0.5, 0.3, 0.3, 0.3, 1, 1, 1, 1, 0.5,
+    0.3, 0.3, 1, 1, 1, 0.7, 0.7, 0.3, 0.7, 0.3, 2, 1, 2,
+    0.3, 1, 0.3, 0.3, 3, 1, 1, 3, 1, 1, 1, 1, 1, 3, 3,
+    3, 0.7, 3, 2, 1, 1, 3, 0.7, 0.7, 0.7, 1, 1, 0.5,
+    0.5, 0.3, 0.3, 0.3, 0.3, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+    0.5, 0.3, 1, 0.5, 0.5, 2, 1, 2, 2, 1, 0.5, 0.5, 1, 2,
+    0.7, 3, 0.5, 0.7, 0.3, 0.3, 0.7, 1, 0.3, 0.7, 0.7,
+    0.7, 0.3, 0.3, 0.7, 0.5, 0.3, 0.5, 0.3, 0.7, 0.7, 0.3, 1,
+    0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 1, 1, 0.5, 0.7, 1, 1,
+    1, 1, 2, 0.7, 0.7, 0.3, 0.5, 0.7, 1, 3, 0.3, 0.3
+};
 
 float program_to_osc(int prog) {
+    return prog_osc_relationship[prog];
+    /*
     if (prog >= 1 && prog <= 8) return 1;
     if (prog >= 9 && prog <= 16) return 2;
     if (prog >= 17 && prog <= 24) return 0.7;
@@ -40,11 +54,11 @@ float program_to_osc(int prog) {
     if (prog >= 41 && prog <= 48) return 3;
     if (prog >= 49 && prog <= 56) return 3;
     if (prog >= 57 && prog <= 64) return 3;
-    return 0.25;
+    return 0.25;*/
 }
 
 
 float[] program_to_env(int prog) {
     // attack time, sustain time, release time
-    return new float[] {0.01, 1, 0.01};
+    return null;
 }

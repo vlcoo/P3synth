@@ -13,7 +13,8 @@ class Player {
     boolean vu_anim_returning = false;
     
     // values to be read by the display...
-    String last_text_message = "";
+    String history_text_messages = "";              // keeping track of every text (meta) msg gotten
+    String last_text_message = "- no message -";    // default text if nothing received
     
     
     Player() {
@@ -37,6 +38,17 @@ class Player {
     }
     
     
+    protected String bytes_to_text(byte[] arr) {
+        String text = "";
+        
+        for (byte b : arr) {
+            text += Character.toString((char) b);
+        }
+        
+        return text.trim();
+    }
+    
+    
     String play_file(String filename) {
         if (!stopped) stop_all();
         File file = new File(filename);
@@ -46,6 +58,7 @@ class Player {
             seq.open();
             seq.setLoopCount(-1);
             
+            seq.addMetaEventListener(meta_listener);
             Transmitter transmitter = seq.getTransmitter();
             transmitter.setReceiver(event_listener);
             
@@ -116,6 +129,9 @@ class Player {
             seq = null;
         }
         
+        last_text_message = "- no message -";
+        history_text_messages = "";
+        if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
         stopped = true;
     }
     
@@ -163,6 +179,7 @@ class Player {
                     if (data1 >= 112) channels[chan].curr_global_amp = 0.0;
                     else {
                         channels[chan].set_osc_type(program_to_osc(data1));
+                        channels[chan].set_env_values(program_to_env(data1));
                     }
                 }
                 
@@ -201,5 +218,21 @@ class Player {
         
         
         void close() {}
+    };
+    
+    
+    MetaEventListener meta_listener = new MetaEventListener() {
+        void meta(MetaMessage msg) {
+            int type = msg.getType();
+            // if (type == 3) return;    // ignoring track names for now... actually, keep them in
+            
+            byte[] data = msg.getData();
+            String text = bytes_to_text(data);
+            if (!text.equals("")) {
+                last_text_message = text;
+                history_text_messages += text + "\n";
+                dialog_meta_msgs.addToLargeMessage(text);
+            }
+        }
     };
 }

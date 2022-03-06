@@ -9,6 +9,8 @@ PFont[] fonts;
 ThemeEngine t;
 ButtonToolbar media_buttons;
 ButtonToolbar setting_buttons;
+Button b_meta_msgs;
+WaitingDialog dialog_meta_msgs;
 HashMap<String, String> config_map;
 
 void setup() {
@@ -42,10 +44,10 @@ void setup() {
     warmup = null;
     redraw_all();
     
-    /*ui.showInfoDialog(
+    ui.showInfoDialog(
         "Welcome! Press PLAY to begin.\n\n" + 
         "Please mind the flashing lights and glitching audio."
-    );*/
+    );
 }
 
 
@@ -105,6 +107,7 @@ void redraw_all() {
     setting_buttons.redraw();
     image(logo_anim[0], 12, 10);
     player.redraw();
+    b_meta_msgs.redraw();
 }
 
 
@@ -131,10 +134,13 @@ void setup_buttons() {
     Button b3 = new Button("pause", "Pause");
     Button[] buttons_ctrl = {b1, b3, b2};
     media_buttons = new ButtonToolbar(150, 16, 1.2, 0, buttons_ctrl);
+    
     b1 = new Button("info", "Help");
     b2 = new Button("confTheme", "Theme");
     Button[] buttons_set = {b2, b1};
     setting_buttons = new ButtonToolbar(300, 16, 1.2, 0, buttons_set);
+    
+    b_meta_msgs = new Button(682, 436, "message", "History");    // next to the player's message bar
 }
 
 
@@ -177,9 +183,9 @@ void mouseClicked() {
         
         else if(setting_buttons.collided("Help")) {
             ui.showInfoDialog(
-                "Thanks for getting P3synth.\n\n" + 
+                "Thanks for using P3synth!\n\n" + 
                 
-                "PLAY: Open a new MIDI file to play.\n" +
+                "PLAY: open a new MIDI file to play.\n" +
                 "PAUSE: pause any playing music or resume if paused.\n" +
                 "EXIT: safely close the program.\n\n" +
                 
@@ -191,6 +197,21 @@ void mouseClicked() {
             );
         }
         
+        else if(b_meta_msgs.collided() && player != null) {
+            if(!b_meta_msgs.pressed) {
+                b_meta_msgs.set_pressed(true);
+                dialog_meta_msgs = ui.showWaitingDialog(
+                    "These are lyrics, comments, or other text in the MIDI file.",
+                    "Meta message history", player.history_text_messages, false
+                );
+            }
+            else if(b_meta_msgs.pressed && dialog_meta_msgs != null) {
+                b_meta_msgs.set_pressed(false);
+                dialog_meta_msgs.close();
+            }
+            //ui.showInfoDialog(player.history_text_messages);
+        }
+        
         else {
             player.disp.check_buttons();        // check for any presses on the player controls
             player.check_chan_disp_buttons();   // check for any presses on the channel display
@@ -200,6 +221,21 @@ void mouseClicked() {
     
     media_buttons.redraw();
     setting_buttons.redraw();
+    b_meta_msgs.redraw();
+}
+
+
+class LongMessageNotException extends Exception {
+    String msg;
+    
+    public LongMessageNotException(String text_msg) {
+        this.msg = text_msg;
+    }
+    
+    @Override
+    String toString() {
+        return this.msg;
+    }
 }
 
 
@@ -208,6 +244,11 @@ boolean try_play_file(File selection) {
         String filename = selection.getAbsolutePath();
         String response = player.play_file(filename);
         redraw_all();
+        
+        if (!response.equals("")) {
+            ui.showErrorDialog(response, "Can't play");
+            return false;
+        }
         return true;
     }
     return false;

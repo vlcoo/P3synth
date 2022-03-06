@@ -27,13 +27,13 @@ public class ChannelOsc {
     
     ChannelOsc() {
         current_notes = new HashMap<Integer, SoundObject>();
-        //circular_array_envs = new Env[CIRCULAR_ARR_SIZE];
+        circular_array_envs = new Env[CIRCULAR_ARR_SIZE];
     }
     
     
     ChannelOsc(int osc_type) {
         current_notes = new HashMap<Integer, SoundObject>();
-        //circular_array_envs = new Env[CIRCULAR_ARR_SIZE];
+        circular_array_envs = new Env[CIRCULAR_ARR_SIZE];
         set_osc_type(osc_type);
     }
     
@@ -65,23 +65,26 @@ public class ChannelOsc {
         float amp = map(velocity, 0, 127, 0.0, 1.0);
         
         Oscillator s = (Oscillator) current_notes.get(note_code);
-        //Env e = circular_array_envs[curr_env_index];
         if (s == null) {
             s = get_new_osc(this.osc_type);
             s.freq(freq);
             s.pan(curr_global_pan);
             current_notes.put(note_code, s);
         }
-        /*
-        if (e == null) {
+        
+        /*if (e == null) {
             e = new Env(PARENT);
             circular_array_envs[curr_env_index] = e;
         }*/
         if (osc_type == 0) ((Pulse) s).width(pulse_width);
         
-        s.amp(amp * 0.16 * curr_global_amp);
-        s.play();
-        // e.play(s, env_values[0], env_values[1], 0.2, env_values[2]);    // will come back to envelopes... great potential but buggy :(
+        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.26 : 0.16) * curr_global_amp);    // give a small volume boost to TRI and SIN
+        if (env_values != null && env_values.length == 3) {
+            Env e = new Env(PARENT);
+            e.play(s, env_values[0], env_values[1], 1.0, env_values[2]);    // will come back to envelopes... great potential but buggy :(
+            e = null;
+        }
+        else s.play();
         
         last_amp = amp;
         last_freq = freq;
@@ -118,7 +121,7 @@ public class ChannelOsc {
     void set_volume(int volume) {
         float amp = map(volume, 0, 127, 0.0, 1.0);
         for (SoundObject s : current_notes.values()) {
-            ((Oscillator) s).amp(0.16 * amp);
+            ((Oscillator) s).amp((osc_type == 1 || osc_type == 2 ? 0.26 : 0.16) * amp);
         }
         curr_global_amp = amp;
     }

@@ -180,6 +180,7 @@ class PlayerDisplay {
     final int POS_Y_POSBAR = 64;
     final int POS_X_MESSAGEBAR = 374;
     final int WIDTH_POSBAR = 338;
+    final int WIDTH_MESSAGEBAR = 300;
     final int HEIGHT_POSBAR = 16;
     
     String label_filename;
@@ -217,7 +218,7 @@ class PlayerDisplay {
         
         fill(t.theme[2]);
         noStroke();
-        rect(x+1, y+1, 720, 63);
+        rect(x+1, y+1, 680, 63);
         
         // File name label
             textAlign(CENTER, CENTER);
@@ -236,10 +237,10 @@ class PlayerDisplay {
         // Messages label
             stroke(t.theme[0]);
             fill(t.theme[1]);
-            rect(x + POS_X_MESSAGEBAR, y + POS_Y_POSBAR, WIDTH_POSBAR, HEIGHT_POSBAR);    // reusing some dimensions...
+            rect(x + POS_X_MESSAGEBAR, y + POS_Y_POSBAR, WIDTH_MESSAGEBAR, HEIGHT_POSBAR);    // reusing some dimensions...
             fill(t.theme[4]);
             textFont(fonts[0]);
-            text(label_message,  x + POS_X_MESSAGEBAR + WIDTH_POSBAR/2, y + POS_Y_POSBAR + 8);
+            text(label_message,  x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, y + POS_Y_POSBAR + 8);
     }
     
     
