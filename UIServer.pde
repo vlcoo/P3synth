@@ -183,9 +183,10 @@ class PlayerDisplay {
     final int WIDTH_MESSAGEBAR = 300;
     final int HEIGHT_POSBAR = 16;
     
-    String label_filename;
-    float meter_midi_pos;
+    String label_filename = "";
+    float meter_midi_pos = 0.0;
     String label_message = "- no message -";
+    ArrayList<Integer> list_keys = new ArrayList<Integer>();
     
     
     PlayerDisplay(int x, int y, Player parent) {
@@ -201,7 +202,8 @@ class PlayerDisplay {
             // what a mess... but it works
         
         meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
-        label_message = player.last_text_message;
+        label_message = player.last_text_message;    
+        if (label_message .length() > 48) label_message = label_message.substring(0, 45) + "...";    // we don't want it to get out of the rectangle...
     }
     
     
@@ -218,7 +220,7 @@ class PlayerDisplay {
         
         fill(t.theme[2]);
         noStroke();
-        rect(x+1, y+1, 680, 63);
+        rect(x+1, y+40, 680, 63);
         
         // File name label
             textAlign(CENTER, CENTER);

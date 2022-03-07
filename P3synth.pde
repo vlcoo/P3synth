@@ -1,6 +1,7 @@
 import java.io.*;
 
-processing.core.PApplet PARENT = this;
+final processing.core.PApplet PARENT = this;
+final float VERCODE = 22.66;
 
 Player player;
 PImage[] logo_anim;
@@ -16,10 +17,10 @@ HashMap<String, String> config_map;
 void setup() {
     SinOsc warmup = new SinOsc(PARENT);
     warmup.freq(100);
-    warmup.amp(0.2);
+    warmup.amp(0.1);
     warmup.play();    // has to be done so the audio driver is prepared for what we're about to do to 'em...*/
     
-    size(724, 480);
+    size(724, 420);
     surface.setTitle("vlco_o P3synth");
     
     logo_anim = new PImage[8];
@@ -43,11 +44,6 @@ void setup() {
     warmup.stop();
     warmup = null;
     redraw_all();
-    
-    ui.showInfoDialog(
-        "Welcome! Press PLAY to begin.\n\n" + 
-        "Please mind the flashing lights and glitching audio."
-    );
 }
 
 
@@ -55,7 +51,7 @@ void draw() {
     if (!player.stopped) {
         player.redraw();
         int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/4)) % 8;
-        image(logo_anim[n], 12, 10);
+        image(logo_anim[n], 311, 10);
     }
     else {
         if (player.vu_anim_val >= 0.0) {
@@ -65,7 +61,7 @@ void draw() {
 }
 
 
-void load_config() {
+void load_config(boolean just_opened) {
     try {
         BufferedReader br = new BufferedReader(new FileReader("P3synth config"));
         while (br.ready()) {
@@ -77,6 +73,12 @@ void load_config() {
     }
     catch (FileNotFoundException fnfe) {
         println("load fnfe");
+        ui.showWarningDialog(
+            "Welcome! You may want to lower the volume.\n\n" + 
+            "Press PLAY to begin or EXIT to quit at any time.",
+            
+            "First time warning"
+        );
         save_config();
     }
     catch (IOException ioe) {
@@ -105,7 +107,7 @@ void redraw_all() {
     background(t.theme[2]);
     media_buttons.redraw();
     setting_buttons.redraw();
-    image(logo_anim[0], 12, 10);
+    image(logo_anim[0], 311, 10);
     player.redraw();
     b_meta_msgs.redraw();
 }
@@ -115,7 +117,7 @@ void setup_config() {
     config_map = new HashMap<String, String>();
     config_map.put("theme name", "Fresh Blue");
     
-    load_config();
+    load_config(true);
 }
 
 
@@ -138,9 +140,9 @@ void setup_buttons() {
     b1 = new Button("info", "Help");
     b2 = new Button("confTheme", "Theme");
     Button[] buttons_set = {b2, b1};
-    setting_buttons = new ButtonToolbar(300, 16, 1.2, 0, buttons_set);
+    setting_buttons = new ButtonToolbar(470, 16, 1.2, 0, buttons_set);
     
-    b_meta_msgs = new Button(682, 436, "message", "History");    // next to the player's message bar
+    b_meta_msgs = new Button(682, 376, "message", "Hist.");    // next to the player's message bar
 }
 
 
@@ -183,14 +185,17 @@ void mouseClicked() {
         
         else if(setting_buttons.collided("Help")) {
             ui.showInfoDialog(
-                "Thanks for using P3synth!\n\n" + 
+                "Thanks for using P3synth (v" + VERCODE + ")!\n\n" + 
                 
                 "PLAY: open a new MIDI file to play.\n" +
                 "PAUSE: pause any playing music or resume if paused.\n" +
                 "EXIT: safely close the program.\n\n" +
                 
+                "The other button(s) next to those can control various options.\n\n" +
+                
                 "Press the X on any channel to mute it.\n" +
-                "Press anywhere on the position bar to jump to that time.\n\n" +
+                "You can use the lower left rectangle to control the song's position.\n" +
+                "The lower right rectangle shows the last text message the MIDI sent out.\n\n" +
                 
                 "This is proof of concept software. Beware of the bugs.\n" +
                 "For more, check out: https://vlcoo.github.io"

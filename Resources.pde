@@ -45,20 +45,27 @@ float[] prog_osc_relationship = {
 
 float program_to_osc(int prog) {
     return prog_osc_relationship[prog];
-    /*
-    if (prog >= 1 && prog <= 8) return 1;
-    if (prog >= 9 && prog <= 16) return 2;
-    if (prog >= 17 && prog <= 24) return 0.7;
-    if (prog >= 25 && prog <= 32) return 1;
-    if (prog >= 33 && prog <= 40) return 0.5;
-    if (prog >= 41 && prog <= 48) return 3;
-    if (prog >= 49 && prog <= 56) return 3;
-    if (prog >= 57 && prog <= 64) return 3;
-    return 0.25;*/
 }
 
 
 float[] program_to_env(int prog) {
     // attack time, sustain time, release time
     return null;
+}
+
+
+String[] notecode_perc_relationship = {
+    "Tom", "Tom", "Tom", "Snare", "Snare", "Snare", "Tom",
+    "Closed hihat", "Tom", "Closed hihat", "Tom", "Open hihat",
+    "Tom", "Tom", "Open hihat", "Tom", "Open hihat", "Open hihat",
+    "Closed hihat", "Snare", "Open hihat", "Closed hihat",
+    "Open hihat", "Tom", "Snare", "Snare", "Snare", "Open hihat",
+    "Open hihat", "Closed hihat", "Open hihat", "Snare", "Tom",
+    "Closed hihat", "Open hihat", "Snare", "Tom", "Closed hihat",
+    "Open hihat", "Snare", "Tom", "Closed hihat", "Open hihat",
+    "Snare", "Tom", "Closed hihat", "Open hihat"
+};
+
+String note_code_to_percussion(int note_code) {
+    return notecode_perc_relationship[constrain(note_code, 35, 81) - 35];
 }

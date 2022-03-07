@@ -28,7 +28,7 @@ class Player {
             channels[i].disp.redraw(false);    // draw meters at value 0
         }
         
-        create_display(0, 380);
+        create_display(0, 320);
     }
     
     
@@ -169,10 +169,12 @@ class Player {
             
                 if (comm == ShortMessage.NOTE_ON && data2 > 0) {
                     channels[chan].play_note(data1, data2);
+                    //current_note_codes.add(data1);
                 }
                 
                 else if (comm == ShortMessage.NOTE_OFF || (comm == ShortMessage.NOTE_ON && data2 <= 0)) {
                     channels[chan].stop_note(data1);
+                    //current_note_codes.remove(data1);
                 }
                 
                 else if (comm == ShortMessage.PROGRAM_CHANGE) {
@@ -194,25 +196,6 @@ class Player {
                 else if (comm == ShortMessage.CONTROL_CHANGE && data1 == 10) { // data1 == 10 is channel pan...
                     channels[chan].set_pan(data2);
                 }
-            }
-            
-            else if (msg instanceof MetaMessage) {
-                //MetaMessage event = (MetaMessage) msg;
-                //int type = event.getType();
-                //byte[] data = event.getData();
-                println("m");
-                /*
-                if (type == 5) {
-                    println("lyrics!");
-                }
-                
-                else if (type == 3) {
-                    println("tracc");
-                }
-                
-                else if (type == 1) {
-                    println("text!");
-                }*/
             }
         }
         
