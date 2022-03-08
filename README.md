@@ -1,17 +1,13 @@
 # P3synth
-A proof-of-concept synthesizer running on Processing 3.
+A synthesizer and MIDI visualization program programmed on Processing 3.
 Supports playback of MID files.
 
-### In the future...
-- Up quality of sound engine
-- Refinement of UI
+### Quick start
+Get the latest (top most) executable (Windows or Linux) from the [releases](https://github.com/vlcoo/P3synth/releases) page. You will need the latest version of Java 8 (if needed, go [here](https://java.com/en/download/)).
 
-### Usage
-**Get the latest (top most) executable (Windows or Linux) from the [releases](https://github.com/vlcoo/P3synth/releases) page.**
+Upon opening, simply press "Play" to begin!
 
-May require you to install the latest version of Java 8 before running (in that case, try [this](https://java.com/en/download/)).
-
-Downloading from source is not recommended, but if done, the following P3 libraries are needed:
-- Beads
+### Source code
+If downloading from source, the following libraries are needed. Keep in mind this is Processing 3 code, not plain old Java.
 - UIBooster
 - Javax MIDI
