@@ -128,7 +128,7 @@ class ChannelDisplay {
         // Freq label
             fill(t.theme[0]);
             textFont(fonts[0]);
-            if (id == 9) text(label_frequency == 0 ? "-  -" : "-ts-", x+113, y+10);
+            if (id == 9) text(label_frequency == 0 ? "-  -" : (label_frequency < 4.0 ? "-ts-" : "-pf-"), x+113, y+10);
             else text(label_frequency, x+113, y+10);
         
         // Velocity meter
@@ -218,9 +218,9 @@ class PlayerDisplay {
     void redraw(boolean renew_values) {
         if (renew_values) update_all_values();
         
-        fill(t.theme[2]);
+        /*fill(t.theme[2]);
         noStroke();
-        rect(x+1, y+40, 680, 63);
+        rect(x+1, y+40, 680, 63);*/
         
         // File name label
             textAlign(CENTER, CENTER);
@@ -321,6 +321,7 @@ class ButtonToolbar {
 
         int i = 0;
         for (Button b : buttons) {
+            if (b == null) continue;
             this.buttons.put(b.label, b);
             b.x = int(i * (b.width * this.x_sep) + x);
             b.y = int(i * (b.height * this.y_sep) + y);
@@ -340,6 +341,8 @@ class ButtonToolbar {
 
 
     boolean collided(String b_name) {
-        return this.buttons.get(b_name).collided();
+        Button b = this.buttons.get(b_name);
+        if (b == null) return false;
+        return b.collided();
     }
 }

@@ -42,10 +42,10 @@ class Player {
         String text = "";
         
         for (byte b : arr) {
-            text += Character.toString((char) b);
+            if (b >= 0) text += Character.toString((char) b);
         }
         
-        return text.trim();
+        return text.trim().replace("\n", "");
     }
     
     
@@ -181,7 +181,7 @@ class Player {
                     if (data1 >= 112) channels[chan].curr_global_amp = 0.0;
                     else {
                         channels[chan].set_osc_type(program_to_osc(data1));
-                        channels[chan].set_env_values(program_to_env(data1));
+                        //channels[chan].set_env_values(program_to_env(data1));
                     }
                 }
                 

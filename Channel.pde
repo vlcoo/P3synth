@@ -1,5 +1,4 @@
 import processing.sound.*;
-import java.util.Map.*;
 
 
 public class ChannelOsc {
@@ -21,7 +20,6 @@ public class ChannelOsc {
     // values to be read by the display...:
     float last_amp = 0.0;
     float last_freq = 0;
-    
     
     
     ChannelOsc() {
@@ -59,6 +57,7 @@ public class ChannelOsc {
     
     void play_note(int note_code, int velocity) {
         if (curr_global_amp <= 0 || silenced) return;
+        stop_note(note_code);
         
         float freq = midi_to_freq(note_code);
         float amp = map(velocity, 0, 127, 0.0, 1.0);
@@ -78,7 +77,7 @@ public class ChannelOsc {
         }*/
         if (osc_type == 0) ((Pulse) s).width(pulse_width);
         
-        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.26 : 0.1) * curr_global_amp);    // give a volume boost to TRI and SIN
+        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp);    // give a volume boost to TRI and SIN
         if (env_values != null && env_values.length == 3) {
             Env e = new Env(PARENT);
             e.play(s, env_values[0], env_values[1], 1.0, env_values[2]);    // will come back to envelopes... great potential but buggy :(
@@ -120,7 +119,7 @@ public class ChannelOsc {
     void set_volume(int volume) {
         float amp = map(volume, 0, 127, 0.0, 1.0);
         for (SoundObject s : current_notes.values()) {
-            ((Oscillator) s).amp((osc_type == 1 || osc_type == 2 ? 0.26 : 0.1) * amp);
+            ((Oscillator) s).amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * amp);
         }
         curr_global_amp = amp;
     }
@@ -164,35 +163,40 @@ public class ChannelOsc {
 
 
 class ChannelOscDrum extends ChannelOsc {
+    SoundFile[] samples;
+    
+    
     ChannelOscDrum() {
         super();
+        
+        // preloading samples...
+        samples = new SoundFile[4];
+        for (int i = 1; i <= samples.length; i++) {
+            samples[i-1] = new SoundFile(PARENT, "data/samples/" + i + ".wav");
+        }
     }
     
     
     void play_note(int note_code, int velocity) {
         if (curr_global_amp <= 0 || silenced) return;
-        stop_note(note_code);
         
-        float freq = midi_to_freq(note_code);
         float amp = map(velocity, 0, 127, 0.0, 1.0);
         
-        SoundFile s = (SoundFile) current_notes.get(note_code);
-        if (s == null) {
-            s = new SoundFile(PARENT, "data/samples/" + note_code_to_percussion(note_code) + ".wav");
-            current_notes.put(note_code, s);
-        }
+        int sample_code = note_code_to_percussion(note_code);
+        SoundFile s = (SoundFile) samples[sample_code-1];
+        if (s == null || s.isPlaying()) return;
         
         s.amp(amp * 0.26);
         s.play();
         
         last_amp = amp;
-        last_freq = freq;
+        last_freq = sample_code;
     }
     
     
     void stop_note(int note_code) {
         last_amp = 0.0;
-        last_freq = 0.0;
+        last_freq = 0;
     }
     
     
@@ -222,9 +226,4 @@ Oscillator get_new_osc(int osc_type) {
         default:
             return new SawOsc(PARENT);
     }
-}
-
-
-processing.sound.Noise get_new_noise(int note_code) {
-    return new WhiteNoise(PARENT);
 }

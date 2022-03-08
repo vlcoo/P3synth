@@ -30,6 +30,7 @@ class ThemeEngine {
     }
 }
 
+
 float[] prog_osc_relationship = {
     2, 1, 1, 0.5, 0.5, 0.5, 0.3, 0.3, 0.3, 1, 1, 1, 1, 0.5,
     0.3, 0.3, 1, 1, 1, 0.7, 0.7, 0.3, 0.7, 0.3, 2, 1, 2,
@@ -54,18 +55,14 @@ float[] program_to_env(int prog) {
 }
 
 
-String[] notecode_perc_relationship = {
-    "Tom", "Tom", "Tom", "Snare", "Snare", "Snare", "Tom",
-    "Closed hihat", "Tom", "Closed hihat", "Tom", "Open hihat",
-    "Tom", "Tom", "Open hihat", "Tom", "Open hihat", "Open hihat",
-    "Closed hihat", "Snare", "Open hihat", "Closed hihat",
-    "Open hihat", "Tom", "Snare", "Snare", "Snare", "Open hihat",
-    "Open hihat", "Closed hihat", "Open hihat", "Snare", "Tom",
-    "Closed hihat", "Open hihat", "Snare", "Tom", "Closed hihat",
-    "Open hihat", "Snare", "Tom", "Closed hihat", "Open hihat",
-    "Snare", "Tom", "Closed hihat", "Open hihat"
+// 1 → closed hihat, 2 → open hihat, 3 → snare, 4 → tom
+int[] notecode_perc_relationship = {
+    4, 4, 4, 3, 3, 3, 4, 1, 4, 1, 4, 2,
+    4, 4, 2, 4, 2, 2, 1, 3, 2, 1, 2, 4,
+    3, 3, 3, 2, 2, 2, 3, 1, 4, 4, 2, 1,
+    3, 4, 1, 2, 3, 2, 3, 4, 1, 2, 3
 };
 
-String note_code_to_percussion(int note_code) {
+int note_code_to_percussion(int note_code) {
     return notecode_perc_relationship[constrain(note_code, 35, 81) - 35];
 }
