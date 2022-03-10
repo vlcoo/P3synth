@@ -7,8 +7,9 @@ class Player {
     int midi_resolution;
     ChannelOsc[] channels;
     long prev_position;
-    String curr_filename;
-    boolean stopped = true;
+    String curr_filename = "- no file -";
+    int curr_rpn = 0;
+    int playing_state = -1;    // -1 no loaded, 0 paused, 1 playing
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
     
@@ -28,7 +29,20 @@ class Player {
             channels[i].disp.redraw(false);    // draw meters at value 0
         }
         
-        create_display(0, 320);
+        create_display(0, 318);
+        
+        try {
+            seq = MidiSystem.getSequencer(false);
+            seq.open();
+            seq.setLoopCount(-1);
+            
+            seq.addMetaEventListener(meta_listener);
+            Transmitter transmitter = seq.getTransmitter();
+            transmitter.setReceiver(event_listener);
+        }
+        catch(MidiUnavailableException mue) {
+            println("Midi device unavailable!");
+        }
     }
     
     
@@ -49,38 +63,48 @@ class Player {
     }
     
     
+    protected void set_rpn_param_val(int chan, float value) {
+        switch (curr_rpn) {
+            case 0:
+            channels[chan].curr_bend_range = value;
+            break;
+            
+            default:
+            break;
+        }
+    }
+    
+    
+    protected void add_rpn_param_val(int chan, float value, boolean negative) {
+        int mult = (negative ? -1 : 1);
+        
+        switch (curr_rpn) {
+            case 0:
+            channels[chan].curr_bend_range += value * mult;
+            break;
+            
+            default:
+            break;
+        }
+    }
+    
+    
     String play_file(String filename) {
-        if (!stopped) stop_all();
+        set_playing_state(-1);
         File file = new File(filename);
         
         try {
-            seq = MidiSystem.getSequencer(false);
-            seq.open();
-            seq.setLoopCount(-1);
-            
-            seq.addMetaEventListener(meta_listener);
-            Transmitter transmitter = seq.getTransmitter();
-            transmitter.setReceiver(event_listener);
-            
             Sequence mid = MidiSystem.getSequence(file);
-            //last_text_message = (String) mid.getTracks()[0];
             seq.setSequence(mid);
-            seq.start();
             
             midi_resolution = mid.getResolution();
-            stopped = false;
             curr_filename = filename;
-        }
-        catch(MidiUnavailableException mue) {
-            seq = null;
-            return "Midi device unavailable!";
+            set_playing_state(1);
         }
         catch(InvalidMidiDataException imde) {
-            seq = null;
             return "Invalid Midi data!";
         }
         catch(IOException ioe) {
-            seq = null;
             return "I/O Error!";
         }
         
@@ -99,40 +123,48 @@ class Player {
     }
     
     
-    boolean set_paused(boolean paused) {
-        if (paused) {
-            if (seq == null) return false;
-            prev_position = seq.getTickPosition();
-            stop_all();
-        }
-        
-        else {
-            play_file(curr_filename);
-            seq.setTickPosition(prev_position);
-        }
-        
-        return true;
-    }
-    
-    
     void setTicks(int ticks) {
         //stop_all();
         seq.setTickPosition(ticks);
     }
     
     
-    void stop_all() {
-        for (ChannelOsc c : channels) c.reset();
-        if (seq != null) {
+    void set_playing_state(int how) {
+        how = constrain(how, -1, 1);
+        switch (how) {
+            case -1:
             seq.stop();
-            seq.close();
-            seq = null;
+            shut_up_all();
+            reset_all_params();
+            break;
+            
+            case 0:
+            seq.stop();
+            shut_up_all();
+            break;
+            
+            case 1:
+            seq.start();
+            break;
         }
+        playing_state = how;
+    }
+    
+    
+    void shut_up_all() {
+        for (ChannelOsc c : channels) c.shut_up();
+    }
+    
+    
+    void reset_all_params() {
+        for (ChannelOsc c : channels) c.reset_params();
+        setTicks(0);
         
         last_text_message = "- no message -";
         history_text_messages = "";
         if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
-        stopped = true;
+        curr_rpn = 0;
+        curr_filename = "- no file -";
     }
     
     
@@ -142,19 +174,11 @@ class Player {
     
     
     void redraw() {
-        if (seq != null) {
-            for (ChannelOsc c : channels) {
-                c.redraw_playing();
-            }
-            
-            this.disp.redraw(true);
+        for (ChannelOsc c : channels) {
+            c.redraw_playing();
         }
         
-        else {
-            for (ChannelOsc c : channels) {
-                c.disp.redraw(false);
-            }
-        }
+        this.disp.redraw(true);
     }
     
     
@@ -169,12 +193,10 @@ class Player {
             
                 if (comm == ShortMessage.NOTE_ON && data2 > 0) {
                     channels[chan].play_note(data1, data2);
-                    //current_note_codes.add(data1);
                 }
                 
                 else if (comm == ShortMessage.NOTE_OFF || (comm == ShortMessage.NOTE_ON && data2 <= 0)) {
                     channels[chan].stop_note(data1);
-                    //current_note_codes.remove(data1);
                 }
                 
                 else if (comm == ShortMessage.PROGRAM_CHANGE) {
@@ -189,12 +211,35 @@ class Player {
                     channels[chan].set_bend(data1, data2);
                 }
                 
-                else if (comm == ShortMessage.CONTROL_CHANGE && data1 == 7) { // data1 == 7 is channel volume...
-                    channels[chan].set_volume(data2);
-                }
-                
-                else if (comm == ShortMessage.CONTROL_CHANGE && data1 == 10) { // data1 == 10 is channel pan...
-                    channels[chan].set_pan(data2);
+                else if (comm == ShortMessage.CONTROL_CHANGE) {
+                    switch (data1) {
+                        case 7:
+                        channels[chan].set_volume(data2);    // chan vol
+                        break;
+                        
+                        case 10:
+                        channels[chan].set_pan(data2);       // chan pan
+                        break;
+                        
+                        case 100:
+                        curr_rpn = data2;                    // rpn set
+                        break;
+                        
+                        case 6:
+                        set_rpn_param_val(chan, data2);      // data entry
+                        break;
+                        
+                        case 96:
+                        add_rpn_param_val(chan, data2, false);    // data increment
+                        break;
+                        
+                        case 97:
+                        add_rpn_param_val(chan, data2, true);     // data decrement
+                        break;
+                        
+                        default:
+                        break;
+                    }
                 }
             }
         }
@@ -207,9 +252,10 @@ class Player {
     MetaEventListener meta_listener = new MetaEventListener() {
         void meta(MetaMessage msg) {
             int type = msg.getType();
-            // if (type == 3) return;    // ignoring track names for now... actually, keep them in
-            
             byte[] data = msg.getData();
+            
+            //if (type == 3) return;    // ignoring track names for now... actually scratch that
+            
             String text = bytes_to_text(data);
             if (!text.equals("")) {
                 last_text_message = text;

@@ -22,7 +22,7 @@ class ChannelDisplay {
     float meter_vu_lerped = 0.0;
     float meter_ch_volume = 1.0;    // aka channel's curr_global_amp
     float meter_velocity = 0.0;     // aka channel's last_amp
-    int label_frequency = 0;
+    String label_note = "";
     int label_osc_type = -1;
     int label_pulse_width = 5;
     float meter_bend = 0.0;
@@ -30,6 +30,7 @@ class ChannelDisplay {
     
     final float METER_LERP_QUICKNESS = 0.5;
     final int METER_VU_LENGTH = 30;
+    final String[] NOTE_NAMES = new String[] {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
     
     
     ChannelDisplay(int x, int y, int id, ChannelOsc parent) {
@@ -52,10 +53,20 @@ class ChannelDisplay {
         
         meter_ch_volume = parent.curr_global_amp;
         meter_velocity = parent.last_amp;
-        label_frequency = int(parent.last_freq);
+        
+        int notecode = parent.last_notecode;
+        if (id == 9) { if (notecode == -1) label_note = "|  |"; else label_note = "/  \\"; }
+        else {
+            if (notecode == -1) label_note = "-";
+            else {
+                int octave = int(notecode / 12) + 1;
+                label_note = NOTE_NAMES[notecode % 12] + octave;
+            }
+        }
+        
         label_osc_type = parent.osc_type;
         label_pulse_width = int(parent.pulse_width * 10);
-        meter_bend = parent.curr_global_bend / 2;    // channel's bend is in range +/- 2.0, we need +/- 1.0
+        meter_bend = parent.curr_global_bend / parent.curr_bend_range;    // transform +/- channel's curr_bend_range, we need +/- 1.0
         meter_pan = parent.curr_global_pan;
     }
     
@@ -128,8 +139,7 @@ class ChannelDisplay {
         // Freq label
             fill(t.theme[0]);
             textFont(fonts[0]);
-            if (id == 9) text(label_frequency == 0 ? "-  -" : (label_frequency < 4.0 ? "-ts-" : "-pf-"), x+113, y+10);
-            else text(label_frequency, x+113, y+10);
+            text(label_note, x+113, y+10);
         
         // Velocity meter
             stroke(t.theme[0]);
@@ -181,7 +191,7 @@ class PlayerDisplay {
     final int POS_X_MESSAGEBAR = 374;
     final int WIDTH_POSBAR = 338;
     final int WIDTH_MESSAGEBAR = 300;
-    final int HEIGHT_POSBAR = 16;
+    final int HEIGHT_POSBAR = 18;
     
     String label_filename = "";
     float meter_midi_pos = 0.0;
@@ -200,16 +210,18 @@ class PlayerDisplay {
         label_filename = java.nio.file.Paths.get(parent.curr_filename)
             .getFileName().toString().replaceFirst("[.][^.]+$", "");
             // what a mess... but it works
+        label_filename = check_and_shrink_string(label_filename, 40);
         
-        meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
+        if (parent.seq.getTickLength() > 0) meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
         label_message = player.last_text_message;    
-        if (label_message .length() > 48) label_message = label_message.substring(0, 45) + "...";    // we don't want it to get out of the rectangle...
+        label_message = check_and_shrink_string(label_message, 36);    // we don't want it to get out of the rectangle...
     }
     
     
     void check_buttons() {
         if (collided_posbar()) {
-            int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, player.seq.getTickLength()) );
+            if (parent.playing_state == -1) return;
+            int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
             parent.setTicks(new_pos);
         }
     }
@@ -222,12 +234,6 @@ class PlayerDisplay {
         noStroke();
         rect(x+1, y+40, 680, 63);*/
         
-        // File name label
-            textAlign(CENTER, CENTER);
-            fill(t.theme[0]);
-            textFont(fonts[3]);
-            text(label_filename, x + POS_X_POSBAR + WIDTH_POSBAR/2, y + POS_Y_POSBAR - 12);
-        
         // Pos meter
             stroke(t.theme[0]);
             fill(t.theme[1]);
@@ -235,14 +241,20 @@ class PlayerDisplay {
             noStroke();
             fill(t.theme[3]);
             rect(x+1 + POS_X_POSBAR, y+1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1);
+            
+        // File name label
+            textAlign(CENTER, CENTER);
+            fill(t.theme[0]);
+            textFont(fonts[3]);
+            text(label_filename, x + POS_X_POSBAR + WIDTH_POSBAR/2, y + POS_Y_POSBAR - 12);
         
         // Messages label
             stroke(t.theme[0]);
             fill(t.theme[1]);
             rect(x + POS_X_MESSAGEBAR, y + POS_Y_POSBAR, WIDTH_MESSAGEBAR, HEIGHT_POSBAR);    // reusing some dimensions...
             fill(t.theme[4]);
-            textFont(fonts[0]);
-            text(label_message,  x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, y + POS_Y_POSBAR + 8);
+            textFont(fonts[1]);
+            text(label_message,  x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, y + POS_Y_POSBAR + 9);
     }
     
     
@@ -281,9 +293,9 @@ class Button {
         
         String texture_path = "";
         if (pressed) {
-            texture_path = "data/buttons/" + icon_filename + "Down.png";
+            texture_path = "buttons/" + icon_filename + "Down.png";
         } else {
-            texture_path = "data/buttons/" + icon_filename + "Up.png";
+            texture_path = "buttons/" + icon_filename + "Up.png";
         }
         
         texture = loadImage(texture_path);
@@ -295,9 +307,9 @@ class Button {
     void redraw() {
         image(texture, x, y);
         fill(t.theme[0]);
-        textAlign(LEFT);
+        textAlign(CENTER);
         textFont(fonts[0], 12);
-        text(label, x, y - 2);
+        text(label, x + this.width / 2, y - 2);
     }
 
 

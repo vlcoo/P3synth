@@ -2,12 +2,11 @@ import java.io.*;
 import java.util.Map.*;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 22.67;
+final float VERCODE = 22.69;
 
 Player player;
 PImage[] logo_anim;
 PImage[] osc_type_textures;
-PImage bg_gradient;
 PFont[] fonts;
 ThemeEngine t;
 ButtonToolbar media_buttons;
@@ -22,7 +21,7 @@ void setup() {
     
     SinOsc warmup = new SinOsc(PARENT);
     warmup.freq(100);
-    warmup.amp(0.01);
+    warmup.amp(0.1);
     warmup.play();    // has to be done so the audio driver is prepared for what we're about to do to 'em...*/
     
     size(724, 420);
@@ -44,8 +43,8 @@ void setup() {
 
 
 void draw() {
-    if (!player.stopped) {
-        player.redraw();
+    player.redraw();
+    if (player.playing_state != -1) {
         int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/4)) % 8;
         image(logo_anim[n], 311, 10);
     }
@@ -133,9 +132,6 @@ void setup_images() {
         PImage img = loadImage("graphics/osc_" + i + ".png");
         osc_type_textures[i+1] = img;
     }
-    
-    bg_gradient = loadImage("graphics/gradient.png");
-    bg_gradient.resize(width, bg_gradient.height);
 }
 
 
@@ -161,13 +157,13 @@ void setup_buttons() {
     Button b2 = new Button("stop", "Exit");
     Button b3 = new Button("pause", "Pause");
     Button[] buttons_ctrl = {b1, b3, b2};
-    media_buttons = new ButtonToolbar(150, 16, 1.2, 0, buttons_ctrl);
+    media_buttons = new ButtonToolbar(150, 16, 1.3, 0, buttons_ctrl);
     
     b1 = new Button("info", "Help");
     b2 = new Button("confTheme", "Theme");
     b3 = new Button("update", "Update");
     Button[] buttons_set = {b2, b1, b3};
-    setting_buttons = new ButtonToolbar(470, 16, 1.2, 0, buttons_set);
+    setting_buttons = new ButtonToolbar(464, 16, 1.3, 0, buttons_set);
     
     b_meta_msgs = new Button(682, 376, "message", "Hist.");    // next to the player's message bar
 }
@@ -180,20 +176,22 @@ void mouseClicked() {
             Button b = media_buttons.get_button("Play");
             b.set_pressed(true);
             File file = ui.showFileSelection("MIDI files", "mid", "midi");
-            if (!try_play_file(file) && player.seq == null) b.set_pressed(false);
+            if (!try_play_file(file)) b.set_pressed(false);
             else media_buttons.get_button("Pause").set_pressed(false);
+            redraw_all();
         }
         
         else if(media_buttons.collided("Exit")) {
             media_buttons.get_button("Exit").set_pressed(true);
             ui.showWaitingDialog("Exiting...", "Please wait");
-            player.stop_all();
+            player.set_playing_state(-1);
             exit();
         }
         
         else if(media_buttons.collided("Pause")) {
+            if (player.playing_state == -1) return;
             Button b = media_buttons.get_button("Pause");
-            if (!player.set_paused(!b.pressed)) return;
+            player.set_playing_state( b.pressed ? 1 : 0 );
             b.set_pressed(!b.pressed);
         }
         
@@ -212,7 +210,8 @@ void mouseClicked() {
         }
         
         else if(setting_buttons.collided("Help")) {
-            ui.showInfoDialog(
+            ui.showPicture("Info", new File(dataPath("") + "/graphics/help.png"));
+            /*ui.showInfoDialog(
                 "Thanks for using P3synth (v" + VERCODE + ")!\n\n" + 
                 
                 "PLAY: open a new MIDI file to play.\n" +
@@ -227,7 +226,7 @@ void mouseClicked() {
                 
                 "This is proof of concept software. Beware of the bugs.\n" +
                 "For more, check out: https://vlcoo.github.io"
-            );
+            );*/
         }
         
         else if(b_meta_msgs.collided() && player != null) {
@@ -242,7 +241,6 @@ void mouseClicked() {
                 b_meta_msgs.set_pressed(false);
                 dialog_meta_msgs.close();
             }
-            //ui.showInfoDialog(player.history_text_messages);
         }
         
         else if(setting_buttons.collided("Update")) {
@@ -278,7 +276,6 @@ boolean try_play_file(File selection) {
     if (selection != null) {
         String filename = selection.getAbsolutePath();
         String response = player.play_file(filename);
-        redraw_all();
         
         if (!response.equals("")) {
             ui.showErrorDialog(response, "Can't play");

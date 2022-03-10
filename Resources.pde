@@ -1,3 +1,9 @@
+String check_and_shrink_string(String original, int max_len) {
+     if (original.length() > max_len) original = original.substring(0, max_len - 3) + "...";
+     return original;
+}
+
+
 class ThemeEngine {
     HashMap<String, int[]> available_themes = new HashMap<String, int[]>();
     int[] theme;

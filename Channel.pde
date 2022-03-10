@@ -6,9 +6,10 @@ public class ChannelOsc {
     Env[] circular_array_envs;
     int curr_env_index = 0;
     float curr_global_amp = 1.0;    // channel volume (0.0 to 1.0)
-    float curr_global_bend = 0.0;   // channel pitch bend (-2.0 to 0.0 to 2.0 semitones)
+    float curr_global_bend = 0.0;   // channel pitch bend (-curr_bend_range to curr_bend_range semitones)
     float curr_global_pan = 0.0;    // channel stereo panning (-1.0 to 1.0)
-    boolean silenced = false;
+    float curr_bend_range = 2.0;    // channel pitch bend range +/- semitones... uh, sure.
+    boolean silenced = false;       // mute button
     int osc_type;
     float[] env_values;
     Oscillator osc;
@@ -20,6 +21,7 @@ public class ChannelOsc {
     // values to be read by the display...:
     float last_amp = 0.0;
     float last_freq = 0;
+    int last_notecode = -1;
     
     
     ChannelOsc() {
@@ -86,6 +88,7 @@ public class ChannelOsc {
         
         last_amp = amp;
         last_freq = freq;
+        last_notecode = note_code;
         /*curr_env_index++;
         if (curr_env_index >= CIRCULAR_ARR_SIZE) curr_env_index = 0;*/
     }
@@ -98,11 +101,13 @@ public class ChannelOsc {
         
         last_amp = 0.0;
         last_freq = 0.0;
+        last_notecode = -1;
     }
     
     
     void set_osc_type(float osc_type) {    // if 0.0 < value < 1.0, then pulse osc
-        reset();
+        shut_up();
+        current_notes.clear();
         
         if (osc_type > 0.0 && osc_type < 1.0) {
             this.osc_type = 0;
@@ -128,11 +133,13 @@ public class ChannelOsc {
     void set_bend(int bits_lsb, int bits_msb) {
         // i can't believe i finally achieved this...
         int value = (bits_msb << 7) + bits_lsb;
-        curr_global_bend = map(value, 0, 16383, -1.0, 1.0) * 2;
+        curr_global_bend = map(value, 0, 16383, -1.0, 1.0) * curr_bend_range;
         float freq_ratio = (float) Math.pow(2, curr_global_bend / 12.0); 
         
         for (Entry<Integer, SoundObject> s_pair : current_notes.entrySet()) {
-            ((Oscillator) s_pair.getValue()).freq(midi_to_freq(s_pair.getKey()) * freq_ratio);
+            float new_freq = midi_to_freq(s_pair.getKey()) * freq_ratio;
+            ((Oscillator) s_pair.getValue()).freq(new_freq);
+            last_freq = new_freq;
         }
     }
     
@@ -146,17 +153,22 @@ public class ChannelOsc {
     }
     
     
-    void reset() {
-        for (int note_code : current_notes.keySet()) {
-            stop_note(note_code);
-        }
+    void shut_up() {
+        for (int note_code : current_notes.keySet()) stop_note(note_code);
+    }
+    
+    
+    void reset_params() {
         current_notes.clear();
         last_amp = 0.0;
         last_freq = 0;
+        last_notecode = -1;
         osc_type = -1; 
         pulse_width = 0.5;
+        curr_global_amp = 1.0;
         curr_global_bend = 0.0;
         curr_global_pan = 0.0;
+        curr_bend_range = 2.0;
     }
 }
 
@@ -172,7 +184,7 @@ class ChannelOscDrum extends ChannelOsc {
         // preloading samples...
         samples = new SoundFile[4];
         for (int i = 1; i <= samples.length; i++) {
-            samples[i-1] = new SoundFile(PARENT, "data/samples/" + i + ".wav");
+            samples[i-1] = new SoundFile(PARENT, "samples/" + i + ".wav");
         }
     }
     
@@ -191,12 +203,14 @@ class ChannelOscDrum extends ChannelOsc {
         
         last_amp = amp;
         last_freq = sample_code;
+        last_notecode = note_code;
     }
     
     
     void stop_note(int note_code) {
         last_amp = 0.0;
         last_freq = 0;
+        last_notecode = -1;
     }
     
     
