@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.Map.*;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 22.69;
+final float VERCODE = calc_today_vercode();    // smart...
 
 Player player;
 PImage[] logo_anim;
@@ -12,6 +12,7 @@ ThemeEngine t;
 ButtonToolbar media_buttons;
 ButtonToolbar setting_buttons;
 Button b_meta_msgs;
+Button b_reload_file;
 WaitingDialog dialog_meta_msgs;
 HashMap<String, String> config_map;
 
@@ -116,6 +117,7 @@ void redraw_all() {
     image(logo_anim[0], 311, 10);
     player.redraw();
     b_meta_msgs.redraw();
+    b_reload_file.redraw();
 }
 
 
@@ -153,7 +155,7 @@ void setup_fonts() {
 
 
 void setup_buttons() {
-    Button b1 = new Button("play", "Play");
+    Button b1 = new Button("play", "Open");
     Button b2 = new Button("stop", "Exit");
     Button b3 = new Button("pause", "Pause");
     Button[] buttons_ctrl = {b1, b3, b2};
@@ -166,17 +168,18 @@ void setup_buttons() {
     setting_buttons = new ButtonToolbar(464, 16, 1.3, 0, buttons_set);
     
     b_meta_msgs = new Button(682, 376, "message", "Hist.");    // next to the player's message bar
+    b_reload_file = new Button(12, 376, "reload", "Replay");
 }
 
 
 
 void mouseClicked() {
     if (mouseButton == LEFT) {
-        if(media_buttons.collided("Play")) {
-            Button b = media_buttons.get_button("Play");
+        if(media_buttons.collided("Open")) {
+            Button b = media_buttons.get_button("Open");
             b.set_pressed(true);
             File file = ui.showFileSelection("MIDI files", "mid", "midi");
-            if (!try_play_file(file)) b.set_pressed(false);
+            if (!try_play_file(file) && player.playing_state == -1) b.set_pressed(false);
             else media_buttons.get_button("Pause").set_pressed(false);
             redraw_all();
         }
@@ -199,7 +202,7 @@ void mouseClicked() {
             String selection = new UiBooster().showSelectionDialog(
                 "What color scheme?",
                 "Config",
-                Arrays.asList("Fresh Blue", "Hot Red", "Crispy Green", "GX Peach")
+                new ArrayList(t.available_themes.keySet())
             );
 
             
@@ -210,23 +213,22 @@ void mouseClicked() {
         }
         
         else if(setting_buttons.collided("Help")) {
-            ui.showPicture("Info", new File(dataPath("") + "/graphics/help.png"));
-            /*ui.showInfoDialog(
+            ui.showInfoDialog(
                 "Thanks for using P3synth (v" + VERCODE + ")!\n\n" + 
                 
                 "PLAY: open a new MIDI file to play.\n" +
                 "PAUSE: pause any playing music or resume if paused.\n" +
                 "EXIT: safely close the program.\n\n" +
                 
-                "The other button(s) next to those can control various options.\n\n" +
+                "The buttons on the other side can control various options.\n\n" +
                 
                 "Press the X on any channel to mute it.\n" +
                 "You can use the lower left rectangle to control the song's position.\n" +
                 "The lower right rectangle shows the last text message the MIDI sent out.\n\n" +
                 
-                "This is proof of concept software. Beware of the bugs.\n" +
-                "For more, check out: https://vlcoo.github.io"
-            );*/
+                "Please beware of the bugs.\n" +
+                "vlcoo.github.io  |  github.com/vlcoo/P3synth"
+            );
         }
         
         else if(b_meta_msgs.collided() && player != null) {
@@ -256,6 +258,10 @@ void mouseClicked() {
                 );
             }
             else ui.showInfoDialog("You're running the latest version of P3synth.");
+        }
+        
+        else if(b_reload_file.collided()) {
+            player.reload_curr_file();
         }
         
         else {

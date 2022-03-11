@@ -44,14 +44,14 @@ class ChannelDisplay {
     
     
     private void update_all_values() {
-        meter_vu_target = parent.curr_global_amp * parent.last_amp;
+        meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_amp;
         
         if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
         if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/2 * abs(meter_vu_lerped - meter_vu_target);
         //if (abs(meter_vu_lerped - meter_vu_target) < METER_LERP_QUICKNESS)
         //    meter_vu_lerped = meter_vu_target;
         
-        meter_ch_volume = parent.curr_global_amp;
+        meter_ch_volume = parent.curr_global_amp * parent.amp_multiplier;
         meter_velocity = parent.last_amp;
         
         int notecode = parent.last_notecode;
@@ -73,9 +73,7 @@ class ChannelDisplay {
     
     void check_buttons() {
         if (button_mute.collided()) {
-            boolean curr_pressed = button_mute.pressed;
-            button_mute.set_pressed(!curr_pressed);
-            parent.silenced = !curr_pressed;
+            parent.set_muted(!button_mute.pressed);
         }
     }
     
@@ -186,11 +184,11 @@ class PlayerDisplay {
     int x, y;
     Player parent;
     
-    final int POS_X_POSBAR = 12;
+    final int POS_X_POSBAR = 50;
     final int POS_Y_POSBAR = 64;
-    final int POS_X_MESSAGEBAR = 374;
-    final int WIDTH_POSBAR = 338;
-    final int WIDTH_MESSAGEBAR = 300;
+    final int POS_X_MESSAGEBAR = 366;
+    final int WIDTH_POSBAR = 308;
+    final int WIDTH_MESSAGEBAR = 308;
     final int HEIGHT_POSBAR = 18;
     
     String label_filename = "";
@@ -210,7 +208,7 @@ class PlayerDisplay {
         label_filename = java.nio.file.Paths.get(parent.curr_filename)
             .getFileName().toString().replaceFirst("[.][^.]+$", "");
             // what a mess... but it works
-        label_filename = check_and_shrink_string(label_filename, 40);
+        label_filename = check_and_shrink_string(label_filename, 68);
         
         if (parent.seq.getTickLength() > 0) meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
         label_message = player.last_text_message;    
@@ -246,7 +244,7 @@ class PlayerDisplay {
             textAlign(CENTER, CENTER);
             fill(t.theme[0]);
             textFont(fonts[3]);
-            text(label_filename, x + POS_X_POSBAR + WIDTH_POSBAR/2, y + POS_Y_POSBAR - 12);
+            text(label_filename, width / 2, y + POS_Y_POSBAR - 12);
         
         // Messages label
             stroke(t.theme[0]);

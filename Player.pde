@@ -111,6 +111,10 @@ class Player {
         return "";
     }
     
+    void reload_curr_file() {
+        setTicks(0);
+    }
+    
     
     void vu_anim_step() {
         for (ChannelOsc c : channels) {
@@ -219,6 +223,10 @@ class Player {
                         
                         case 10:
                         channels[chan].set_pan(data2);       // chan pan
+                        break;
+                        
+                        case 11:                             // chan expression
+                        channels[chan].set_expression(data2);
                         break;
                         
                         case 100:

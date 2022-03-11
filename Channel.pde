@@ -6,9 +6,11 @@ public class ChannelOsc {
     Env[] circular_array_envs;
     int curr_env_index = 0;
     float curr_global_amp = 1.0;    // channel volume (0.0 to 1.0)
+    float amp_multiplier =  1.0;    // basically expression
     float curr_global_bend = 0.0;   // channel pitch bend (-curr_bend_range to curr_bend_range semitones)
     float curr_global_pan = 0.0;    // channel stereo panning (-1.0 to 1.0)
     float curr_bend_range = 2.0;    // channel pitch bend range +/- semitones... uh, sure.
+    String please_how_many_midi_params_are_there = "dw, around 100+";    // darn.
     boolean silenced = false;       // mute button
     int osc_type;
     float[] env_values;
@@ -69,6 +71,7 @@ public class ChannelOsc {
             s = get_new_osc(this.osc_type);
             s.freq(freq);
             s.pan(curr_global_pan);
+            s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier);    // give a volume boost to TRI and SIN
             current_notes.put(note_code, s);
         }
         
@@ -79,7 +82,6 @@ public class ChannelOsc {
         }*/
         if (osc_type == 0) ((Pulse) s).width(pulse_width);
         
-        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp);    // give a volume boost to TRI and SIN
         if (env_values != null && env_values.length == 3) {
             Env e = new Env(PARENT);
             e.play(s, env_values[0], env_values[1], 1.0, env_values[2]);    // will come back to envelopes... great potential but buggy :(
@@ -121,12 +123,22 @@ public class ChannelOsc {
     }
     
     
-    void set_volume(int volume) {
-        float amp = map(volume, 0, 127, 0.0, 1.0);
+    void set_expression(int value) {
+        amp_multiplier = map(value, 0, 127, 0.0, 1.0);
+        set_all_oscs_amp();
+    }
+    
+    
+    void set_volume(int value) {
+        curr_global_amp = map(value, 0, 127, 0.0, 1.0);
+        set_all_oscs_amp();
+    }
+    
+    
+    void set_all_oscs_amp() {
         for (SoundObject s : current_notes.values()) {
-            ((Oscillator) s).amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * amp);
+            ((Oscillator) s).amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier);
         }
-        curr_global_amp = amp;
     }
     
     
@@ -150,6 +162,13 @@ public class ChannelOsc {
         for (SoundObject s : current_notes.values()) {
             s.pan(curr_global_pan);
         }
+    }
+    
+    
+    void set_muted(boolean how) {
+        if (how) shut_up();
+        silenced = how;
+        disp.button_mute.set_pressed(how);
     }
     
     
@@ -198,7 +217,7 @@ class ChannelOscDrum extends ChannelOsc {
         SoundFile s = (SoundFile) samples[sample_code-1];
         if (s == null || s.isPlaying()) return;
         
-        s.amp(amp * 0.26);
+        s.amp(amp * 0.22);
         s.play();
         
         last_amp = amp;
@@ -217,7 +236,7 @@ class ChannelOscDrum extends ChannelOsc {
     void set_volume(int volume) {
         float amp = map(volume, 0, 127, 0.0, 1.0);
         for (SoundObject s : current_notes.values()) {
-            ((SoundFile) s).amp(0.26 * amp);
+            ((SoundFile) s).amp(0.22 * amp);
         }
         curr_global_amp = amp;
     }
