@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.Map.*;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = calc_today_vercode();    // smart...
+final float VERCODE = 22.73;
 
 Player player;
 PImage[] logo_anim;
@@ -134,6 +134,8 @@ void setup_images() {
         PImage img = loadImage("graphics/osc_" + i + ".png");
         osc_type_textures[i+1] = img;
     }
+    
+    surface.setIcon(loadImage("graphics/icon.png"));
 }
 
 
@@ -247,17 +249,19 @@ void mouseClicked() {
         
         else if(setting_buttons.collided("Update")) {
             WaitingDialog wd = ui.showWaitingDialog("Checking for updates...", "Please wait");
-            boolean b = check_if_newer_ver();
+            float v = check_if_newer_ver();
             wd.close();
             
-            if (b) {
+            if (v > 0) {
                 ui.showConfirmDialog(
-                    "There is a newer version available. Download now?", "Update",
+                    "There is a newer release available. Download now?", "Update",
                     new Runnable() { public void run() { download_latest_ver(); } },
                     new Runnable() { public void run() {} }
                 );
             }
-            else ui.showInfoDialog("You're running the latest version of P3synth.");
+            else if (v == 0) ui.showInfoDialog("You're running the latest release of P3synth.");
+            else  ui.showInfoDialog("You're running P3synth from source newer than the latest release.");
+            
         }
         
         else if(b_reload_file.collided()) {
