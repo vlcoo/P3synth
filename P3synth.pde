@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.Map.*;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 22.73;
+final float VERCODE = 22.78;
 
 Player player;
 PImage[] logo_anim;
@@ -54,6 +54,32 @@ void draw() {
             player.vu_anim_step();
         }
     }
+}
+
+
+
+void readMIDIn() {
+    try {
+        while (true) {
+            String in = player.stdIn.readLine();
+            if (in != null) {
+                try {
+                    ArrayList<Integer> codes = new ArrayList<Integer>();
+                    for(String s : in.split(" ")) codes.add(Integer.valueOf(s));
+                    ShortMessage msg = new ShortMessage(
+                        codes.get(1),
+                        codes.get(0),
+                        codes.get(2),
+                        codes.get(3)
+                    );
+                    long t = 0;
+                    player.event_listener.send(msg, t);
+                }
+                catch (InvalidMidiDataException imde) {}
+            }
+        }
+    }
+    catch (IOException e) { println("no socket???"); }
 }
 
 
@@ -166,7 +192,8 @@ void setup_buttons() {
     b1 = new Button("info", "Help");
     b2 = new Button("confTheme", "Theme");
     b3 = new Button("update", "Update");
-    Button[] buttons_set = {b2, b1, b3};
+    Button b4 = new Button("play", "MID-In");
+    Button[] buttons_set = {b2, b1, b3, b4};
     setting_buttons = new ButtonToolbar(464, 16, 1.3, 0, buttons_set);
     
     b_meta_msgs = new Button(682, 376, "message", "Hist.");    // next to the player's message bar
@@ -266,6 +293,11 @@ void mouseClicked() {
         
         else if(b_reload_file.collided()) {
             player.reload_curr_file();
+        }
+        
+        else if(setting_buttons.collided("MID-In")) {
+            setting_buttons.get_button("MID-In").set_pressed(true);
+            player.start_midi_in();
         }
         
         else {

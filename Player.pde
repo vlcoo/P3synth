@@ -1,15 +1,21 @@
 import javax.sound.midi.*;
+import java.net.*;
 
 
 class Player {
     Sequencer seq;
+    Thread sent;
+    Socket sock;
+    BufferedReader stdIn;
     PlayerDisplay disp;
     int midi_resolution;
     ChannelOsc[] channels;
     long prev_position;
     String curr_filename = "- no file -";
     int curr_rpn = 0;
+    int curr_bank = 0;
     int playing_state = -1;    // -1 no loaded, 0 paused, 1 playing
+    boolean midi_in_mode = false;
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
     
@@ -86,6 +92,35 @@ class Player {
             default:
             break;
         }
+    }
+    
+    
+    void start_midi_in() {
+        try { sock = new Socket("localhost",7726); }
+        catch (UnknownHostException uhe) { println("host???"); }
+        catch (IOException ioe) { println("io???"); }
+        
+        sent = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    stdIn = new BufferedReader(
+                        new InputStreamReader(
+                            sock.getInputStream()
+                        )
+                    );
+                    thread("readMIDIn");
+                }
+                catch (IOException e) { println("no socket???"); }
+            }
+        });
+        
+        sent.start();
+        try { sent.join(); }
+        catch (InterruptedException e) { println("interrupted???"); }
+        
+        set_playing_state(-1);
+        midi_in_mode = true;
     }
     
     
@@ -168,6 +203,7 @@ class Player {
         history_text_messages = "";
         if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
         curr_rpn = 0;
+        curr_bank = 0;
         curr_filename = "- no file -";
     }
     
@@ -217,12 +253,16 @@ class Player {
                 
                 else if (comm == ShortMessage.CONTROL_CHANGE) {
                     switch (data1) {
+                        case 0:                              // bank select
+                        curr_bank = data2;
+                        break;
+                        
                         case 7:
                         channels[chan].set_volume(data2);    // chan vol
                         break;
                         
-                        case 10:
-                        channels[chan].set_pan(data2);       // chan pan
+                        case 10:                             // chan pan
+                        channels[chan].set_pan(data2);
                         break;
                         
                         case 11:                             // chan expression
