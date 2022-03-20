@@ -25,11 +25,11 @@ class ThemeEngine {
 
     private void load_themes() {
         // theme is an array of ints (colors in hex) in order: darker, dark, neutral, light, lightest
-        int[] theme_01 = {#001247, #3c3cb0, #809fff, #bfcfff, #ffffff};
+        int[] theme_01 = {#000000, #4343ba, #809fff, #bfcfff, #ffffff};
         available_themes.put("Fresh Blue", theme_01);
         int[] theme_03 = {#000000, #d50000, #ff5131, #ff867c, #ffffff};
         available_themes.put("Hot Red", theme_03);
-        int[] theme_04 = {#1b5e20, #00b248, #00e676, #66ffa6, #ffffff};
+        int[] theme_04 = {#000000, #00b248, #00e676, #66ffa6, #ffffff};
         available_themes.put("Crisp Green", theme_04);
         int[] theme_06 = {#000000, #c6a700, #fdd835, #ffff6b, #ffffff};
         available_themes.put("Summer Yellow", theme_06);

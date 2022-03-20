@@ -1,23 +1,34 @@
 import java.io.*;
 import java.util.Map.*;
+import java.awt.*;
+import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 22.78;
+final float VERCODE = 22.79;
 
+Frame frame;
 Player player;
+LabsModule win_labs;
 PImage[] logo_anim;
 PImage[] osc_type_textures;
+PImage logo_icon;
 PFont[] fonts;
 ThemeEngine t;
 ButtonToolbar media_buttons;
 ButtonToolbar setting_buttons;
 Button b_meta_msgs;
 Button b_reload_file;
+Button b_labs;
 WaitingDialog dialog_meta_msgs;
 HashMap<String, String> config_map;
 
+void settings() {
+    size(724, 420);
+}
+
+
+
 void setup() {
-    text("please wait!\nloading...", 12, 12);
     new Sound(PARENT).volume(0.7);    // oscillators at volume 1 are ridiculously loud... 
     
     SinOsc warmup = new SinOsc(PARENT);
@@ -25,8 +36,9 @@ void setup() {
     warmup.amp(0.1);
     warmup.play();    // has to be done so the audio driver is prepared for what we're about to do to 'em...*/
     
-    size(724, 420);
+    //size(724, 460);
     surface.setTitle("vlco_o P3synth");
+    frame = ( (PSurfaceAWT.SmoothCanvas)surface.getNative() ).getFrame();
     
     setup_images();
     setup_fonts();
@@ -40,9 +52,9 @@ void setup() {
     warmup = null;
     redraw_all();
 }
-
-
-
+    
+    
+    
 void draw() {
     player.redraw();
     if (player.playing_state != -1) {
@@ -54,32 +66,6 @@ void draw() {
             player.vu_anim_step();
         }
     }
-}
-
-
-
-void readMIDIn() {
-    try {
-        while (true) {
-            String in = player.stdIn.readLine();
-            if (in != null) {
-                try {
-                    ArrayList<Integer> codes = new ArrayList<Integer>();
-                    for(String s : in.split(" ")) codes.add(Integer.valueOf(s));
-                    ShortMessage msg = new ShortMessage(
-                        codes.get(1),
-                        codes.get(0),
-                        codes.get(2),
-                        codes.get(3)
-                    );
-                    long t = 0;
-                    player.event_listener.send(msg, t);
-                }
-                catch (InvalidMidiDataException imde) {}
-            }
-        }
-    }
-    catch (IOException e) { println("no socket???"); }
 }
 
 
@@ -141,9 +127,10 @@ void redraw_all() {
     media_buttons.redraw();
     setting_buttons.redraw();
     image(logo_anim[0], 311, 10);
-    player.redraw();
+    //player.redraw();
     b_meta_msgs.redraw();
     b_reload_file.redraw();
+    b_labs.redraw();
 }
 
 
@@ -161,7 +148,8 @@ void setup_images() {
         osc_type_textures[i+1] = img;
     }
     
-    surface.setIcon(loadImage("graphics/icon.png"));
+    logo_icon = loadImage("graphics/icon.png");
+    surface.setIcon(logo_icon);
 }
 
 
@@ -192,12 +180,12 @@ void setup_buttons() {
     b1 = new Button("info", "Help");
     b2 = new Button("confTheme", "Theme");
     b3 = new Button("update", "Update");
-    Button b4 = new Button("play", "MID-In");
-    Button[] buttons_set = {b2, b1, b3, b4};
+    Button[] buttons_set = {b2, b1, b3};
     setting_buttons = new ButtonToolbar(464, 16, 1.3, 0, buttons_set);
     
     b_meta_msgs = new Button(682, 376, "message", "Hist.");    // next to the player's message bar
     b_reload_file = new Button(12, 376, "reload", "Replay");
+    b_labs = new Button(12, 16, "labs", "Labs");
 }
 
 
@@ -295,9 +283,26 @@ void mouseClicked() {
             player.reload_curr_file();
         }
         
-        else if(setting_buttons.collided("MID-In")) {
-            setting_buttons.get_button("MID-In").set_pressed(true);
-            player.start_midi_in();
+        else if(b_labs.collided()) {
+            if (!b_labs.pressed) {
+                if (win_labs == null) {
+                    win_labs = new LabsModule(frame);
+                    String[] args = {""};
+                    runSketch(args, win_labs);
+                }
+                else {
+                    win_labs.selfFrame.setVisible(true);
+                }
+            }
+            
+            else {
+                win_labs.selfFrame.setVisible(false);
+            }
+            b_labs.set_pressed(!b_labs.pressed);
+            win_labs.reposition();
+            
+            /*
+            */
         }
         
         else {
@@ -310,6 +315,7 @@ void mouseClicked() {
     media_buttons.redraw();
     setting_buttons.redraw();
     b_meta_msgs.redraw();
+    b_labs.redraw();
 }
 
 

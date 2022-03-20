@@ -22,6 +22,7 @@ class Player {
     // values to be read by the display...
     String history_text_messages = "";              // keeping track of every text (meta) msg gotten
     String last_text_message = "- no message -";    // default text if nothing received
+    float curr_detune = 0.0;
     
     
     Player() {
@@ -95,35 +96,6 @@ class Player {
     }
     
     
-    void start_midi_in() {
-        try { sock = new Socket("localhost",7726); }
-        catch (UnknownHostException uhe) { println("host???"); }
-        catch (IOException ioe) { println("io???"); }
-        
-        sent = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    stdIn = new BufferedReader(
-                        new InputStreamReader(
-                            sock.getInputStream()
-                        )
-                    );
-                    thread("readMIDIn");
-                }
-                catch (IOException e) { println("no socket???"); }
-            }
-        });
-        
-        sent.start();
-        try { sent.join(); }
-        catch (InterruptedException e) { println("interrupted???"); }
-        
-        set_playing_state(-1);
-        midi_in_mode = true;
-    }
-    
-    
     String play_file(String filename) {
         set_playing_state(-1);
         File file = new File(filename);
@@ -148,6 +120,14 @@ class Player {
     
     void reload_curr_file() {
         setTicks(0);
+    }
+    
+    
+    void set_all_detune(float freq_detune) {
+        curr_detune = freq_detune;
+        for (ChannelOsc c : channels) {
+            c.set_all_oscs_detune(freq_detune);
+        }
     }
     
     

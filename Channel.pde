@@ -10,6 +10,7 @@ public class ChannelOsc {
     float curr_global_bend = 0.0;   // channel pitch bend (-curr_bend_range to curr_bend_range semitones)
     float curr_global_pan = 0.0;    // channel stereo panning (-1.0 to 1.0)
     float curr_bend_range = 2.0;    // channel pitch bend range +/- semitones... uh, sure.
+    float curr_detune = 0.0;
     String please_how_many_midi_params_are_there = "dw, around 100+";    // darn.
     boolean silenced = false;       // mute button
     int osc_type;
@@ -69,7 +70,7 @@ public class ChannelOsc {
         Oscillator s = (Oscillator) current_notes.get(note_code);
         if (s == null) {
             s = get_new_osc(this.osc_type);
-            s.freq(freq);
+            s.freq(freq + curr_detune);
             s.pan(curr_global_pan);
             s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier);    // give a volume boost to TRI and SIN
             current_notes.put(note_code, s);
@@ -135,6 +136,13 @@ public class ChannelOsc {
     }
     
     
+    void set_all_oscs_detune(float value) {
+        shut_up();
+        current_notes.clear();
+        curr_detune = value;
+    }
+    
+    
     void set_all_oscs_amp() {
         for (SoundObject s : current_notes.values()) {
             ((Oscillator) s).amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier);
@@ -150,7 +158,7 @@ public class ChannelOsc {
         
         for (Entry<Integer, SoundObject> s_pair : current_notes.entrySet()) {
             float new_freq = midi_to_freq(s_pair.getKey()) * freq_ratio;
-            ((Oscillator) s_pair.getValue()).freq(new_freq);
+            ((Oscillator) s_pair.getValue()).freq(new_freq + curr_detune);
             last_freq = new_freq;
         }
     }
@@ -185,6 +193,7 @@ public class ChannelOsc {
         osc_type = -1; 
         pulse_width = 0.5;
         curr_global_amp = 1.0;
+        amp_multiplier = 1.0;
         curr_global_bend = 0.0;
         curr_global_pan = 0.0;
         curr_bend_range = 2.0;
@@ -217,7 +226,7 @@ class ChannelOscDrum extends ChannelOsc {
         SoundFile s = (SoundFile) samples[sample_code-1];
         if (s == null || s.isPlaying()) return;
         
-        s.amp(amp * 0.22);
+        s.amp(amp * 0.22 * curr_global_amp);
         s.play();
         
         last_amp = amp;
@@ -234,11 +243,7 @@ class ChannelOscDrum extends ChannelOsc {
     
     
     void set_volume(int volume) {
-        float amp = map(volume, 0, 127, 0.0, 1.0);
-        for (SoundObject s : current_notes.values()) {
-            ((SoundFile) s).amp(0.22 * amp);
-        }
-        curr_global_amp = amp;
+        curr_global_amp = map(volume, 0, 127, 0.0, 1.0);
     }
     
     
