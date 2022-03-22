@@ -4,7 +4,7 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 22.79;
+final float VERCODE = 22.81;
 
 Frame frame;
 Player player;
@@ -120,7 +120,7 @@ void redraw_all() {
     push();
     noFill();
     strokeWeight(2);
-    stroke(t.theme[0]);
+    stroke(t.theme[1]);
     rect(1, 1, width-2, height-2);
     pop();
     
@@ -193,17 +193,20 @@ void setup_buttons() {
 void mouseClicked() {
     if (mouseButton == LEFT) {
         if(media_buttons.collided("Open")) {
+            cursor(WAIT);
             Button b = media_buttons.get_button("Open");
             b.set_pressed(true);
             File file = ui.showFileSelection("MIDI files", "mid", "midi");
             if (!try_play_file(file) && player.playing_state == -1) b.set_pressed(false);
             else media_buttons.get_button("Pause").set_pressed(false);
+            cursor(ARROW);
             redraw_all();
         }
         
         else if(media_buttons.collided("Exit")) {
+            cursor(WAIT);
             media_buttons.get_button("Exit").set_pressed(true);
-            ui.showWaitingDialog("Exiting...", "Please wait");
+            //ui.showWaitingDialog("Exiting...", "Please wait");
             player.set_playing_state(-1);
             exit();
         }
@@ -221,7 +224,7 @@ void mouseClicked() {
                 "Config",
                 new ArrayList(t.available_themes.keySet())
             );
-
+            if (selection == null) return;
             
             config_map.put("theme name", selection);
             save_config();
@@ -263,9 +266,11 @@ void mouseClicked() {
         }
         
         else if(setting_buttons.collided("Update")) {
-            WaitingDialog wd = ui.showWaitingDialog("Checking for updates...", "Please wait");
+            cursor(WAIT);
+            //WaitingDialog wd = ui.showWaitingDialog("Checking for updates...", "Please wait");
             float v = check_if_newer_ver();
-            wd.close();
+            cursor(ARROW);
+            //wd.close();
             
             if (v > 0) {
                 ui.showConfirmDialog(
@@ -286,9 +291,11 @@ void mouseClicked() {
         else if(b_labs.collided()) {
             if (!b_labs.pressed) {
                 if (win_labs == null) {
+                    cursor(WAIT);
                     win_labs = new LabsModule(frame);
                     String[] args = {""};
                     runSketch(args, win_labs);
+                    cursor(ARROW);
                 }
                 else {
                     win_labs.selfFrame.setVisible(true);

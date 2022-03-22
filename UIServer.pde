@@ -54,13 +54,14 @@ class ChannelDisplay {
         meter_ch_volume = parent.curr_global_amp * parent.amp_multiplier;
         meter_velocity = parent.last_amp;
         
-        int notecode = parent.last_notecode;
+        int notecode = parent.last_notecode - 20;
         if (id == 9) { if (notecode == -1) label_note = "|  |"; else label_note = "/  \\"; }
         else {
-            if (notecode == -1) label_note = "-";
+            if (notecode < 0) label_note = "-";
             else {
                 int octave = int(notecode / 12) + 1;
                 label_note = NOTE_NAMES[notecode % 12] + octave;
+                if (win_labs != null && win_labs.altered_values()) label_note += "?";
             }
         }
         
@@ -129,10 +130,10 @@ class ChannelDisplay {
         // Volume meter
             strokeWeight(1);
             noFill();
-            rect(x+36, y+52, 56, 8);
+            rect(x+36, y+52, 56, 8, 4);
             fill(t.theme[3]);
             noStroke();
-            rect(x+37, y+53, 55 * meter_ch_volume, 7);
+            rect(x+37, y+53, 55 * meter_ch_volume, 7, 4);
         
         // Freq label
             fill(t.theme[0]);
@@ -142,10 +143,10 @@ class ChannelDisplay {
         // Velocity meter
             stroke(t.theme[0]);
             fill(t.theme[1]);
-            rect(x+98, y+17, 28, 8);
+            rect(x+98, y+17, 28, 8, 4);
             fill(t.theme[3]);
             noStroke();
-            rect(x+99, y+18, 27 * meter_velocity, 7);
+            rect(x+99, y+18, 27 * meter_velocity, 7, 4);
         
         // Osc type label
             fill(t.theme[0]);
@@ -191,6 +192,7 @@ class PlayerDisplay {
     final int WIDTH_MESSAGEBAR = 308;
     final int HEIGHT_POSBAR = 18;
     
+    float label_labs = 0.0;
     String label_filename = "";
     float meter_midi_pos = 0.0;
     String label_message = "- no message -";
@@ -213,6 +215,7 @@ class PlayerDisplay {
         if (parent.seq.getTickLength() > 0) meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
         label_message = player.last_text_message;    
         label_message = check_and_shrink_string(label_message, 36);    // we don't want it to get out of the rectangle...
+        //label_labs = parent.curr_detune;
     }
     
     
@@ -228,17 +231,13 @@ class PlayerDisplay {
     void redraw(boolean renew_values) {
         if (renew_values) update_all_values();
         
-        /*fill(t.theme[2]);
-        noStroke();
-        rect(x+1, y+40, 680, 63);*/
-        
         // Pos meter
             stroke(t.theme[0]);
             fill(t.theme[1]);
-            rect(x + POS_X_POSBAR, y + POS_Y_POSBAR, WIDTH_POSBAR, HEIGHT_POSBAR);
+            rect(x + POS_X_POSBAR, y + POS_Y_POSBAR, WIDTH_POSBAR, HEIGHT_POSBAR, 4);
             noStroke();
             fill(t.theme[3]);
-            rect(x+1 + POS_X_POSBAR, y+1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1);
+            rect(x+1 + POS_X_POSBAR, y+1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1, 4);
             
         // File name label
             textAlign(CENTER, CENTER);
@@ -249,10 +248,19 @@ class PlayerDisplay {
         // Messages label
             stroke(t.theme[0]);
             fill(t.theme[1]);
-            rect(x + POS_X_MESSAGEBAR, y + POS_Y_POSBAR, WIDTH_MESSAGEBAR, HEIGHT_POSBAR);    // reusing some dimensions...
+            rect(x + POS_X_MESSAGEBAR, y + POS_Y_POSBAR, WIDTH_MESSAGEBAR, HEIGHT_POSBAR, 4);    // reusing some dimensions...
             fill(t.theme[4]);
             textFont(fonts[1]);
             text(label_message,  x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, y + POS_Y_POSBAR + 9);
+        
+        /*
+        fill(t.theme[2]);
+        noStroke();
+        rect(44, 10, 80, 50);
+        textAlign(LEFT);
+        fill(t.theme[0]);
+        textFont(fonts[0]);
+        text(label_labs, 44, 32);*/
     }
     
     
@@ -268,6 +276,7 @@ class Button {
     String icon_filename, label;
     PImage texture;
     boolean pressed = false;
+    boolean show_label = true;
     
     
     Button(String icon, String label) {
@@ -307,12 +316,24 @@ class Button {
         fill(t.theme[0]);
         textAlign(CENTER);
         textFont(fonts[0], 12);
-        text(label, x + this.width / 2, y - 2);
+        if (show_label) text(label, x + this.width / 2, y - 2);
+    }
+    
+    void redraw(PApplet win) {
+        win.image(texture, x, y);
+        win.fill(t.theme[0]);
+        win.textAlign(CENTER);
+        win.textFont(fonts[0], 12);
+        if (show_label) win.text(label, x + this.width / 2, y - 2);
     }
 
 
     boolean collided() {
         return (mouseX > this.x && mouseX < this.width + this.x) && (mouseY > this.y && mouseY < this.height + this.y);
+    }
+    
+    boolean collided(PApplet win) {
+        return (win.mouseX > this.x && win.mouseX < this.width + this.x) && (win.mouseY > this.y && win.mouseY < this.height + this.y);
     }
 }
 
@@ -348,11 +369,22 @@ class ButtonToolbar {
     void redraw() {
         for (Button b : buttons.values()) b.redraw();
     }
+    
+    void redraw(PApplet win) {
+        for (Button b : buttons.values()) b.redraw(win);
+    }
 
 
     boolean collided(String b_name) {
         Button b = this.buttons.get(b_name);
         if (b == null) return false;
         return b.collided();
+    }
+    
+    
+    boolean collided(String b_name, PApplet win) {
+        Button b = this.buttons.get(b_name);
+        if (b == null) return false;
+        return b.collided(win);
     }
 }

@@ -4,6 +4,7 @@ import java.net.*;
 
 class Player {
     Sequencer seq;
+    KeyTransformer ktrans;
     Thread sent;
     Socket sock;
     BufferedReader stdIn;
@@ -14,18 +15,24 @@ class Player {
     String curr_filename = "- no file -";
     int curr_rpn = 0;
     int curr_bank = 0;
+    int mid_rootnote = 0;      // C
+    int mid_scale = 0;         // major
     int playing_state = -1;    // -1 no loaded, 0 paused, 1 playing
     boolean midi_in_mode = false;
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
     
+    final int TEMPO_LIMIT = 1000;
+    
     // values to be read by the display...
     String history_text_messages = "";              // keeping track of every text (meta) msg gotten
     String last_text_message = "- no message -";    // default text if nothing received
-    float curr_detune = 0.0;
+    float last_freqDetune = 0.0;
+    float last_noteDetune = 0.0;
     
     
     Player() {
+        ktrans = new KeyTransformer();
         channels = new ChannelOsc[16];
         
         for (int i = 0; i < 16; i++) {
@@ -103,6 +110,7 @@ class Player {
         try {
             Sequence mid = MidiSystem.getSequence(file);
             seq.setSequence(mid);
+            if (seq.getTempoInBPM() >= TEMPO_LIMIT) throw new InvalidMidiDataException();
             
             midi_resolution = mid.getResolution();
             curr_filename = filename;
@@ -123,10 +131,17 @@ class Player {
     }
     
     
-    void set_all_detune(float freq_detune) {
-        curr_detune = freq_detune;
+    void set_all_freqDetune(float freq_detune) {
+        last_freqDetune = freq_detune;
         for (ChannelOsc c : channels) {
-            c.set_all_oscs_detune(freq_detune);
+            c.set_all_oscs_freqDetune(freq_detune);
+        }
+    }
+    
+    void set_all_noteDetune(float note_detune) {
+        last_noteDetune = note_detune;
+        for (ChannelOsc c : channels) {
+            c.set_all_oscs_noteDetune(note_detune);
         }
     }
     
@@ -184,6 +199,8 @@ class Player {
         if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
         curr_rpn = 0;
         curr_bank = 0;
+        mid_rootnote = 0;
+        mid_scale = 0;
         curr_filename = "- no file -";
     }
     
@@ -283,6 +300,12 @@ class Player {
             byte[] data = msg.getData();
             
             //if (type == 3) return;    // ignoring track names for now... actually scratch that
+            if (type == 89) {
+                mid_scale = data[data.length - 1];
+                if (mid_scale == 0) mid_rootnote = major_rootnotes[data[0] + 7];
+                else if (mid_scale == 1) mid_rootnote = minor_rootnotes[data[0] + 7];
+                return;
+            }
             
             String text = bytes_to_text(data);
             if (!text.equals("")) {

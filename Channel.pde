@@ -10,7 +10,8 @@ public class ChannelOsc {
     float curr_global_bend = 0.0;   // channel pitch bend (-curr_bend_range to curr_bend_range semitones)
     float curr_global_pan = 0.0;    // channel stereo panning (-1.0 to 1.0)
     float curr_bend_range = 2.0;    // channel pitch bend range +/- semitones... uh, sure.
-    float curr_detune = 0.0;
+    float curr_freqDetune = 0.0;
+    float curr_noteDetune = 0.0;
     String please_how_many_midi_params_are_there = "dw, around 100+";    // darn.
     boolean silenced = false;       // mute button
     int osc_type;
@@ -64,13 +65,14 @@ public class ChannelOsc {
         if (curr_global_amp <= 0 || silenced) return;
         stop_note(note_code);
         
-        float freq = midi_to_freq(note_code);
+        int mod_note_code = floor( note_code + curr_noteDetune + player.ktrans.transform[(note_code - 2 - player.mid_rootnote) % 12] );
+        float freq = midi_to_freq(mod_note_code);
         float amp = map(velocity, 0, 127, 0.0, 1.0);
         
         Oscillator s = (Oscillator) current_notes.get(note_code);
         if (s == null) {
             s = get_new_osc(this.osc_type);
-            s.freq(freq + curr_detune);
+            s.freq(freq + curr_freqDetune);
             s.pan(curr_global_pan);
             s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier);    // give a volume boost to TRI and SIN
             current_notes.put(note_code, s);
@@ -91,7 +93,7 @@ public class ChannelOsc {
         
         last_amp = amp;
         last_freq = freq;
-        last_notecode = note_code;
+        last_notecode = mod_note_code;
         /*curr_env_index++;
         if (curr_env_index >= CIRCULAR_ARR_SIZE) curr_env_index = 0;*/
     }
@@ -136,10 +138,16 @@ public class ChannelOsc {
     }
     
     
-    void set_all_oscs_detune(float value) {
+    void set_all_oscs_freqDetune(float value) {
         shut_up();
         current_notes.clear();
-        curr_detune = value;
+        curr_freqDetune = value;
+    }
+    
+    void set_all_oscs_noteDetune(float value) {
+        shut_up();
+        current_notes.clear();
+        curr_noteDetune = value;
     }
     
     
@@ -157,8 +165,8 @@ public class ChannelOsc {
         float freq_ratio = (float) Math.pow(2, curr_global_bend / 12.0); 
         
         for (Entry<Integer, SoundObject> s_pair : current_notes.entrySet()) {
-            float new_freq = midi_to_freq(s_pair.getKey()) * freq_ratio;
-            ((Oscillator) s_pair.getValue()).freq(new_freq + curr_detune);
+            float new_freq = midi_to_freq(s_pair.getKey() + curr_noteDetune) * freq_ratio;
+            ((Oscillator) s_pair.getValue()).freq(new_freq + curr_freqDetune);
             last_freq = new_freq;
         }
     }

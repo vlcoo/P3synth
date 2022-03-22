@@ -41,6 +41,45 @@ class ThemeEngine {
 }
 
 
+
+class KeyTransformer {
+    HashMap<String, int[]> available_transforms = new HashMap<String, int[]>();
+    int[] transform;
+    
+    KeyTransformer() {
+        load_transforms();
+        set_transform("None");
+    }
+    
+    
+    void set_transform(String name) {
+        transform = available_transforms.get(name);
+        if (transform == null) {
+            transform = available_transforms.get("None");
+        }
+    }
+    
+    
+    private void load_transforms() {
+        int[] tr_01 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        available_transforms.put("None", tr_01);
+        int[] tr_02 = {0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0};
+        available_transforms.put("Major", tr_02);
+        int[] tr_03 = {0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, -1};
+        available_transforms.put("Minor", tr_03);
+    }
+}
+
+
+int[] major_rootnotes = {
+    12, 5, 1, 8, 3, 10, 5, 0, 7, 2, 9, 4, 11, 6, 1
+};
+
+int[] minor_rootnotes = {
+    8, 3, 10, 5, 0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10
+};
+
+
 float[] prog_osc_relationship = {
     2, 1, 1, 0.5, 0.5, 0.5, 0.3, 0.3, 0.3, 1, 1, 1, 1, 0.5,
     0.3, 0.3, 1, 1, 1, 0.7, 0.7, 0.3, 0.7, 0.3, 2, 1, 2,
