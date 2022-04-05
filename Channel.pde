@@ -1,4 +1,5 @@
 import processing.sound.*;
+import java.util.Stack;
 
 
 public class ChannelOsc {
@@ -6,7 +7,7 @@ public class ChannelOsc {
     Env[] circular_array_envs;
     int curr_env_index = 0;
     float curr_global_amp = 1.0;    // channel volume (0.0 to 1.0)
-    float amp_multiplier =  1.0;    // basically expression
+    float amp_multiplier = 1.0;    // basically expression
     float curr_global_bend = 0.0;   // channel pitch bend (-curr_bend_range to curr_bend_range semitones)
     float curr_global_pan = 0.0;    // channel stereo panning (-1.0 to 1.0)
     float curr_bend_range = 2.0;    // channel pitch bend range +/- semitones... uh, sure.
@@ -20,7 +21,7 @@ public class ChannelOsc {
     float pulse_width = 0.5;
     ChannelDisplay disp;
     
-    final int CIRCULAR_ARR_SIZE = 32;
+    final int CIRCULAR_ARR_SIZE = 16;
     
     // values to be read by the display...:
     float last_amp = 0.0;
@@ -65,7 +66,7 @@ public class ChannelOsc {
         if (curr_global_amp <= 0 || silenced) return;
         stop_note(note_code);
         
-        int mod_note_code = floor( note_code + curr_noteDetune + player.ktrans.transform[(note_code - 2 - player.mid_rootnote) % 12] );
+        int mod_note_code = floor( note_code + curr_noteDetune + player.ktrans.transform[(note_code - 2 + player.mid_rootnote) % 12] );
         float freq = midi_to_freq(mod_note_code);
         float amp = map(velocity, 0, 127, 0.0, 1.0);
         
@@ -73,10 +74,10 @@ public class ChannelOsc {
         if (s == null) {
             s = get_new_osc(this.osc_type);
             s.freq(freq + curr_freqDetune);
-            s.pan(curr_global_pan);
-            s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier);    // give a volume boost to TRI and SIN
             current_notes.put(note_code, s);
         }
+        s.pan(curr_global_pan);
+        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier);    // give a volume boost to TRI and SIN
         
         /*Env e = circular_array_envs[curr_env_index];
         if (e == null) {
@@ -85,9 +86,9 @@ public class ChannelOsc {
         }*/
         if (osc_type == 0) ((Pulse) s).width(pulse_width);
         
-        if (env_values != null && env_values.length == 3) {
+        if (env_values != null && env_values.length == 4) {
             Env e = new Env(PARENT);
-            e.play(s, env_values[0], env_values[1], 1.0, env_values[2]);    // will come back to envelopes... great potential but buggy :(
+            e.play(s, env_values[0], env_values[1], env_values[2], env_values[3]);    // will come back to envelopes... great potential but buggy :(
         }
         else s.play();
         

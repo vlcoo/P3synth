@@ -99,7 +99,7 @@ float program_to_osc(int prog) {
 
 
 float[] program_to_env(int prog) {
-    // attack time, sustain time, release time
+    // attack time, sustain time, sustain amp, release time
     return null;
 }
 

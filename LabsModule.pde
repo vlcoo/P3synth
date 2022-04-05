@@ -10,7 +10,7 @@ public class LabsModule extends PApplet {
     
     
     public void settings() {
-        this.size(210, 220);
+        this.size(210, 290);
     }
     
     
@@ -22,12 +22,12 @@ public class LabsModule extends PApplet {
         
         this.selfFrame = ( (PSurfaceAWT.SmoothCanvas)this.surface.getNative() ).getFrame();
         reposition();
-        redraw_all();
+        this.redraw_all();
     }
     
     
     public void draw() {
-        
+        this.redraw_all();
     }
     
     
@@ -40,7 +40,11 @@ public class LabsModule extends PApplet {
         b3.show_label = false;
         Button b4 = new Button("transform", "transform");
         b4.show_label = false;
-        Button[] bs = new Button[] {b1, b2, b3, b4};
+        Button b5 = new Button("sysSynth", "sysSynth");
+        b5.show_label = false;
+        Button b6 = new Button("midiIn", "midiIn");
+        b6.show_label = false;
+        Button[] bs = new Button[] {b1, b2, b3, b4, b5, b6};
         all_buttons = new ButtonToolbar(8, 45, 0, 1.3, bs);
         
     }
@@ -58,7 +62,7 @@ public class LabsModule extends PApplet {
         if (mouseButton == LEFT) {
             if (all_buttons.collided("freqDetune", this)) {
                 try {
-                    float val = Float.parseFloat(ui.showTextInputDialog("New detune in frequency?"));
+                    float val = Float.parseFloat(ui.showTextInputDialog("New detune in Hz?"));
                     player.set_all_freqDetune(val);
                 }
                 catch (NumberFormatException nfe) {
@@ -69,7 +73,7 @@ public class LabsModule extends PApplet {
         
             else if (all_buttons.collided("noteDetune", this)) {
                 try {
-                    float val = Float.parseFloat(ui.showTextInputDialog("New detune in semitones?"));
+                    float val = Float.parseFloat(ui.showTextInputDialog("New transpose in semitones?"));
                     player.set_all_noteDetune(val);
                 }
                 catch (NumberFormatException nfe) {
@@ -80,19 +84,19 @@ public class LabsModule extends PApplet {
             
             else if (all_buttons.collided("tempo", this)) {
                 try {
-                    int val = Integer.parseInt(ui.showTextInputDialog("New tempo in BPM?"));
-                    if (val <= 0 || val > player.TEMPO_LIMIT) throw new NumberFormatException();
-                    player.seq.setTempoInBPM(val);
+                    float val = Float.parseFloat(ui.showTextInputDialog("New speed factor?"));
+                    if (val <= 0 || val > 4) throw new NumberFormatException();
+                    player.seq.setTempoFactor(val);
                 }
                 catch (NumberFormatException nfe) {
-                    ui.showErrorDialog("Invalid value. Examples: 120, 90, 200", "Can't");
+                    ui.showErrorDialog("Invalid value. Examples: 0.1, 0.5, 1, 2.8", "Can't");
                 }
                 catch (NullPointerException npe) {}
             }
             
             else if (all_buttons.collided("transform", this)) {
                 String selection = new UiBooster().showSelectionDialog(
-                    "New mode?",
+                    "New key/chord mode?",
                     "LabsModule",
                     new ArrayList(player.ktrans.available_transforms.keySet())
                 );
@@ -103,9 +107,28 @@ public class LabsModule extends PApplet {
                     curr_transform = selection;
                 }
             }
+            
+            else if (all_buttons.collided("sysSynth", this)) {
+                ui.showWarningDialog(
+                    "Volume is louder and some options are not\n" + 
+                    "available while System Synth is ON.\n" +
+                    "Please mind the loading time.",
+                    "LabsModule"
+                );
+                PARENT.cursor(WAIT);
+                this.cursor(WAIT);
+                player.set_seq_synth(!player.system_synth);
+                PARENT.cursor(ARROW);
+                this.cursor(ARROW);
+            }
+            
+            else if (all_buttons.collided("midiIn", this)) {
+                if (!player.midi_in_mode) player.start_midi_in();
+                else player.stop_midi_in();
+            }
         }
         
-        this.redraw_all();
+        //this.redraw_all();
     }
     
     
@@ -113,7 +136,9 @@ public class LabsModule extends PApplet {
         if (all_buttons.collided("freqDetune", this) || 
             all_buttons.collided("noteDetune", this) || 
             all_buttons.collided("tempo", this) || 
-            all_buttons.collided("transform", this)
+            all_buttons.collided("transform", this) || 
+            all_buttons.collided("sysSynth", this) || 
+            all_buttons.collided("midiIn", this)
             ) {
             this.cursor(HAND);
         }
@@ -136,13 +161,15 @@ public class LabsModule extends PApplet {
         this.textFont(fonts[2]);
         this.fill(t.theme[0]);
         this.textAlign(CENTER, CENTER);
-        this.text("Welcome to P3synth's\nexperimenting module!", this.width/2, 22);
+        this.text("Experimental options!\nUse at own risk.", this.width/2, 22);
         
         this.textFont(fonts[1]);
         this.text(player.last_freqDetune, 179, 60);
         this.text(player.last_noteDetune, 179, 99);
-        this.text(floor(player.seq.getTempoInBPM()), 179, 138);
+        this.text("x" + player.seq.getTempoFactor(), 179, 138);
         this.text(curr_transform, 179, 177);
+        this.text((player.system_synth ? "On" : "Off"), 179, 216);
+        this.text((player.midi_in_mode ? "On" : "Off"), 179, 255);
         
         all_buttons.redraw(this);
     }

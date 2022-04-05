@@ -54,7 +54,7 @@ class ChannelDisplay {
         meter_ch_volume = parent.curr_global_amp * parent.amp_multiplier;
         meter_velocity = parent.last_amp;
         
-        int notecode = parent.last_notecode - 20;
+        int notecode = parent.last_notecode - 21;
         if (id == 9) { if (notecode == -1) label_note = "|  |"; else label_note = "/  \\"; }
         else {
             if (notecode < 0) label_note = "-";
@@ -230,6 +230,10 @@ class PlayerDisplay {
     
     void redraw(boolean renew_values) {
         if (renew_values) update_all_values();
+        
+        fill(t.theme[2]);
+        noStroke();
+        rect(58, y+42, 600, 20);
         
         // Pos meter
             stroke(t.theme[0]);

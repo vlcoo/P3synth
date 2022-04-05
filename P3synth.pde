@@ -4,7 +4,8 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 22.81;
+final float VERCODE = 22.89;
+final float OVERALL_VOL = 0.7;
 
 Frame frame;
 Player player;
@@ -29,7 +30,7 @@ void settings() {
 
 
 void setup() {
-    new Sound(PARENT).volume(0.7);    // oscillators at volume 1 are ridiculously loud... 
+    new Sound(PARENT).volume(OVERALL_VOL);    // oscillators at volume 1 are ridiculously loud... 
     
     SinOsc warmup = new SinOsc(PARENT);
     warmup.freq(100);
@@ -59,7 +60,7 @@ void draw() {
     player.redraw();
     if (player.playing_state != -1) {
         int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/4)) % 8;
-        image(logo_anim[n], 311, 10);
+        image(logo_anim[abs(n)], 311, 10);
     }
     else {
         if (player.vu_anim_val >= 0.0) {
@@ -83,7 +84,7 @@ void load_config(boolean just_opened) {
     catch (FileNotFoundException fnfe) {
         println("load fnfe");
         ui.showWarningDialog(
-            "Welcome! You may want to lower the volume.\n\n" + 
+            "Welcome! You may want to adjust your device's volume now.\n\n" + 
             "Press PLAY to begin or EXIT to quit at any time.",
             
             "First time warning"
@@ -131,6 +132,8 @@ void redraw_all() {
     b_meta_msgs.redraw();
     b_reload_file.redraw();
     b_labs.redraw();
+    
+    if (player.syn != null) text(player.channels[0].curr_bend_range, 100, 20);
 }
 
 
@@ -208,6 +211,8 @@ void mouseClicked() {
             media_buttons.get_button("Exit").set_pressed(true);
             //ui.showWaitingDialog("Exiting...", "Please wait");
             player.set_playing_state(-1);
+            if (player.midi_in_mode) player.stop_midi_in();
+            player.seq.close();
             exit();
         }
         
@@ -240,7 +245,8 @@ void mouseClicked() {
                 "PAUSE: pause any playing music or resume if paused.\n" +
                 "EXIT: safely close the program.\n\n" +
                 
-                "The buttons on the other side can control various options.\n\n" +
+                "The Labs menu has experimental playback/tinkering options!\n" +
+                "The buttons on the other side provide some info and configs.\n\n" +
                 
                 "Press the X on any channel to mute it.\n" +
                 "You can use the lower left rectangle to control the song's position.\n" +
@@ -307,9 +313,6 @@ void mouseClicked() {
             }
             b_labs.set_pressed(!b_labs.pressed);
             win_labs.reposition();
-            
-            /*
-            */
         }
         
         else {

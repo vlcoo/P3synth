@@ -1,27 +1,59 @@
-import socket
+import socket, time
 import mido
+import mido.backends.rtmidi
 
-HOST = "localhost"
-PORT = 7726
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+conn = None
 
-s.bind((HOST, PORT))
-s.listen(10)
-conn, addr = s.accept()
+def main():
+    global conn
+    print(" " + "_"*30 + "\n|_____P3synth_MIDIn_Server_____|")
+    print("Welcome! Warning: this is an unstable addon.\nFor detailed instructions, see the project's website.\n")
 
-with mido.open_input(mido.get_input_names()[1]) as port:
-    while True:
-        msg = port.poll()
-        if msg is not None:
-            b = [str(x) for x in msg.bytes()]
-            try:
-                conn.send(f"{str(msg.channel)} {b[0]} {b[1]} {b[2]}\n".encode())
-            except (AttributeError, IndexError):
-                continue
-        '''
-        if midi_in.poll():
-            event = midi_in.read(1)
-            conn.send((str(event[0][0]).replace("[", "").replace("]", "") + "\n").encode())
-        '''
+    HOST = "localhost"
+    PORT = 7723
 
-conn.close()
+    for n, i in enumerate(mido.get_input_names()):
+        print(f"{n} .. {i}")
+    port_num = mido.get_input_names()[int(input("Which port to listen to? "))]
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    print(f"\nSending to {HOST}:{PORT}...")
+    print("Please run P3synth and activate MIDI In mode!", end="\r")
+
+    s.bind((HOST, PORT))
+    s.listen(10)
+    conn, addr = s.accept()
+    print("OK!" + " "*50, end="\n\n")
+
+    with mido.open_input(port_num) as port:
+        while True:
+            msg = port.poll()
+            if msg is not None:
+                b = [str(x) for x in msg.bytes()]
+                print("[*]", end="\r")
+                try:
+                    conn.send(f"{str(msg.channel)} {b[0]} {b[1]} {b[2]}\n".encode())
+                except (AttributeError, IndexError):
+                    continue
+                except (BrokenPipeError, ConnectionResetError):
+                    print("\nDisconnected!")
+                    return
+
+            else:
+                time.sleep(0.01)
+                print("[ ]", end="\r")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+        if conn is not None:
+            conn.close()
+
+    except KeyboardInterrupt:
+        if conn is not None:
+            conn.send("goodbye".encode())
+            conn.close()
+
+    print("\nConnection closed.")
