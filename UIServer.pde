@@ -55,7 +55,7 @@ class ChannelDisplay {
         meter_velocity = parent.last_amp;
         
         int notecode = parent.last_notecode - 21;
-        if (id == 9) { if (notecode == -1) label_note = "|  |"; else label_note = "/  \\"; }
+        if (id == 9) { if (notecode <= -1) label_note = "|  |"; else label_note = "/  \\"; }
         else {
             if (notecode < 0) label_note = "-";
             else {

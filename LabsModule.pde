@@ -10,7 +10,7 @@ public class LabsModule extends PApplet {
     
     
     public void settings() {
-        this.size(210, 290);
+        this.size(210, 300);
     }
     
     
