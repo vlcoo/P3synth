@@ -9,9 +9,8 @@ class ThemeEngine {
     int[] theme;
 
 
-    ThemeEngine(String theme_name) {
+    ThemeEngine() {
         load_themes();
-        set_theme(theme_name);
     }
     
     
@@ -25,7 +24,7 @@ class ThemeEngine {
 
     private void load_themes() {
         // theme is an array of ints (colors in hex) in order: darker, dark, neutral, light, lightest
-        int[] theme_01 = {#000000, #4343ba, #809fff, #bfcfff, #ffffff};
+        int[] theme_01 = {#000000, #5151cf, #809fff, #bfcfff, #ffffff};
         available_themes.put("Fresh Blue", theme_01);
         int[] theme_03 = {#000000, #d50000, #ff5131, #ff867c, #ffffff};
         available_themes.put("Hot Red", theme_03);

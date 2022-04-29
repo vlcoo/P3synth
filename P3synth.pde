@@ -1,15 +1,18 @@
+import drop.*;
+
 import java.io.*;
 import java.util.Map.*;
 import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 22.89;
+final float VERCODE = 22.99;
 final float OVERALL_VOL = 0.7;
 
 Frame frame;
 Player player;
 LabsModule win_labs;
+DnDListener dnd_listener;
 PImage[] logo_anim;
 PImage[] osc_type_textures;
 PImage logo_icon;
@@ -18,15 +21,14 @@ ThemeEngine t;
 ButtonToolbar media_buttons;
 ButtonToolbar setting_buttons;
 Button b_meta_msgs;
-Button b_reload_file;
+Button b_loop;
 Button b_labs;
 WaitingDialog dialog_meta_msgs;
 HashMap<String, String> config_map;
 
 void settings() {
-    size(724, 420);
+    size(724, 436);
 }
-
 
 
 void setup() {
@@ -35,19 +37,24 @@ void setup() {
     SinOsc warmup = new SinOsc(PARENT);
     warmup.freq(100);
     warmup.amp(0.1);
-    warmup.play();    // has to be done so the audio driver is prepared for what we're about to do to 'em...*/
+    warmup.play();    // has to be done so the audio driver is prepared for what we're about to do to 'em...
     
     //size(724, 460);
     surface.setTitle("vlco_o P3synth");
     frame = ( (PSurfaceAWT.SmoothCanvas)surface.getNative() ).getFrame();
     
+    t = new ThemeEngine();
+    
     setup_images();
     setup_fonts();
     setup_buttons();
     setup_config();
+    t.set_theme(config_map.get("theme name"));
     
-    t = new ThemeEngine(config_map.get("theme name"));
     player = new Player();
+    SDrop drop = new SDrop(PARENT);
+    dnd_listener = new DnDListener();
+    drop.addDropListener(dnd_listener);
     
     warmup.stop();
     warmup = null;
@@ -57,8 +64,8 @@ void setup() {
     
     
 void draw() {
-    player.redraw();
-    if (player.playing_state != -1) {
+    redraw_all();
+    if (player.playing_state == 1) {
         int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/4)) % 8;
         image(logo_anim[abs(n)], 311, 10);
     }
@@ -67,6 +74,9 @@ void draw() {
             player.vu_anim_step();
         }
     }
+    
+    if (dnd_listener.draggedOnto) player.custom_info_msg = "OK!";
+    else player.custom_info_msg = "";
 }
 
 
@@ -83,17 +93,29 @@ void load_config(boolean just_opened) {
     }
     catch (FileNotFoundException fnfe) {
         println("load fnfe");
-        ui.showWarningDialog(
-            "Welcome! You may want to adjust your device's volume now.\n\n" + 
-            "Press PLAY to begin or EXIT to quit at any time.",
+        ui.showInfoDialog(
+            "Welcome! Please check your audio levels.\n\n" +
             
-            "First time warning"
+            "For help on advanced usage, check the HELP button or\n" +
+            "the project's website at https://vlcoo.github.io/p3synth\n"
         );
         save_config();
     }
     catch (IOException ioe) {
         println("load ioe");
     }
+    
+    try {
+        String s = config_map.get("custom theme");
+        if (s != null && !s.equals("") && s.split(",").length == 5) {
+            int[] colors = new int[5];
+            for (int i = 0; i < 5; i++) {
+                colors[i] = unhex(s.split(",")[i]);
+            }
+            t.available_themes.put("Custom loaded", colors);
+        }
+    }
+    catch (NumberFormatException nfe) { ui.showErrorDialog("Custom theme data is invalid.", "Can't load custom theme"); }
 }
 
 
@@ -128,12 +150,10 @@ void redraw_all() {
     media_buttons.redraw();
     setting_buttons.redraw();
     image(logo_anim[0], 311, 10);
-    //player.redraw();
+    player.redraw();
     b_meta_msgs.redraw();
-    b_reload_file.redraw();
+    b_loop.redraw();
     b_labs.redraw();
-    
-    if (player.syn != null) text(player.channels[0].curr_bend_range, 100, 20);
 }
 
 
@@ -174,7 +194,7 @@ void setup_fonts() {
 
 
 void setup_buttons() {
-    Button b1 = new Button("play", "Open");
+    Button b1 = new Button(12, 376, "reload", "Replay");
     Button b2 = new Button("stop", "Exit");
     Button b3 = new Button("pause", "Pause");
     Button[] buttons_ctrl = {b1, b3, b2};
@@ -187,7 +207,8 @@ void setup_buttons() {
     setting_buttons = new ButtonToolbar(464, 16, 1.3, 0, buttons_set);
     
     b_meta_msgs = new Button(682, 376, "message", "Hist.");    // next to the player's message bar
-    b_reload_file = new Button(12, 376, "reload", "Replay");
+    b_loop = new Button(12, 376, "loop", "Loop");
+    b_loop.set_pressed(true);
     b_labs = new Button(12, 16, "labs", "Labs");
 }
 
@@ -195,18 +216,7 @@ void setup_buttons() {
 
 void mouseClicked() {
     if (mouseButton == LEFT) {
-        if(media_buttons.collided("Open")) {
-            cursor(WAIT);
-            Button b = media_buttons.get_button("Open");
-            b.set_pressed(true);
-            File file = ui.showFileSelection("MIDI files", "mid", "midi");
-            if (!try_play_file(file) && player.playing_state == -1) b.set_pressed(false);
-            else media_buttons.get_button("Pause").set_pressed(false);
-            cursor(ARROW);
-            redraw_all();
-        }
-        
-        else if(media_buttons.collided("Exit")) {
+        if(media_buttons.collided("Exit")) {
             cursor(WAIT);
             media_buttons.get_button("Exit").set_pressed(true);
             //ui.showWaitingDialog("Exiting...", "Please wait");
@@ -221,6 +231,10 @@ void mouseClicked() {
             Button b = media_buttons.get_button("Pause");
             player.set_playing_state( b.pressed ? 1 : 0 );
             b.set_pressed(!b.pressed);
+        }
+        
+        else if(media_buttons.collided("Replay")) {
+            player.reload_curr_file();
         }
         
         else if(setting_buttons.collided("Theme")) {
@@ -241,7 +255,8 @@ void mouseClicked() {
             ui.showInfoDialog(
                 "Thanks for using P3synth (v" + VERCODE + ")!\n\n" + 
                 
-                "PLAY: open a new MIDI file to play.\n" +
+                "Drag and drop a new MIDI file to play.\n" +
+                "REPLAY: skip back to the beginning of the song.\n" +
                 "PAUSE: pause any playing music or resume if paused.\n" +
                 "EXIT: safely close the program.\n\n" +
                 
@@ -250,6 +265,7 @@ void mouseClicked() {
                 
                 "Press the X on any channel to mute it.\n" +
                 "You can use the lower left rectangle to control the song's position.\n" +
+                "The arrows above and below it control the loop start and end positions!\n" +
                 "The lower right rectangle shows the last text message the MIDI sent out.\n\n" +
                 
                 "Please beware of the bugs.\n" +
@@ -290,8 +306,12 @@ void mouseClicked() {
             
         }
         
-        else if(b_reload_file.collided()) {
-            player.reload_curr_file();
+        else if(b_loop.collided()) {
+            if (player.seq == null) return;
+            
+            int n = b_loop.pressed ? 0 : 64;
+            player.seq.setLoopCount(n);
+            b_loop.set_pressed(!b_loop.pressed);
         }
         
         else if(b_labs.collided()) {
@@ -328,6 +348,39 @@ void mouseClicked() {
     b_labs.redraw();
 }
 
+
+void mouseDragged() {
+    if (mouseButton == LEFT) {
+        player.disp.check_buttons();
+    }
+}
+
+
+// this doesn't stand for dungeons and dragons
+class DnDListener extends DropListener {
+    boolean draggedOnto = false;
+    int PADDING = 64;
+    
+    DnDListener() {
+        setTargetRect(PADDING, PADDING, width-PADDING*2, height-PADDING*2);
+    }
+    
+    void dropEnter() {
+        draggedOnto = true;
+    }
+    
+    void dropLeave() {
+        draggedOnto = false;
+    }
+    
+    void dropEvent(DropEvent e) {
+        cursor(WAIT);
+        if (try_play_file(e.file())) {
+            media_buttons.get_button("Pause").set_pressed(false);
+        }
+        cursor(ARROW);
+    }
+}
 
 
 boolean try_play_file(File selection) {

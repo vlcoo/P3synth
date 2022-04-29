@@ -51,6 +51,9 @@ class ChannelDisplay {
         //if (abs(meter_vu_lerped - meter_vu_target) < METER_LERP_QUICKNESS)
         //    meter_vu_lerped = meter_vu_target;
         
+        // stop if silenced... not worth it updating the rest of the stuff
+        if (parent.silenced) return;
+        
         meter_ch_volume = parent.curr_global_amp * parent.amp_multiplier;
         meter_velocity = parent.last_amp;
         
@@ -196,35 +199,75 @@ class PlayerDisplay {
     String label_filename = "";
     float meter_midi_pos = 0.0;
     String label_message = "- no message -";
-    ArrayList<Integer> list_keys = new ArrayList<Integer>();
+    float meter_loop_begin = 0.0;
+    float meter_loop_end = 1.0;
+    float meter_loop_begin_X = 0.0;
+    float meter_loop_end_X = 0.0;
+    int meter_loop_begin_Y = 0;
+    int meter_loop_end_Y = 0;
     
     
     PlayerDisplay(int x, int y, Player parent) {
         this.x = x;
         this.y = y;
         this.parent = parent;
+        
+        meter_loop_begin_Y = y + POS_Y_POSBAR;
+        meter_loop_end_Y = y + POS_Y_POSBAR + HEIGHT_POSBAR;
     }
     
     
     private void update_all_values() {
-        label_filename = java.nio.file.Paths.get(parent.curr_filename)
-            .getFileName().toString().replaceFirst("[.][^.]+$", "");
-            // what a mess... but it works
-        label_filename = check_and_shrink_string(label_filename, 68);
+        if (parent.custom_info_msg.equals("")) {
+            label_filename = java.nio.file.Paths.get(parent.curr_filename)
+                .getFileName().toString().replaceFirst("[.][^.]+$", "");
+                // what a mess... but it works
+            label_filename = check_and_shrink_string(label_filename, 68);
+        }
+        else label_filename = parent.custom_info_msg;
         
         if (parent.seq.getTickLength() > 0) meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
         label_message = player.last_text_message;    
         label_message = check_and_shrink_string(label_message, 36);    // we don't want it to get out of the rectangle...
         //label_labs = parent.curr_detune;
+        
+        if (parent.playing_state != -1) {
+            meter_loop_begin = map(parent.seq.getLoopStartPoint(), 0, player.seq.getTickLength(), 0.0, 1.0);
+            if (parent.seq.getLoopEndPoint() == -1) meter_loop_end = 1.0;
+            else meter_loop_end = map(parent.seq.getLoopEndPoint(), 0, player.seq.getTickLength(), 0.0, 1.0);
+        }
+        else {
+            meter_loop_begin = 0.0;
+            meter_loop_end = 1.0;
+        }
+        meter_loop_begin_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_begin);
+        meter_loop_end_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_end);
     }
     
     
     void check_buttons() {
+        if (parent.playing_state == -1) return;
+        
         if (collided_posbar()) {
             if (parent.playing_state == -1) return;
             int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
             parent.setTicks(new_pos);
+            return;
         }
+        
+        int handle_no = collided_loopset_bar();
+        try {
+            if (handle_no == -1) {
+                int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                parent.seq.setLoopStartPoint(new_pos);
+            }
+            
+            else if (handle_no == 1) {
+                int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                parent.seq.setLoopEndPoint(new_pos);
+            }
+        }
+        catch (IllegalArgumentException iae) { }
     }
     
     
@@ -242,6 +285,12 @@ class PlayerDisplay {
             noStroke();
             fill(t.theme[3]);
             rect(x+1 + POS_X_POSBAR, y+1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1, 4);
+        
+        // Loop set meter
+            fill(parent.seq.getLoopCount() == 0 ? t.theme[1] : t.theme[3]);
+            stroke(t.theme[0]);
+            triangle(meter_loop_begin_X, meter_loop_begin_Y, meter_loop_begin_X - 4, meter_loop_begin_Y - 16, meter_loop_begin_X + 4, meter_loop_begin_Y - 16);
+            triangle(meter_loop_end_X, meter_loop_end_Y, meter_loop_end_X - 4, meter_loop_end_Y + 16, meter_loop_end_X + 4, meter_loop_end_Y + 16);
             
         // File name label
             textAlign(CENTER, CENTER);
@@ -270,6 +319,21 @@ class PlayerDisplay {
     
     boolean collided_posbar() {
         return (mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (mouseY > y + POS_Y_POSBAR && mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
+    }
+    
+    
+    int collided_loopset_bar() {
+        int which = 0;    // 0 is not pressed
+        if (parent.seq.getLoopCount() == 0) return 0;
+        
+        if ((mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (mouseY > y + POS_Y_POSBAR - 16 && mouseY < y + POS_Y_POSBAR)) {
+            which = -1;    // -1 is begin
+        }
+        else if ((mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (mouseY > y + POS_Y_POSBAR + HEIGHT_POSBAR && mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR + 16)) {
+            which = 1;    // 1 is end
+        }
+        
+        return which;
     }
 }
 

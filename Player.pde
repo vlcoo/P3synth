@@ -20,7 +20,9 @@ void readMIDIn() {
                     long t = 0;
                     player.event_listener.send(msg, t);
                 }
-                catch (InvalidMidiDataException imde) {}
+                catch (InvalidMidiDataException imde) {
+                    println(imde);
+                }
             }
         }
         
@@ -35,6 +37,9 @@ void readMIDIn() {
 
 
 class Player {
+    final int TEMPO_LIMIT = 1000;
+    final String DEFAULT_STOPPED_MSG = "Drag and drop a file to play...";
+    
     Sequencer seq;
     KeyTransformer ktrans;
     Thread sent;
@@ -44,7 +49,7 @@ class Player {
     int midi_resolution;
     ChannelOsc[] channels;
     long prev_position;
-    String curr_filename = "- no file -";
+    String curr_filename = DEFAULT_STOPPED_MSG;
     int curr_rpn = 0;
     int curr_bank = 0;
     int mid_rootnote = 0;      // C
@@ -55,13 +60,12 @@ class Player {
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
     
-    final int TEMPO_LIMIT = 1000;
-    
     // values to be read by the display...
     String history_text_messages = "";              // keeping track of every text (meta) msg gotten
     String last_text_message = "- no message -";    // default text if nothing received
     float last_freqDetune = 0.0;
     float last_noteDetune = 0.0;
+    String custom_info_msg = "";
     
     
     Synthesizer syn;
@@ -80,9 +84,10 @@ class Player {
     
     Player() {
         ktrans = new KeyTransformer();
-        channels = new ChannelOsc[16];
+        final int nChannels = 16;
+        channels = new ChannelOsc[nChannels];
         
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < nChannels; i++) {
             channels[i] = new ChannelOsc(-1);
             if (i == 9) channels[i] = new ChannelOscDrum();
             
@@ -255,6 +260,13 @@ class Player {
     }
     
     
+    void set_all_osc_types(float osc_type) {
+        for (ChannelOsc c : channels) {
+            c.set_osc_type(osc_type);
+        }
+    }
+    
+    
     void vu_anim_step() {
         for (ChannelOsc c : channels) {
             c.disp.meter_vu_lerped = vu_anim_val;
@@ -312,7 +324,10 @@ class Player {
         curr_bank = 0;
         mid_rootnote = 0;
         mid_scale = 0;
-        curr_filename = "- no file -";
+        curr_filename = DEFAULT_STOPPED_MSG;
+        
+        seq.setLoopEndPoint(-1);
+        seq.setLoopStartPoint(0);
     }
     
     
@@ -426,6 +441,11 @@ class Player {
                 mid_scale = data[data.length - 1];
                 if (mid_scale == 0) mid_rootnote = major_rootnotes[data[0] + 7];
                 else if (mid_scale == 1) mid_rootnote = minor_rootnotes[data[0] + 7];
+                return;
+            }
+            
+            else if (type == 47) {
+                set_playing_state(-1);
                 return;
             }
             
