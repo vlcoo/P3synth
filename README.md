@@ -8,7 +8,7 @@ Supports playback of MID files.
 ### Quick start
 Get the executable JAR file from the [releases](https://github.com/vlcoo/P3synth/releases/latest) page. You will need the latest version of Java 8 (if needed, go [here](https://java.com/en/download/)).
 
-Upon opening, simply press "Open" to begin!
+Upon opening, simply drag and drop a MIDI file onto the program to begin!
 
 ![Instructions](data/graphics/help.png)
 
