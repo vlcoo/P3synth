@@ -6,10 +6,11 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 22.99;
+final float VERCODE = 23.11;
 final float OVERALL_VOL = 0.7;
 
 Frame frame;
+String osname;
 Player player;
 LabsModule win_labs;
 DnDListener dnd_listener;
@@ -17,6 +18,7 @@ PImage[] logo_anim;
 PImage[] osc_type_textures;
 PImage logo_icon;
 PFont[] fonts;
+SoundFile[] samples;
 ThemeEngine t;
 ButtonToolbar media_buttons;
 ButtonToolbar setting_buttons;
@@ -27,7 +29,9 @@ WaitingDialog dialog_meta_msgs;
 HashMap<String, String> config_map;
 
 void settings() {
-    size(724, 436);
+    osname = System.getProperty("os.name");
+    if (osname.contains("Windows")) size(724, 460);
+    else size(724, 430);
 }
 
 
@@ -49,6 +53,7 @@ void setup() {
     setup_fonts();
     setup_buttons();
     setup_config();
+    setup_samples();
     t.set_theme(config_map.get("theme name"));
     
     player = new Player();
@@ -156,6 +161,13 @@ void redraw_all() {
     b_labs.redraw();
 }
 
+
+void setup_samples() {
+    samples = new SoundFile[4];
+    for (int i = 1; i <= samples.length; i++) {
+        samples[i-1] = new SoundFile(PARENT, "samples/" + i + ".wav");
+    }
+}
 
 
 void setup_images() {

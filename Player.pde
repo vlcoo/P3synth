@@ -40,6 +40,7 @@ class Player {
     final int TEMPO_LIMIT = 1000;
     final String DEFAULT_STOPPED_MSG = "Drag and drop a file to play...";
     
+    boolean new_engine = false;
     Sequencer seq;
     KeyTransformer ktrans;
     Thread sent;
@@ -89,7 +90,7 @@ class Player {
         
         for (int i = 0; i < nChannels; i++) {
             channels[i] = new ChannelOsc(-1);
-            if (i == 9) channels[i] = new ChannelOscDrum();
+            if (i == 9) channels[i] = new ChannelOsc(4);
             
             channels[i].create_display(12 + 180 * (i / 4), 64 + 72 * (i % 4), i);
             channels[i].disp.redraw(false);    // draw meters at value 0
@@ -145,6 +146,7 @@ class Player {
     
     String play_file(String filename) {
         set_playing_state(-1);
+        if (midi_in_mode) stop_midi_in();
         File file = new File(filename);
         
         try {
@@ -157,7 +159,7 @@ class Player {
             set_playing_state(1);
         }
         catch(InvalidMidiDataException imde) {
-            return "Invalid Midi data!";
+            return "Invalid MIDI data!";
         }
         catch(IOException ioe) {
             return "I/O Error!";
@@ -234,7 +236,6 @@ class Player {
     
     void stop_midi_in() {
         midi_in_mode = false;
-        shut_up_all();
         sent.interrupt();
         try {
             sock.close();
@@ -242,6 +243,7 @@ class Player {
         }
         catch (IOException ioe) { println("ioe on close???"); }
         ui.showInfoDialog("MIDI In disconnected!");
+        set_playing_state(-1);
     }
     
     
@@ -374,11 +376,13 @@ class Player {
                 }
                 
                 else if (comm == ShortMessage.PROGRAM_CHANGE) {
-                    if (data1 >= 112) channels[chan].curr_global_amp = 0.0;
+                    if (chan == 9) {
+                        channels[chan].set_osc_type(4);
+                    }
                     else {
                         channels[chan].set_osc_type(program_to_osc(data1));
-                        channels[chan].set_env_values(program_to_env(data1));
                     }
+                    channels[chan].midi_program = data1;
                 }
                 
                 else if (comm == ShortMessage.PITCH_BEND) {

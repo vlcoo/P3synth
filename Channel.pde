@@ -4,10 +4,8 @@ import java.util.Stack;
 
 public class ChannelOsc {
     HashMap<Integer, SoundObject> current_notes;    // Pairs <note midi code, oscillator object>
-    Env[] circular_array_envs;
-    int curr_env_index = 0;
     float curr_global_amp = 1.0;    // channel volume (0.0 to 1.0)
-    float amp_multiplier = 1.0;    // basically expression
+    float amp_multiplier = 1.0;     // basically expression
     float curr_global_bend = 0.0;   // channel pitch bend (-curr_bend_range to curr_bend_range semitones)
     float curr_global_pan = 0.0;    // channel stereo panning (-1.0 to 1.0)
     float curr_bend_range = 2.0;    // channel pitch bend range +/- semitones... uh, sure.
@@ -16,7 +14,6 @@ public class ChannelOsc {
     String please_how_many_midi_params_are_there = "dw, around 100+";    // darn.
     boolean silenced = false;       // mute button
     int osc_type;
-    float[] env_values;
     Oscillator osc;
     float pulse_width = 0.5;
     ChannelDisplay disp;
@@ -27,17 +24,16 @@ public class ChannelOsc {
     float last_amp = 0.0;
     float last_freq = 0;
     int last_notecode = -1;
+    int midi_program = 0;
     
     
     ChannelOsc() {
         current_notes = new HashMap<Integer, SoundObject>();
-        circular_array_envs = new Env[CIRCULAR_ARR_SIZE];
     }
     
     
     ChannelOsc(int osc_type) {
         current_notes = new HashMap<Integer, SoundObject>();
-        circular_array_envs = new Env[CIRCULAR_ARR_SIZE];
         set_osc_type(osc_type);
     }
     
@@ -64,9 +60,13 @@ public class ChannelOsc {
     
     void play_note(int note_code, int velocity) {
         if (curr_global_amp <= 0 || silenced) return;
+        if (osc_type == 4) {
+            play_drum(note_code, velocity);
+            return;
+        }
         stop_note(note_code);
         
-        int mod_note_code = floor( note_code + curr_noteDetune + player.ktrans.transform[(note_code - 2 + player.mid_rootnote) % 12] );
+        float mod_note_code =  note_code + curr_noteDetune + player.ktrans.transform[(note_code - 2 + player.mid_rootnote) % 12];
         float freq = midi_to_freq(mod_note_code);
         float amp = map(velocity, 0, 127, 0.0, 1.0);
         
@@ -78,32 +78,38 @@ public class ChannelOsc {
         }
         s.pan(curr_global_pan);
         s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier);    // give a volume boost to TRI and SIN
-        
-        /*Env e = circular_array_envs[curr_env_index];
-        if (e == null) {
-            e = new Env(PARENT);
-            circular_array_envs[curr_env_index] = e;
-        }*/
         if (osc_type == 0) ((Pulse) s).width(pulse_width);
         
-        if (env_values != null && env_values.length == 4) {
-            Env e = new Env(PARENT);
-            e.play(s, env_values[0], env_values[1], env_values[2], env_values[3]);    // will come back to envelopes... great potential but buggy :(
-        }
-        else s.play();
+        s.play();
         
         last_amp = amp;
         last_freq = freq;
-        last_notecode = mod_note_code;
-        /*curr_env_index++;
-        if (curr_env_index >= CIRCULAR_ARR_SIZE) curr_env_index = 0;*/
+        last_notecode = floor(mod_note_code);
+    }
+    
+    
+    void play_drum(int note_code, int velocity) {
+        float amp = map(velocity, 0, 127, 0.0, 1.0);
+        
+        int sample_code = note_code_to_percussion(note_code);
+        SoundFile s = (SoundFile) samples[sample_code-1];
+        if (s == null || s.isPlaying()) return;
+        
+        s.amp(amp * 0.32 * curr_global_amp * amp_multiplier);
+        s.play();
+        
+        last_amp = amp;
+        last_freq = sample_code;
+        last_notecode = note_code;
     }
     
     
     void stop_note(int note_code) {
-        SoundObject s = current_notes.get(note_code);
-        if (s == null) return;
-        s.stop();
+        if (osc_type != 4) {
+            SoundObject s = current_notes.get(note_code);
+            if (s == null) return;
+            s.stop();
+        }
         
         last_amp = 0.0;
         last_freq = 0.0;
@@ -122,20 +128,16 @@ public class ChannelOsc {
         else this.osc_type = int(osc_type);
     }
     
-    void set_env_values(float[] env_values) {
-        this.env_values = env_values;
-    }
-    
     
     void set_expression(int value) {
         amp_multiplier = map(value, 0, 127, 0.0, 1.0);
-        set_all_oscs_amp();
+        if (osc_type != 4) set_all_oscs_amp();
     }
     
     
     void set_volume(int value) {
         curr_global_amp = map(value, 0, 127, 0.0, 1.0);
-        set_all_oscs_amp();
+        if (osc_type != 4) set_all_oscs_amp();
     }
     
     
@@ -160,7 +162,8 @@ public class ChannelOsc {
     
     
     void set_bend(int bits_lsb, int bits_msb) {
-        // i can't believe i finally achieved this...
+        if (osc_type == -1) return; // no bend for drums...
+        
         int value = (bits_msb << 7) + bits_lsb;
         curr_global_bend = map(value, 0, 16383, -1.0, 1.0) * curr_bend_range;
         float freq_ratio = (float) Math.pow(2, curr_global_bend / 12.0); 
@@ -184,8 +187,8 @@ public class ChannelOsc {
     
     void set_muted(boolean how) {
         if (how) shut_up();
-        silenced = how;
         disp.button_mute.set_pressed(how);
+        silenced = how;
     }
     
     
@@ -211,56 +214,6 @@ public class ChannelOsc {
 
 
 
-class ChannelOscDrum extends ChannelOsc {
-    SoundFile[] samples;
-    
-    
-    ChannelOscDrum() {
-        super();
-        
-        // preloading samples...
-        samples = new SoundFile[4];
-        for (int i = 1; i <= samples.length; i++) {
-            samples[i-1] = new SoundFile(PARENT, "samples/" + i + ".wav");
-        }
-    }
-    
-    
-    void play_note(int note_code, int velocity) {
-        if (curr_global_amp <= 0 || silenced) return;
-        
-        float amp = map(velocity, 0, 127, 0.0, 1.0);
-        
-        int sample_code = note_code_to_percussion(note_code);
-        SoundFile s = (SoundFile) samples[sample_code-1];
-        if (s == null || s.isPlaying()) return;
-        
-        s.amp(amp * 0.22 * curr_global_amp);
-        s.play();
-        
-        last_amp = amp;
-        last_freq = sample_code;
-        last_notecode = note_code;
-    }
-    
-    
-    void stop_note(int note_code) {
-        last_amp = 0.0;
-        last_freq = 0;
-        last_notecode = -1;
-    }
-    
-    
-    void set_volume(int volume) {
-        curr_global_amp = map(volume, 0, 127, 0.0, 1.0);
-    }
-    
-    
-    void set_bend(int bits_lsb, int bits_msb) {}    // no bend for drums!!
-}
-
-
-
 Oscillator get_new_osc(int osc_type) {
     // This notation will be used
     switch (osc_type) {
@@ -270,7 +223,9 @@ Oscillator get_new_osc(int osc_type) {
             return new TriOsc(PARENT);
         case 2:
             return new SinOsc(PARENT);
-        default:
+        case 3:
             return new SawOsc(PARENT);
+        default:
+            return null;
     }
 }

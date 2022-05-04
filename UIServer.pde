@@ -24,7 +24,8 @@ class ChannelDisplay {
     float meter_velocity = 0.0;     // aka channel's last_amp
     String label_note = "";
     int label_osc_type = -1;
-    int label_pulse_width = 5;
+    int label_midi_program = 1;
+    float label_pulse_width = 0.5;
     float meter_bend = 0.0;
     float meter_pan = 0.0;
     
@@ -56,9 +57,10 @@ class ChannelDisplay {
         
         meter_ch_volume = parent.curr_global_amp * parent.amp_multiplier;
         meter_velocity = parent.last_amp;
+        label_osc_type = parent.osc_type;
         
         int notecode = parent.last_notecode - 21;
-        if (id == 9) { if (notecode <= -1) label_note = "|  |"; else label_note = "/  \\"; }
+        if (label_osc_type == 4) { if (notecode <= -1) label_note = "|  |"; else label_note = "/  \\"; }
         else {
             if (notecode < 0) label_note = "-";
             else {
@@ -68,8 +70,7 @@ class ChannelDisplay {
             }
         }
         
-        label_osc_type = parent.osc_type;
-        label_pulse_width = int(parent.pulse_width * 10);
+        label_pulse_width = parent.osc_type == 0 ? parent.pulse_width : -1;
         meter_bend = parent.curr_global_bend / parent.curr_bend_range;    // transform +/- channel's curr_bend_range, we need +/- 1.0
         meter_pan = parent.curr_global_pan;
     }
@@ -153,19 +154,23 @@ class ChannelDisplay {
         
         // Osc type label
             fill(t.theme[0]);
-            if (id == 9) {
-                image(osc_type_textures[5], x+133, y+5);
+            int auxY = 0;
+            if (label_pulse_width != -1) {
+                auxY = -5;
+                stroke(t.theme[0]);
+                fill(t.theme[1]);
+                rect(x+130, y+23, 28, 4, 4);
+                fill(t.theme[3]);
+                noStroke();
+                rect(x+131, y+24, 27 * label_pulse_width, 3, 4);
             }
-            else {
-                image(osc_type_textures[label_osc_type+1], x+133, y+5);
-                //if (label_osc_type == 0) text(label_pulse_width, x+145, y+16);    // maybe also show pulse width when applicable
-            }
+            image(osc_type_textures[label_osc_type+1], x+133, y+5+auxY);
         
         // Pitch bend curve
             stroke(t.theme[0]);
             strokeWeight(2);
             noFill();
-            if (id != 9) bezier(x+104, y+42, x+104 + 12 * meter_bend, y+42 + -12 * meter_bend, x+120 + 12 * meter_bend, y+56 + -12 * meter_bend, x+120, y+56);
+            if (label_osc_type != 4) bezier(x+104, y+42, x+104 + 12 * meter_bend, y+42 + -12 * meter_bend, x+120 + 12 * meter_bend, y+56 + -12 * meter_bend, x+120, y+56);
             else text("x", x+113, y+48);    // no bend for drums...
         
         // Panning meter

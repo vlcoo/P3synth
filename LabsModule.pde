@@ -10,7 +10,8 @@ public class LabsModule extends PApplet {
     
     
     public void settings() {
-        this.size(210, 300);
+        if (osname.contains("Windows")) this.size(210, 356);
+        else this.size(210, 330);
     }
     
     
@@ -38,13 +39,15 @@ public class LabsModule extends PApplet {
         b2.show_label = false;
         Button b3 = new Button("tempo", "tempo");
         b3.show_label = false;
+        Button b7 = new Button("overrideOscs", "overrideOscs");
+        b7.show_label = false;
         Button b4 = new Button("transform", "transform");
         b4.show_label = false;
         Button b5 = new Button("sysSynth", "sysSynth");
         b5.show_label = false;
         Button b6 = new Button("midiIn", "midiIn");
         b6.show_label = false;
-        Button[] bs = new Button[] {b1, b2, b3, b4, b5, b6};
+        Button[] bs = new Button[] {b1, b2, b3, b7, b4, b5, b6};
         all_buttons = new ButtonToolbar(8, 45, 0, 1.3, bs);
         
     }
@@ -66,7 +69,7 @@ public class LabsModule extends PApplet {
                     player.set_all_freqDetune(val);
                 }
                 catch (NumberFormatException nfe) {
-                    ui.showErrorDialog("Invalid value. Examples: 10, -90.2, 0, 167.74", "Can't");
+                    ui.showErrorDialog("Invalid value. Examples: 3, -10.2, 0, 67.74", "Can't");
                 }
                 catch (NullPointerException npe) {}
             }
@@ -77,7 +80,7 @@ public class LabsModule extends PApplet {
                     player.set_all_noteDetune(val);
                 }
                 catch (NumberFormatException nfe) {
-                    ui.showErrorDialog("Invalid value. Examples: 4, -10.2, 0, 8.74", "Can't");
+                    ui.showErrorDialog("Invalid value. Examples: 4, -1.2, 0, 8.74", "Can't");
                 }
                 catch (NullPointerException npe) {}
             }
@@ -92,6 +95,24 @@ public class LabsModule extends PApplet {
                     ui.showErrorDialog("Invalid value. Examples: 0.1, 0.5, 1, 2.8", "Can't");
                 }
                 catch (NullPointerException npe) {}
+            }
+            
+            else if (all_buttons.collided("overrideOscs", this)) {
+                String selection = ui.showSelectionDialog(
+                    "Override all channels with which oscillator?",
+                    "LabsModule",
+                    Arrays.asList("Pulse W0.125", "Pulse W0.25", "Pulse W0.5", "Pulse W0.75", "Triangle", "Sine", "Saw")
+                );
+                
+                if (selection != null) {
+                    if (selection.equals("Pulse W0.125")) player.set_all_osc_types(0.125);
+                    if (selection.equals("Pulse W0.25")) player.set_all_osc_types(0.25);
+                    if (selection.equals("Pulse W0.5")) player.set_all_osc_types(0.5);
+                    if (selection.equals("Pulse W0.75")) player.set_all_osc_types(0.75);
+                    if (selection.equals("Triangle")) player.set_all_osc_types(1);
+                    if (selection.equals("Sine")) player.set_all_osc_types(2);
+                    if (selection.equals("Saw")) player.set_all_osc_types(3);
+                }
             }
             
             else if (all_buttons.collided("transform", this)) {
@@ -135,7 +156,8 @@ public class LabsModule extends PApplet {
     void mouseMoved() {
         if (all_buttons.collided("freqDetune", this) || 
             all_buttons.collided("noteDetune", this) || 
-            all_buttons.collided("tempo", this) || 
+            all_buttons.collided("tempo", this) ||
+            all_buttons.collided("overrideOscs", this) || 
             all_buttons.collided("transform", this) || 
             all_buttons.collided("sysSynth", this) || 
             all_buttons.collided("midiIn", this)
@@ -161,15 +183,16 @@ public class LabsModule extends PApplet {
         this.textFont(fonts[2]);
         this.fill(t.theme[0]);
         this.textAlign(CENTER, CENTER);
-        this.text("Experimental options!\nUse at own risk.", this.width/2, 22);
+        this.text("Experimental options!\nUse at your own risk.", this.width/2, 22);
         
         this.textFont(fonts[1]);
         this.text(player.last_freqDetune, 179, 60);
         this.text(player.last_noteDetune, 179, 99);
         this.text("x" + player.seq.getTempoFactor(), 179, 138);
-        this.text(curr_transform, 179, 177);
-        this.text((player.system_synth ? "On" : "Off"), 179, 216);
-        this.text((player.midi_in_mode ? "On" : "Off"), 179, 255);
+        //this.text("x", 179, 177);
+        this.text(curr_transform, 179, 216);
+        this.text((player.system_synth ? "On" : "Off"), 179, 255);
+        this.text((player.midi_in_mode ? "On" : "Off"), 179, 294);
         
         all_buttons.redraw(this);
     }
