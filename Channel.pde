@@ -3,12 +3,18 @@ import java.util.Stack;
 
 
 public class ChannelOsc {
+    int id;
     HashMap<Integer, SoundObject> current_notes;    // Pairs <note midi code, oscillator object>
     float curr_global_amp = 1.0;    // channel volume (0.0 to 1.0)
     float amp_multiplier = 1.0;     // basically expression
     float curr_global_bend = 0.0;   // channel pitch bend (-curr_bend_range to curr_bend_range semitones)
     float curr_global_pan = 0.0;    // channel stereo panning (-1.0 to 1.0)
     float curr_bend_range = 2.0;    // channel pitch bend range +/- semitones... uh, sure.
+    boolean hold_pedal = false;
+    boolean sostenuto_pedal = false;
+    boolean soft_pedal = false;
+    ArrayList<Integer> curr_holding;
+    ArrayList<Integer> curr_sustaining;
     float curr_freqDetune = 0.0;
     float curr_noteDetune = 0.0;
     String please_how_many_midi_params_are_there = "dw, around 100+";    // darn.
@@ -29,11 +35,15 @@ public class ChannelOsc {
     
     ChannelOsc() {
         current_notes = new HashMap<Integer, SoundObject>();
+        curr_holding = new ArrayList();
+        curr_sustaining = new ArrayList();
     }
     
     
     ChannelOsc(int osc_type) {
         current_notes = new HashMap<Integer, SoundObject>();
+        curr_holding = new ArrayList();
+        curr_sustaining = new ArrayList();
         set_osc_type(osc_type);
     }
     
@@ -41,6 +51,7 @@ public class ChannelOsc {
     void create_display(int x, int y, int id) {
         ChannelDisplay d = new ChannelDisplay(x, y, id, this);
         this.disp = d;
+        this.id = id;
     }
     
     
@@ -59,7 +70,7 @@ public class ChannelOsc {
     
     
     void play_note(int note_code, int velocity) {
-        if (curr_global_amp <= 0 || silenced) return;
+        if (curr_global_amp <= 0 || silenced || osc_type == -1) return;
         if (osc_type == 4) {
             play_drum(note_code, velocity);
             return;
@@ -77,7 +88,7 @@ public class ChannelOsc {
             current_notes.put(note_code, s);
         }
         s.pan(curr_global_pan);
-        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier);    // give a volume boost to TRI and SIN
+        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1));    // give a volume boost to TRI and SIN
         if (osc_type == 0) ((Pulse) s).width(pulse_width);
         
         s.play();
@@ -95,7 +106,7 @@ public class ChannelOsc {
         SoundFile s = (SoundFile) samples[sample_code-1];
         if (s == null || s.isPlaying()) return;
         
-        s.amp(amp * 0.32 * curr_global_amp * amp_multiplier);
+        s.amp(amp * 0.32 * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1));
         s.play();
         
         last_amp = amp;
@@ -105,6 +116,14 @@ public class ChannelOsc {
     
     
     void stop_note(int note_code) {
+        if (hold_pedal) {
+            curr_holding.add(note_code);
+            return;
+        }
+        if (sostenuto_pedal && curr_sustaining.contains(note_code)) {
+            return;
+        }
+        
         if (osc_type != 4) {
             SoundObject s = current_notes.get(note_code);
             if (s == null) return;
@@ -114,6 +133,43 @@ public class ChannelOsc {
         last_amp = 0.0;
         last_freq = 0.0;
         last_notecode = -1;
+    }
+    
+    
+    void set_hold(int value) {
+        if (osc_type == 4) return;
+        hold_pedal = value < 63 ? false : true;
+        if (!hold_pedal) {
+            for (int note_code : curr_holding) {
+                stop_note(note_code);
+            }
+            curr_holding.clear();
+        }
+    }
+    
+    
+    void set_sostenuto(int value) {
+        if (osc_type == 4) return;
+        sostenuto_pedal = value < 63 ? false : true;
+        if (sostenuto_pedal) {
+            for (Entry<Integer, SoundObject> s : this.current_notes.entrySet()) {
+                if (((Oscillator) s.getValue()).isPlaying()) {
+                    curr_sustaining.add(s.getKey());
+                }
+            }
+        }
+        else {
+            for (int note_code : curr_sustaining) {
+                stop_note(note_code);
+            }
+            curr_sustaining.clear();
+        }
+    }
+    
+    
+    void set_soft(int value) {
+        soft_pedal = value < 63 ? false : true;
+        set_all_oscs_amp();
     }
     
     
@@ -156,13 +212,13 @@ public class ChannelOsc {
     
     void set_all_oscs_amp() {
         for (SoundObject s : current_notes.values()) {
-            ((Oscillator) s).amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier);
+            ((Oscillator) s).amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1));
         }
     }
     
     
     void set_bend(int bits_lsb, int bits_msb) {
-        if (osc_type == -1) return; // no bend for drums...
+        if (osc_type == 4) return; // no bend for drums...
         
         int value = (bits_msb << 7) + bits_lsb;
         curr_global_bend = map(value, 0, 16383, -1.0, 1.0) * curr_bend_range;
@@ -193,16 +249,22 @@ public class ChannelOsc {
     
     
     void shut_up() {
+        set_hold(0);
+        set_sostenuto(0);
+        set_soft(0);
         for (int note_code : current_notes.keySet()) stop_note(note_code);
     }
     
     
     void reset_params() {
         current_notes.clear();
+        curr_holding.clear();
+        curr_sustaining.clear();
         last_amp = 0.0;
         last_freq = 0;
         last_notecode = -1;
-        osc_type = -1; 
+        if (id == 9) osc_type = 4;
+        else osc_type = -1; 
         pulse_width = 0.5;
         curr_global_amp = 1.0;
         amp_multiplier = 1.0;

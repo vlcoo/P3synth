@@ -28,6 +28,9 @@ class ChannelDisplay {
     float label_pulse_width = 0.5;
     float meter_bend = 0.0;
     float meter_pan = 0.0;
+    boolean label_hold_pedal = false;
+    boolean label_sostenuto_pedal = false;
+    boolean label_soft_pedal = false;
     
     final float METER_LERP_QUICKNESS = 0.5;
     final int METER_VU_LENGTH = 30;
@@ -58,6 +61,9 @@ class ChannelDisplay {
         meter_ch_volume = parent.curr_global_amp * parent.amp_multiplier;
         meter_velocity = parent.last_amp;
         label_osc_type = parent.osc_type;
+        label_hold_pedal = parent.hold_pedal;
+        label_sostenuto_pedal = parent.sostenuto_pedal;
+        label_soft_pedal = parent.soft_pedal;
         
         int notecode = parent.last_notecode - 21;
         if (label_osc_type == 4) { if (notecode <= -1) label_note = "|  |"; else label_note = "/  \\"; }
@@ -184,6 +190,13 @@ class ChannelDisplay {
             if (meter_pan != 0) triangle(x+144 + 9 * meter_pan, y+48 - 9 * abs(meter_pan), x+144 + 9 * meter_pan, y+48 + 9 * abs(meter_pan), x+144, y+48);
             //text(meter_pan, x+145, y+48);
         
+        // Pedals
+            textFont(fonts[0]);
+            fill(t.theme[4]);
+            if (label_hold_pedal) text("H", x+64, y+8);
+            if (label_sostenuto_pedal) text("S", x+72, y+8);
+            if (label_soft_pedal) text("s", x+80, y+8);
+        
         button_mute.redraw();
     }
 }
@@ -210,6 +223,12 @@ class PlayerDisplay {
     float meter_loop_end_X = 0.0;
     int meter_loop_begin_Y = 0;
     int meter_loop_end_Y = 0;
+    String label_timestamp = "-:--";
+    String label_timelength = "-:--";
+    boolean label_GM = false;
+    boolean label_GM2 = false;
+    boolean label_XG = false;
+    boolean label_GS = false;
     
     
     PlayerDisplay(int x, int y, Player parent) {
@@ -240,13 +259,26 @@ class PlayerDisplay {
             meter_loop_begin = map(parent.seq.getLoopStartPoint(), 0, player.seq.getTickLength(), 0.0, 1.0);
             if (parent.seq.getLoopEndPoint() == -1) meter_loop_end = 1.0;
             else meter_loop_end = map(parent.seq.getLoopEndPoint(), 0, player.seq.getTickLength(), 0.0, 1.0);
+            
+            long secPos = player.seq.getMicrosecondPosition() / 1000000;
+            long secLen = player.seq.getMicrosecondLength() / 1000000;
+            this.label_timestamp = secPos / 60 + ":" + String.format("%02d", secPos % 60);
+            this.label_timelength = secLen / 60 + ":" + String.format("%02d", secLen % 60);
         }
         else {
             meter_loop_begin = 0.0;
             meter_loop_end = 1.0;
+            
+            this.label_timestamp = "-:--";
+            this.label_timelength = "-:--";
         }
         meter_loop_begin_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_begin);
         meter_loop_end_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_end);
+        
+        label_GM = parent.file_is_GM;
+        label_GM2 = parent.file_is_GM2;
+        label_XG = parent.file_is_XG;
+        label_GS = parent.file_is_GS;
     }
     
     
@@ -255,7 +287,7 @@ class PlayerDisplay {
         
         if (collided_posbar()) {
             if (parent.playing_state == -1) return;
-            int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+            int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
             parent.setTicks(new_pos);
             return;
         }
@@ -263,12 +295,12 @@ class PlayerDisplay {
         int handle_no = collided_loopset_bar();
         try {
             if (handle_no == -1) {
-                int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
                 parent.seq.setLoopStartPoint(new_pos);
             }
             
             else if (handle_no == 1) {
-                int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
                 parent.seq.setLoopEndPoint(new_pos);
             }
         }
@@ -291,6 +323,14 @@ class PlayerDisplay {
             fill(t.theme[3]);
             rect(x+1 + POS_X_POSBAR, y+1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1, 4);
         
+        // Song pos and length labels
+            textAlign(CENTER, CENTER);
+            fill(t.theme[4]);
+            textFont(fonts[1]);
+            int auxX = x + POS_X_POSBAR + WIDTH_POSBAR/2;
+            int auxY = y + POS_Y_POSBAR + 9;
+            outlinedText(label_timestamp + " / " + label_timelength, auxX, auxY, t.theme[4], t.theme[0] - color(0x40000000));
+        
         // Loop set meter
             fill(parent.seq.getLoopCount() == 0 ? t.theme[1] : t.theme[3]);
             stroke(t.theme[0]);
@@ -298,10 +338,9 @@ class PlayerDisplay {
             triangle(meter_loop_end_X, meter_loop_end_Y, meter_loop_end_X - 4, meter_loop_end_Y + 16, meter_loop_end_X + 4, meter_loop_end_Y + 16);
             
         // File name label
-            textAlign(CENTER, CENTER);
             fill(t.theme[0]);
             textFont(fonts[3]);
-            text(label_filename, width / 2, y + POS_Y_POSBAR - 12);
+            text(label_filename, 362, y + POS_Y_POSBAR - 12);
         
         // Messages label
             stroke(t.theme[0]);
@@ -310,6 +349,14 @@ class PlayerDisplay {
             fill(t.theme[4]);
             textFont(fonts[1]);
             text(label_message,  x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, y + POS_Y_POSBAR + 9);
+        
+        // Manufacturers / MIDI formats
+            fill(t.theme[0]);
+            textFont(fonts[0]);
+            if (label_GM) text("GM", x + 660, y - 300);
+            if (label_GM2) text("GM2", x + 660, y - 290);
+            if (label_XG) text("XG", x + 660, y - 280);
+            if (label_GS) text("GS", x + 660, y - 270);
         
         /*
         fill(t.theme[2]);
@@ -323,7 +370,7 @@ class PlayerDisplay {
     
     
     boolean collided_posbar() {
-        return (mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (mouseY > y + POS_Y_POSBAR && mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
+        return (_mouseX > x + POS_X_POSBAR && _mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (_mouseY > y + POS_Y_POSBAR && _mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
     }
     
     
@@ -331,10 +378,10 @@ class PlayerDisplay {
         int which = 0;    // 0 is not pressed
         if (parent.seq.getLoopCount() == 0) return 0;
         
-        if ((mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (mouseY > y + POS_Y_POSBAR - 16 && mouseY < y + POS_Y_POSBAR)) {
+        if ((_mouseX > x + POS_X_POSBAR && _mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (_mouseY > y + POS_Y_POSBAR - 16 && _mouseY < y + POS_Y_POSBAR)) {
             which = -1;    // -1 is begin
         }
-        else if ((mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (mouseY > y + POS_Y_POSBAR + HEIGHT_POSBAR && mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR + 16)) {
+        else if ((_mouseX > x + POS_X_POSBAR && _mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (_mouseY > y + POS_Y_POSBAR + HEIGHT_POSBAR && _mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR + 16)) {
             which = 1;    // 1 is end
         }
         
@@ -402,7 +449,7 @@ class Button {
 
 
     boolean collided() {
-        return (mouseX > this.x && mouseX < this.width + this.x) && (mouseY > this.y && mouseY < this.height + this.y);
+        return (_mouseX > this.x && _mouseX < this.width + this.x) && (_mouseY > this.y && _mouseY < this.height + this.y);
     }
     
     boolean collided(PApplet win) {
@@ -460,4 +507,21 @@ class ButtonToolbar {
         if (b == null) return false;
         return b.collided(win);
     }
+}
+
+
+
+void outlinedText(String text, int x, int y, color cFill, color cStroke) {
+    push();
+    
+    fill(cStroke);
+    for (int i = -1; i < 2; i++) {
+        text(text, x+i, y);
+        text(text, x, y+i);
+    }
+    
+    fill(cFill);
+    text(text, x, y);
+    
+    pop();
 }

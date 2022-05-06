@@ -67,6 +67,10 @@ class Player {
     float last_freqDetune = 0.0;
     float last_noteDetune = 0.0;
     String custom_info_msg = "";
+    boolean file_is_GM = false;
+    boolean file_is_GM2 = false;
+    boolean file_is_XG = false;
+    boolean file_is_GS = false;
     
     
     Synthesizer syn;
@@ -115,6 +119,27 @@ class Player {
         }
         
         return text.trim().replace("\n", "");
+    }
+    
+    
+    protected void set_params_from_sysex(byte[] arr) {
+        int man_id = arr[0];
+        switch(man_id) {
+            case 67:        // Yamh, XG
+            file_is_XG = true;
+            break;
+            
+            case 65:        // Rold, GS
+            file_is_GS = true;
+            break;
+            
+            default:        // check if GM or GM2
+            if (arr[2] == 9) {
+                file_is_GM = arr[3] == 1 ? true : false;
+                file_is_GM2 = arr[3] == 3 ? true : false;
+            }
+            break;
+        }
     }
     
     
@@ -330,6 +355,11 @@ class Player {
         
         seq.setLoopEndPoint(-1);
         seq.setLoopStartPoint(0);
+        
+        file_is_GM = false;
+        file_is_GM2 = false;
+        file_is_XG = false;
+        file_is_GS = false;
     }
     
     
@@ -415,6 +445,18 @@ class Player {
                         set_rpn_param_val(chan, data2);      // data entry
                         break;
                         
+                        case 64:                             // hold pedal
+                        channels[chan].set_hold(data2);
+                        break;
+                        
+                        case 66:                             // sostenuto pedal
+                        channels[chan].set_sostenuto(data2);
+                        break;
+                        
+                        case 67:                             // soft pedal
+                        channels[chan].set_soft(data2);
+                        break;
+                        
                         case 96:
                         add_rpn_param_val(chan, data2, false);    // data increment
                         break;
@@ -427,6 +469,11 @@ class Player {
                         break;
                     }
                 }
+            }
+            
+            else if (msg instanceof SysexMessage) {
+                SysexMessage event = (SysexMessage) msg;
+                set_params_from_sysex(event.getData());
             }
         }
         
