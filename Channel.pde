@@ -14,7 +14,7 @@ public class ChannelOsc {
     boolean sostenuto_pedal = false;
     boolean soft_pedal = false;
     ArrayList<Integer> curr_holding;
-    ArrayList<Integer> curr_sustaining;
+    ArrayList<Integer> curr_sostenuting;
     float curr_freqDetune = 0.0;
     float curr_noteDetune = 0.0;
     String please_how_many_midi_params_are_there = "dw, around 100+";    // darn.
@@ -36,14 +36,14 @@ public class ChannelOsc {
     ChannelOsc() {
         current_notes = new HashMap<Integer, SoundObject>();
         curr_holding = new ArrayList();
-        curr_sustaining = new ArrayList();
+        curr_sostenuting = new ArrayList();
     }
     
     
     ChannelOsc(int osc_type) {
         current_notes = new HashMap<Integer, SoundObject>();
         curr_holding = new ArrayList();
-        curr_sustaining = new ArrayList();
+        curr_sostenuting = new ArrayList();
         set_osc_type(osc_type);
     }
     
@@ -104,7 +104,8 @@ public class ChannelOsc {
         
         int sample_code = note_code_to_percussion(note_code);
         SoundFile s = (SoundFile) samples[sample_code-1];
-        if (s == null || s.isPlaying()) return;
+        if (s == null) return;
+        if (s.isPlaying()) stop_note(note_code);
         
         s.amp(amp * 0.32 * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1));
         s.play();
@@ -120,7 +121,7 @@ public class ChannelOsc {
             curr_holding.add(note_code);
             return;
         }
-        if (sostenuto_pedal && curr_sustaining.contains(note_code)) {
+        if (sostenuto_pedal && curr_sostenuting.contains(note_code)) {
             return;
         }
         
@@ -154,15 +155,15 @@ public class ChannelOsc {
         if (sostenuto_pedal) {
             for (Entry<Integer, SoundObject> s : this.current_notes.entrySet()) {
                 if (((Oscillator) s.getValue()).isPlaying()) {
-                    curr_sustaining.add(s.getKey());
+                    curr_sostenuting.add(s.getKey());
                 }
             }
         }
         else {
-            for (int note_code : curr_sustaining) {
+            for (int note_code : curr_sostenuting) {
                 stop_note(note_code);
             }
-            curr_sustaining.clear();
+            curr_sostenuting.clear();
         }
     }
     
@@ -259,7 +260,7 @@ public class ChannelOsc {
     void reset_params() {
         current_notes.clear();
         curr_holding.clear();
-        curr_sustaining.clear();
+        curr_sostenuting.clear();
         last_amp = 0.0;
         last_freq = 0;
         last_notecode = -1;

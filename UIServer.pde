@@ -82,9 +82,10 @@ class ChannelDisplay {
     }
     
     
-    void check_buttons() {
+    void check_buttons(int mButton) {
         if (button_mute.collided()) {
-            parent.set_muted(!button_mute.pressed);
+            if (mButton == LEFT) parent.set_muted(!button_mute.pressed);
+            else if (mButton == RIGHT) player.set_channel_solo(!button_mute.pressed, parent.id);
         }
     }
     
@@ -282,29 +283,31 @@ class PlayerDisplay {
     }
     
     
-    void check_buttons() {
-        if (parent.playing_state == -1) return;
-        
-        if (collided_posbar()) {
+    void check_buttons(int mButton) {
+        if (mButton == LEFT) {
             if (parent.playing_state == -1) return;
-            int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-            parent.setTicks(new_pos);
-            return;
-        }
-        
-        int handle_no = collided_loopset_bar();
-        try {
-            if (handle_no == -1) {
+            
+            if (collided_posbar()) {
+                if (parent.playing_state == -1) return;
                 int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-                parent.seq.setLoopStartPoint(new_pos);
+                parent.setTicks(new_pos);
+                return;
             }
             
-            else if (handle_no == 1) {
-                int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-                parent.seq.setLoopEndPoint(new_pos);
+            int handle_no = collided_loopset_bar();
+            try {
+                if (handle_no == -1) {
+                    int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                    parent.seq.setLoopStartPoint(new_pos);
+                }
+                
+                else if (handle_no == 1) {
+                    int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                    parent.seq.setLoopEndPoint(new_pos);
+                }
             }
+            catch (IllegalArgumentException iae) { }
         }
-        catch (IllegalArgumentException iae) { }
     }
     
     

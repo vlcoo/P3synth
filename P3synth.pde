@@ -8,6 +8,7 @@ import processing.awt.PSurfaceAWT;
 final processing.core.PApplet PARENT = this;
 final float VERCODE = 23.11;
 final float OVERALL_VOL = 0.7;
+final float HIRES_MULT = 2;
 
 Frame frame;
 String osname;
@@ -27,11 +28,23 @@ Button b_loop;
 Button b_labs;
 WaitingDialog dialog_meta_msgs;
 HashMap<String, String> config_map;
+boolean hi_res = false;
+
+float _mouseX = 0;
+float _mouseY = 0;
 
 void settings() {
     osname = System.getProperty("os.name");
-    if (osname.contains("Windows")) size(724, 460);
-    else size(724, 430);
+    int sizeX = 724;
+    int sizeY = 430;
+    if (osname.contains("Windows")) sizeY = 460;
+    
+    if (hi_res) {
+        sizeX *= HIRES_MULT;
+        sizeY *= HIRES_MULT;
+        noSmooth();
+    }
+    size(sizeX, sizeY);
 }
 
 
@@ -41,9 +54,9 @@ void setup() {
     SinOsc warmup = new SinOsc(PARENT);
     warmup.freq(100);
     warmup.amp(0.1);
-    warmup.play();    // has to be done so the audio driver is prepared for what we're about to do to 'em...
+    Env warmup_env = new Env(PARENT);
+    warmup_env.play(warmup, 0.01, 0.08, 0.1, 0.04); 
     
-    //size(724, 460);
     surface.setTitle("vlco_o P3synth");
     frame = ( (PSurfaceAWT.SmoothCanvas)surface.getNative() ).getFrame();
     
@@ -61,7 +74,7 @@ void setup() {
     dnd_listener = new DnDListener();
     drop.addDropListener(dnd_listener);
     
-    warmup.stop();
+    warmup_env = null;
     warmup = null;
     redraw_all();
 }
@@ -69,7 +82,18 @@ void setup() {
     
     
 void draw() {
+    if (hi_res) {
+        scale(HIRES_MULT);
+        _mouseX = mouseX / HIRES_MULT;
+        _mouseY = mouseY / HIRES_MULT;
+    }
+    else {
+        _mouseX = mouseX;
+        _mouseY = mouseY;
+    }
+        
     redraw_all();
+    
     if (player.playing_state == 1) {
         int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/4)) % 8;
         image(logo_anim[abs(n)], 311, 10);
@@ -346,13 +370,9 @@ void mouseClicked() {
             b_labs.set_pressed(!b_labs.pressed);
             win_labs.reposition();
         }
-        
-        else {
-            player.disp.check_buttons();        // check for any presses on the player controls
-            player.check_chan_disp_buttons();   // check for any presses on the channel display
-        }
-        
     }
+    
+    player.check_chan_disp_buttons(mouseButton);   // check for any presses on the channel display
     
     media_buttons.redraw();
     setting_buttons.redraw();
@@ -363,7 +383,7 @@ void mouseClicked() {
 
 void mouseDragged() {
     if (mouseButton == LEFT) {
-        player.disp.check_buttons();
+        player.disp.check_buttons(mouseButton);
     }
 }
 

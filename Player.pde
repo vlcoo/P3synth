@@ -363,8 +363,23 @@ class Player {
     }
     
     
-    void check_chan_disp_buttons() {
-        for (ChannelOsc c : channels) c.disp.check_buttons();
+    void set_channel_solo(boolean how, int chan) {
+        if (how) {
+            for (ChannelOsc c : channels) {
+                if (c.id == chan) c.set_muted(false);
+                else c.set_muted(true);
+            }
+        }
+        else {
+            for (ChannelOsc c : channels) {
+                c.set_muted(!c.silenced);
+            }
+        }
+    }
+    
+    
+    void check_chan_disp_buttons(int mButton) {
+        for (ChannelOsc c : channels) c.disp.check_buttons(mButton);
     }
     
     
