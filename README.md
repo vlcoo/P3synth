@@ -10,7 +10,7 @@ Get the executable JAR file from the [releases](https://github.com/vlcoo/P3synth
 
 Upon opening, simply drag and drop a MIDI file onto the program to begin!
 
-![Instructions](data/graphics/help.png)
+![Preview](https://raw.githubusercontent.com/vlcoo/vlcoo.github.io/main/assets/p3synth_pic_expand.png)
 
 ### Source code
 The source code may include features sooner than the releases, but it might be less stable. 
@@ -19,11 +19,21 @@ Keep in mind this is Processing 3 code, not plain old Java. The following librar
 - HTTP Requests for Processing
 - UiBooster
 
+### MIDI message support
+The following MIDI features are currently implemented:
+- Basic note playing with velocity and channel expression.
+- Soft, sostenuto and damper pedals.
+- Pitch bending and stereo panning.
+- Program changing. Uses Pulse, Triangle, Sine and Saw oscillators.
+- Lyrics (if applicable).
+- Mute/Solo - use the X button on any channel and left or right click it.
+
 ### LabsModule
-This dialog includes the following features:
+Use the "Labs" button in-program! This dialog includes the following option:
 - Freq Detune: slide up or down the relative frequency of the oscillators.
 - Transpose: relative semitones transpose up or down.
 - Play Speed: playback speed factor.
+- Set All Oscs: override all instruments with a specific one.
 - Transform: experimental chord mode changer (convert to major/minor).
 - System Synth: use your device's default synthesizer instead.
 - MIDI Input: see section below!
@@ -38,7 +48,3 @@ To activate MIDI input mode, follow these steps:
 - Finally, choose the "MIDI INPUT" button.
 - If the message "MIDI In disconnected!" appears prematurely, try closing and reopening the server script.
 - To exit this mode, close the server script or click the "MIDI INPUT" button again.
-
-Ideas for usage of MIDI Input mode:
-- Use an external keyboard or the prorgam VMPK for free playing!
-- G-NES emulator supports MIDI Out, so you can try to play NES games while P3synth functions as its real time audio player!
