@@ -10,8 +10,8 @@ public class LabsModule extends PApplet {
     
     
     public void settings() {
-        if (osname.contains("Windows")) this.size(210, 356);
-        else this.size(210, 330);
+        if (osname.contains("Windows")) this.size(210, 395);
+        else this.size(210, 369);
     }
     
     
@@ -47,7 +47,9 @@ public class LabsModule extends PApplet {
         b5.show_label = false;
         Button b6 = new Button("midiIn", "midiIn");
         b6.show_label = false;
-        Button[] bs = new Button[] {b1, b2, b3, b7, b4, b5, b6};
+        Button b8 = new Button("rtEngine", "rtEngine");
+        b8.show_label = false;
+        Button[] bs = new Button[] {b1, b2, b3, b7, b4, b5, b6, b8};
         all_buttons = new ButtonToolbar(8, 45, 0, 1.3, bs);
         
     }
@@ -67,6 +69,7 @@ public class LabsModule extends PApplet {
                 try {
                     float val = Float.parseFloat(ui.showTextInputDialog("New detune in Hz?"));
                     player.set_all_freqDetune(val);
+                    player.setTicks((int)player.seq.getTickPosition());
                 }
                 catch (NumberFormatException nfe) {
                     ui.showErrorDialog("Invalid value. Examples: 3, -10.2, 0, 67.74", "Can't");
@@ -78,6 +81,7 @@ public class LabsModule extends PApplet {
                 try {
                     float val = Float.parseFloat(ui.showTextInputDialog("New transpose in semitones?"));
                     player.set_all_noteDetune(val);
+                    player.setTicks((int)player.seq.getTickPosition());
                 }
                 catch (NumberFormatException nfe) {
                     ui.showErrorDialog("Invalid value. Examples: 4, -1.2, 0, 8.74", "Can't");
@@ -101,7 +105,7 @@ public class LabsModule extends PApplet {
                 String selection = ui.showSelectionDialog(
                     "Override all channels with which oscillator?",
                     "LabsModule",
-                    Arrays.asList("Pulse W0.125", "Pulse W0.25", "Pulse W0.5", "Pulse W0.75", "Triangle", "Sine", "Saw")
+                    Arrays.asList("Pulse W0.125", "Pulse W0.25", "Pulse W0.5", "Pulse W0.75", "Triangle", "Sine", "Saw", "Drums")
                 );
                 
                 if (selection != null) {
@@ -112,6 +116,7 @@ public class LabsModule extends PApplet {
                     if (selection.equals("Triangle")) player.set_all_osc_types(1);
                     if (selection.equals("Sine")) player.set_all_osc_types(2);
                     if (selection.equals("Saw")) player.set_all_osc_types(3);
+                    if (selection.equals("Drums")) player.set_all_osc_types(4);
                 }
             }
             
@@ -147,6 +152,10 @@ public class LabsModule extends PApplet {
                 if (!player.midi_in_mode) player.start_midi_in();
                 else player.stop_midi_in();
             }
+            
+            else if (all_buttons.collided("rtEngine", this)) {
+                NO_REALTIME = !NO_REALTIME;
+            }
         }
         
         //this.redraw_all();
@@ -160,7 +169,8 @@ public class LabsModule extends PApplet {
             all_buttons.collided("overrideOscs", this) || 
             all_buttons.collided("transform", this) || 
             all_buttons.collided("sysSynth", this) || 
-            all_buttons.collided("midiIn", this)
+            all_buttons.collided("midiIn", this) ||
+            all_buttons.collided("rtEngine", this)
             ) {
             this.cursor(HAND);
         }
@@ -193,6 +203,7 @@ public class LabsModule extends PApplet {
         this.text(curr_transform, 179, 216);
         this.text((player.system_synth ? "On" : "Off"), 179, 255);
         this.text((player.midi_in_mode ? "On" : "Off"), 179, 294);
+        this.text((NO_REALTIME ? "No" : "Yes"), 179, 333);
         
         all_buttons.redraw(this);
     }

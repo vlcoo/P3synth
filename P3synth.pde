@@ -6,9 +6,10 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 23.11;
+final float VERCODE = 23.23;
 final float OVERALL_VOL = 0.7;
 final float HIRES_MULT = 2;
+boolean NO_REALTIME = true;
 
 Frame frame;
 String osname;
@@ -34,6 +35,13 @@ float _mouseX = 0;
 float _mouseY = 0;
 
 void settings() {
+    setup_config();
+    try {
+        int conf_hi_res = Integer.parseInt(config_map.get("high resolution"));
+        hi_res = conf_hi_res == 1;
+    }
+    catch (NumberFormatException nfe) {}
+    
     osname = System.getProperty("os.name");
     int sizeX = 724;
     int sizeY = 430;
@@ -65,7 +73,6 @@ void setup() {
     setup_images();
     setup_fonts();
     setup_buttons();
-    setup_config();
     setup_samples();
     t.set_theme(config_map.get("theme name"));
     
@@ -221,11 +228,12 @@ void setup_config() {
 
 
 void setup_fonts() {
-    fonts = new PFont[4];
+    fonts = new PFont[5];
     fonts[0] = loadFont("TerminusTTF-12.vlw");
     fonts[1] = loadFont("TerminusTTF-14.vlw");
     fonts[2] = loadFont("TerminusTTF-Bold-14.vlw");
     fonts[3] = loadFont("TerminusTTF-Bold_Italic-14.vlw");
+    fonts[4] = loadFont("RobotoCondensed-BoldItalic-16.vlw");
 }
 
 
@@ -299,13 +307,13 @@ void mouseClicked() {
                 "The Labs menu has experimental playback/tinkering options!\n" +
                 "The buttons on the other side provide some info and configs.\n\n" +
                 
-                "Press the X on any channel to mute it.\n" +
+                "Left click the X on any channel to mute it, or right click it to solo.\n" +
                 "You can use the lower left rectangle to control the song's position.\n" +
                 "The arrows above and below it control the loop start and end positions!\n" +
                 "The lower right rectangle shows the last text message the MIDI sent out.\n\n" +
                 
                 "Please beware of the bugs.\n" +
-                "vlcoo.github.io  |  github.com/vlcoo/P3synth"
+                "vlcoo.net  |  github.com/vlcoo/P3synth"
             );
         }
         
@@ -372,6 +380,7 @@ void mouseClicked() {
         }
     }
     
+    player.disp.check_buttons(mouseButton);
     player.check_chan_disp_buttons(mouseButton);   // check for any presses on the channel display
     
     media_buttons.redraw();
