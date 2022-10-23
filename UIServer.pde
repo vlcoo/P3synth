@@ -113,19 +113,19 @@ class ChannelDisplay {
             line(x+160, y, x+160, y+64);
             line(x+96, y+32, x+160, y+32);
         
-        // Ch number
-            noStroke();
-            fill(t.theme[1]);
-            rect(x+1, y+1, 32, 31);
-            fill(t.theme[0]);
-            textAlign(CENTER, CENTER);
-            fill(t.theme[4]);
-            textFont(fonts[2]);
-            text(id+1, x+16, y+16);
-        
-        // VU meter
+        // BGs
+            noStroke();                    
             fill(t.theme[1]);
             rect(x+33, y+1, 63, 63);
+            rect(x+1, y+1, 32, 31);
+        
+        // Ch number
+            fill(t.theme[4]);
+            textFont(fonts[4]);
+            textAlign(CENTER, CENTER);
+            text(id+1, x+17, y+16);
+        
+        // VU meter
             stroke(#00ff00);
             line(x+48, y+32, x+48, y+36);
             stroke(#ff0000);
@@ -180,6 +180,15 @@ class ChannelDisplay {
             if (label_osc_type != 4) bezier(x+104, y+42, x+104 + 12 * meter_bend, y+42 + -12 * meter_bend, x+120 + 12 * meter_bend, y+56 + -12 * meter_bend, x+120, y+56);
             else text("x", x+113, y+48);    // no bend for drums...
         
+        // Pedals
+            fill(t.theme[0]);
+            textFont(fonts[0]);
+            if (label_osc_type != 4) {
+                if (label_soft_pedal) text("~", x+77, y+10);
+                if (label_sostenuto_pedal) text("*", x+84, y+6);
+                if (label_hold_pedal) text("•", x+90, y+6);
+            }
+        
         // Panning meter
             strokeWeight(1);
             textFont(fonts[0]);
@@ -191,12 +200,12 @@ class ChannelDisplay {
             if (meter_pan != 0) triangle(x+144 + 9 * meter_pan, y+48 - 9 * abs(meter_pan), x+144 + 9 * meter_pan, y+48 + 9 * abs(meter_pan), x+144, y+48);
             //text(meter_pan, x+145, y+48);
         
-        // Pedals
-            textFont(fonts[0]);
-            fill(t.theme[4]);
-            if (label_hold_pedal) text("H", x+64, y+8);
-            if (label_sostenuto_pedal) text("S", x+72, y+8);
-            if (label_soft_pedal) text("s", x+80, y+8);
+        // Mute dim
+            if (button_mute.pressed) {
+                noStroke();
+                fill(t.theme[2] - 0x64000000);
+                rect(x, y, 161, 65);
+            }
         
         button_mute.redraw();
     }
@@ -317,6 +326,7 @@ class PlayerDisplay {
         fill(t.theme[2]);
         noStroke();
         rect(58, y+42, 600, 20);
+        strokeWeight(1);
         
         // Pos meter
             stroke(t.theme[0]);
@@ -354,12 +364,13 @@ class PlayerDisplay {
             text(label_message,  x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, y + POS_Y_POSBAR + 9);
         
         // Manufacturers / MIDI formats
-            fill(t.theme[0]);
-            textFont(fonts[0]);
-            if (label_GM) text("GM", x + 660, y - 300);
-            if (label_GM2) text("GM2", x + 660, y - 290);
-            if (label_XG) text("XG", x + 660, y - 280);
-            if (label_GS) text("GS", x + 660, y - 270);
+            fill(t.theme[0] - 0x64000000);
+            textFont(fonts[4]);
+            textAlign(RIGHT);
+            if (label_GM) text("GM", 724 - 10, 18);
+            if (label_GM2) text("GM2", 724 - 10, 32);
+            if (label_XG) text("XG", 724 - 10, 46);
+            if (label_GS) text("GS", 724 - 10, 60);
         
         /*
         fill(t.theme[2]);
