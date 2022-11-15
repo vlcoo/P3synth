@@ -42,6 +42,7 @@ class Player {
     
     boolean new_engine = false;
     Sequencer seq;
+    Synthesizer alt_syn;
     KeyTransformer ktrans;
     Thread sent;
     Socket sock;
@@ -51,6 +52,7 @@ class Player {
     ChannelOsc[] channels;
     long prev_position;
     String curr_filename = DEFAULT_STOPPED_MSG;
+    String sf_filename = "Default";
     int curr_rpn = 0;
     int curr_bank = 0;
     int mid_rootnote = 0;      // C
@@ -73,20 +75,6 @@ class Player {
     boolean file_is_GS = false;
     
     
-    Synthesizer syn;
-    void demoRPNbendrange() {
-        if (syn == null) {
-            try {
-                syn = MidiSystem.getSynthesizer();
-                syn.open();
-            }
-            catch (MidiUnavailableException mue) { println("mue on open"); }
-        }
-        syn.getChannels()[12].controlChange(101, 0);
-        syn.getChannels()[12].controlChange(6, 1);
-    }
-    
-    
     Player() {
         ktrans = new KeyTransformer();
         final int nChannels = 16;
@@ -106,7 +94,9 @@ class Player {
     
     
     void create_display(int x, int y) {
-        PlayerDisplay d = new PlayerDisplay(x, y, this);
+        PlayerDisplay d;
+        if (demo_ui) d = new PlayerDisplayDemo(x, y, this);
+        else d = new PlayerDisplay(x, y, this);
         this.disp = d;
     }
     
@@ -123,6 +113,7 @@ class Player {
     
     
     protected void set_params_from_sysex(byte[] arr) {
+        print("syse...");
         int man_id = arr[0];
         switch(man_id) {
             case 67:        // Yamh, XG
@@ -182,6 +173,8 @@ class Player {
             midi_resolution = mid.getResolution();
             curr_filename = filename;
             set_playing_state(1);
+            
+            zero_reverb();
         }
         catch(InvalidMidiDataException imde) {
             return "Invalid MIDI data!";
@@ -193,8 +186,39 @@ class Player {
         return "";
     }
     
+    
+    void zero_reverb() {
+        // for system_synth only
+        try {
+            for (int i = 0; i <= 15; i++) {
+                event_listener.send(new ShortMessage(176, i, 91, 0), 0);
+            }
+        }
+        catch (InvalidMidiDataException imde) {
+            println("reverb forever >:) (invalid msg)");
+        }
+    }
+    
+    
     void reload_curr_file() {
         setTicks(0);
+    }
+    
+    
+    String load_soundfont(File file) {
+        try {
+            Soundbank sf = MidiSystem.getSoundbank(file);
+            set_seq_synth(true);
+            alt_syn.loadAllInstruments(sf);
+            sf_filename = check_and_shrink_string(file.getName().replaceFirst("[.][^.]+$", ""), 16);
+        }
+        catch (InvalidMidiDataException imd) {
+            println("Invalid SF data!");
+        }
+        catch (IOException ioe) {
+            println("I/O Error!");
+        }
+        return "";
     }
     
     
@@ -206,17 +230,23 @@ class Player {
         
         try {
             if (seq != null) seq.close();
-            seq = MidiSystem.getSequencer(is_system);
+            seq = MidiSystem.getSequencer(false);
             seq.open();
-            seq.setLoopCount(-1);
             seq.addMetaEventListener(meta_listener);
             Transmitter transmitter = seq.getTransmitter();
+            if (is_system) {
+                if (alt_syn == null) {
+                    alt_syn = MidiSystem.getSynthesizer();
+                    alt_syn.open();
+                }
+                // sf_filename = "Default";
+            }
             transmitter.setReceiver(event_listener);
             
             system_synth = is_system;
             new Sound(PARENT).volume(is_system ? 0 : OVERALL_VOL);
         }
-        catch(MidiUnavailableException mue) {
+        catch (MidiUnavailableException mue) {
             println("Midi device unavailable!");
         }
         
@@ -362,17 +392,22 @@ class Player {
         file_is_GS = false;
     }
     
+    void set_channel_muted(boolean how, int chan) {
+        channels[chan].set_muted(how);
+        alt_syn.getChannels()[chan].setMute(how);
+    }
+    
     
     void set_channel_solo(boolean how, int chan) {
         if (how) {
             for (ChannelOsc c : channels) {
-                if (c.id == chan) c.set_muted(false);
-                else c.set_muted(true);
+                if (c.id == chan) set_channel_muted(false, c.id);
+                else set_channel_muted(true, c.id);
             }
         }
         else {
             for (ChannelOsc c : channels) {
-                c.set_muted(!c.silenced);
+                set_channel_muted(!c.silenced, c.id);
             }
         }
     }
@@ -394,6 +429,13 @@ class Player {
     
     Receiver event_listener = new Receiver() {
         void send(MidiMessage msg, long timeStamp) {
+            if (system_synth) {
+                try {
+                    alt_syn.getReceiver().send(msg, timeStamp);
+                }
+                catch (MidiUnavailableException mue) { println("wawa"); }
+            }
+            
             if (msg instanceof ShortMessage) {
                 ShortMessage event = (ShortMessage) msg;
                 int chan = event.getChannel();
@@ -487,8 +529,9 @@ class Player {
             }
             
             else if (msg instanceof SysexMessage) {
-                SysexMessage event = (SysexMessage) msg;
-                set_params_from_sysex(event.getData());
+              return;
+                //SysexMessage event = (SysexMessage) msg;
+                //set_params_from_sysex(event.getData());
             }
         }
         
@@ -502,7 +545,7 @@ class Player {
             int type = msg.getType();
             byte[] data = msg.getData();
             
-            //if (type == 3) return;    // ignoring track names for now... actually scratch that
+            if (type == 3) return;    // ignoring track names for now... actually scratch that
             if (type == 89) {
                 mid_scale = data[data.length - 1];
                 if (mid_scale == 0) mid_rootnote = major_rootnotes[data[0] + 7];

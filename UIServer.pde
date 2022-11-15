@@ -84,7 +84,7 @@ class ChannelDisplay {
     
     void check_buttons(int mButton) {
         if (button_mute.collided()) {
-            if (mButton == LEFT) parent.set_muted(!button_mute.pressed);
+            if (mButton == LEFT) player.set_channel_muted(!button_mute.pressed, parent.id);
             else if (mButton == RIGHT) player.set_channel_solo(!button_mute.pressed, parent.id);
         }
     }
@@ -258,7 +258,7 @@ class PlayerDisplay {
                 // what a mess... but it works
             label_filename = check_and_shrink_string(label_filename, 68);
         }
-        else label_filename = parent.custom_info_msg;
+        else label_filename = player.custom_info_msg;
         
         if (parent.seq.getTickLength() > 0) meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
         label_message = player.last_text_message;    
@@ -363,6 +363,15 @@ class PlayerDisplay {
             textFont(fonts[1]);
             text(label_message,  x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, y + POS_Y_POSBAR + 9);
         
+        // SF2 load DnD section
+            fill(t.theme[1] - 0x64000000);
+            stroke(t.theme[0]);
+            rect(width-128, 8, 116, 48, 4);
+            fill(t.theme[4]);
+            textFont(fonts[0]);
+            textAlign(CENTER, TOP);
+            text("• Soundfont load •\n" + (parent.system_synth ? ("Java synth:\n" + player.sf_filename) : "\nOsc synth"), width-70, 16);
+        
         // Manufacturers / MIDI formats
             fill(t.theme[0] - 0x64000000);
             textFont(fonts[4]);
@@ -400,6 +409,11 @@ class PlayerDisplay {
         }
         
         return which;
+    }
+    
+    
+    boolean collided_sfload_rect() {
+        return (_mouseX > width-128 && _mouseX < width-4) && (_mouseY > 8 && _mouseY < 56);
     }
 }
 

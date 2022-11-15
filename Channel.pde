@@ -48,7 +48,9 @@ public class ChannelOsc {
     
     
     void create_display(int x, int y, int id) {
-        ChannelDisplay d = new ChannelDisplay(x, y, id, this);
+        ChannelDisplay d;
+        if (demo_ui) d = new ChannelDisplayDemo(x, y, id, this);
+        else d = new ChannelDisplay(x, y, id, this);
         this.disp = d;
         this.id = id;
     }
@@ -103,7 +105,7 @@ public class ChannelOsc {
         s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1));    // give a volume boost to TRI and SIN
         if (osc_type == 0) ((Pulse) s.osc).width(pulse_width);
         
-        s.play();
+        if (!demo_ui) s.play();
         
         last_amp = amp;
         last_freq = freq;
@@ -121,7 +123,7 @@ public class ChannelOsc {
         
         s.pan(curr_global_pan);
         s.amp(amp * 0.2 * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1));
-        s.play();
+        if (!demo_ui) s.play();
         
         last_amp = amp;
         last_freq = sample_code;
@@ -135,13 +137,13 @@ public class ChannelOsc {
     
     
     void stop_note(int note_code, boolean force) {
-        if (hold_pedal) {
+        /* if (hold_pedal) {
             curr_holding.add(note_code);
             return;
         }
         if (sostenuto_pedal && curr_sostenuting.contains(note_code)) {
             return;
-        }
+        } */ // really disliking how this sounds lol
         
         if (osc_type != 4) {
             RTSoundObject s = current_notes.get(note_code);
@@ -205,6 +207,8 @@ public class ChannelOsc {
     
     
     void set_expression(int value) {
+        if (value <= 0) shut_up();
+        
         amp_multiplier = map(value, 0, 127, 0.0, 1.0);
         if (osc_type != 4) set_all_oscs_amp();
     }
@@ -231,7 +235,7 @@ public class ChannelOsc {
     
     void set_all_oscs_amp() {
         for (RTSoundObject s : current_notes.values()) {
-            s.amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1));
+            s.amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * last_amp);
         }
     }
     
@@ -264,6 +268,7 @@ public class ChannelOsc {
         if (how) shut_up();
         disp.button_mute.set_pressed(how);
         silenced = how;
+        
     }
     
     

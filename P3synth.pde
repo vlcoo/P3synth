@@ -7,15 +7,16 @@ import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
 final float VERCODE = 23.23;
-final float OVERALL_VOL = 0.7;
+final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
-boolean NO_REALTIME = true;
+boolean NO_REALTIME = false;
 
 Frame frame;
 String osname;
 Player player;
 LabsModule win_labs;
-DnDListener dnd_listener;
+DnDMidListener dnd_mid;
+DnDSfListener dnd_sf;
 PImage[] logo_anim;
 PImage[] osc_type_textures;
 PImage logo_icon;
@@ -30,15 +31,33 @@ Button b_labs;
 WaitingDialog dialog_meta_msgs;
 HashMap<String, String> config_map;
 boolean hi_res = false;
+boolean low_frate = false;
+
+boolean demo_ui = false;
+
+String demo_layout = "NES (NTSC)";
+String demo_title = "- No title -";
+String demo_description = "- no description -\n\nUnknown composer";
 
 float _mouseX = 0;
 float _mouseY = 0;
+
 
 void settings() {
     setup_config();
     try {
         int conf_hi_res = Integer.parseInt(config_map.get("high resolution"));
         hi_res = conf_hi_res == 1;
+    }
+    catch (NumberFormatException nfe) {}
+    try {
+        int conf_low_frate = Integer.parseInt(config_map.get("low framerate"));
+        low_frate = conf_low_frate == 1;
+    }
+    catch (NumberFormatException nfe) {}
+    try {
+        int conf_demo_ui = Integer.parseInt(config_map.get("demoable uiserver"));
+        demo_ui = conf_demo_ui == 1;
     }
     catch (NumberFormatException nfe) {}
     
@@ -57,13 +76,9 @@ void settings() {
 
 
 void setup() {
-    new Sound(PARENT).volume(OVERALL_VOL);    // oscillators at volume 1 are ridiculously loud... 
-    
-    SinOsc warmup = new SinOsc(PARENT);
-    warmup.freq(100);
-    warmup.amp(0.1);
-    Env warmup_env = new Env(PARENT);
-    warmup_env.play(warmup, 0.01, 0.08, 0.1, 0.04); 
+    if (low_frate) frameRate(30);
+    else frameRate(75);
+    new Sound(PARENT).volume(1);    // fixes crackling? (sometimes??)
     
     surface.setTitle("vlco_o P3synth");
     frame = ( (PSurfaceAWT.SmoothCanvas)surface.getNative() ).getFrame();
@@ -78,11 +93,11 @@ void setup() {
     
     player = new Player();
     SDrop drop = new SDrop(PARENT);
-    dnd_listener = new DnDListener();
-    drop.addDropListener(dnd_listener);
+    dnd_mid = new DnDMidListener();
+    dnd_sf = new DnDSfListener();
+    drop.addDropListener(dnd_mid);
+    drop.addDropListener(dnd_sf);
     
-    warmup_env = null;
-    warmup = null;
     redraw_all();
 }
     
@@ -101,7 +116,7 @@ void draw() {
         
     redraw_all();
     
-    if (player.playing_state == 1) {
+    if (player.playing_state == 1 && !demo_ui) {
         int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/4)) % 8;
         image(logo_anim[abs(n)], 311, 10);
     }
@@ -111,7 +126,8 @@ void draw() {
         }
     }
     
-    if (dnd_listener.draggedOnto) player.custom_info_msg = "OK!";
+    if (dnd_mid.draggedOnto) player.custom_info_msg = "OK! (MID file)";
+    else if (dnd_sf.draggedOnto) player.custom_info_msg = "OK! (Soundfont)";
     else player.custom_info_msg = "";
 }
 
@@ -183,13 +199,15 @@ void redraw_all() {
     rect(1, 1, width-2, height-2);
     pop();
     
-    media_buttons.redraw();
-    setting_buttons.redraw();
-    image(logo_anim[0], 311, 10);
+    if (!demo_ui) {
+        media_buttons.redraw();
+        setting_buttons.redraw();
+        image(logo_anim[0], 311, 10);
+        b_meta_msgs.redraw();
+        b_loop.redraw();
+        b_labs.redraw();
+    }
     player.redraw();
-    b_meta_msgs.redraw();
-    b_loop.redraw();
-    b_labs.redraw();
 }
 
 
@@ -228,12 +246,13 @@ void setup_config() {
 
 
 void setup_fonts() {
-    fonts = new PFont[5];
+    fonts = new PFont[6];
     fonts[0] = loadFont("TerminusTTF-12.vlw");
     fonts[1] = loadFont("TerminusTTF-14.vlw");
     fonts[2] = loadFont("TerminusTTF-Bold-14.vlw");
     fonts[3] = loadFont("TerminusTTF-Bold_Italic-14.vlw");
     fonts[4] = loadFont("RobotoCondensed-BoldItalic-16.vlw");
+    fonts[5] = loadFont("TerminusTTF-Bold_Italic-18.vlw");
 }
 
 
@@ -378,6 +397,16 @@ void mouseClicked() {
             b_labs.set_pressed(!b_labs.pressed);
             win_labs.reposition();
         }
+        
+        else if (player.disp.collided_sfload_rect()) {
+            if (!player.system_synth) ui.showWarningDialog(
+                "Bonus: drag and drop SF2/DLS file in that box to load it!\n",
+                "Switching modes"
+            );
+            cursor(WAIT);
+            player.set_seq_synth(!player.system_synth);
+            cursor(ARROW);
+        }
     }
     
     player.disp.check_buttons(mouseButton);
@@ -397,12 +426,18 @@ void mouseDragged() {
 }
 
 
+void mouseMoved() {
+        if (player.disp.collided_sfload_rect()) cursor(HAND);
+        else cursor(ARROW);
+    }
+
+
 // this doesn't stand for dungeons and dragons
-class DnDListener extends DropListener {
+class DnDMidListener extends DropListener {
     boolean draggedOnto = false;
     int PADDING = 64;
     
-    DnDListener() {
+    DnDMidListener() {
         setTargetRect(PADDING, PADDING, width-PADDING*2, height-PADDING*2);
     }
     
@@ -424,6 +459,30 @@ class DnDListener extends DropListener {
 }
 
 
+class DnDSfListener extends DropListener {
+    boolean draggedOnto = false;
+    int PADDING = 64;
+    
+    DnDSfListener() {
+        setTargetRect(width-128, 8, 116, 48);
+    }
+    
+    void dropEnter() {
+        draggedOnto = true;
+    }
+    
+    void dropLeave() {
+        draggedOnto = false;
+    }
+    
+    void dropEvent(DropEvent e) {
+        cursor(WAIT);
+        try_load_sf(e.file());
+        cursor(ARROW);
+    }
+}
+
+
 boolean try_play_file(File selection) {
     if (selection != null) {
         String filename = selection.getAbsolutePath();
@@ -431,6 +490,20 @@ boolean try_play_file(File selection) {
         
         if (!response.equals("")) {
             ui.showErrorDialog(response, "Can't play");
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+
+boolean try_load_sf(File selection) {
+    if (selection != null) {
+        String response = player.load_soundfont(selection);
+        
+        if (!response.equals("")) {
+            ui.showErrorDialog(response, "Can't load");
             return false;
         }
         return true;
