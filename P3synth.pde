@@ -29,6 +29,7 @@ ButtonToolbar setting_buttons;
 Button b_meta_msgs;
 Button b_loop;
 Button b_labs;
+Button curr_mid_pressed;
 WaitingDialog dialog_meta_msgs;
 HashMap<String, String> config_map;
 boolean hi_res = false;
@@ -277,6 +278,23 @@ void setup_buttons() {
     b_labs = new Button(12, 16, "labs", "Labs");
 }
 
+
+void mousePressed() {
+    if (mouseButton == LEFT) {
+        for (Button b : media_buttons.buttons.values()) {
+            if (b.icon_filename.equals("pause")) continue;
+            if (b.collided()) curr_mid_pressed = b;
+        }
+        for (Button b : setting_buttons.buttons.values()) {
+            if (b.collided()) curr_mid_pressed = b;
+        }
+        if (b_meta_msgs.collided()) curr_mid_pressed = b_meta_msgs;
+        if (b_loop.collided()) curr_mid_pressed = b_loop;
+        if (b_labs.collided()) curr_mid_pressed = b_labs;
+        
+        if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
+    }
+}
 
 
 void mouseClicked() {
