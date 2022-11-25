@@ -25,6 +25,7 @@ PFont[] fonts;
 SoundFile[] samples;
 ThemeEngine t;
 boolean showed_sf_tip = false;
+boolean is_newbie = false;
 ButtonToolbar media_buttons;
 ButtonToolbar setting_buttons;
 Button b_meta_msgs;
@@ -147,11 +148,12 @@ void load_config(boolean just_opened) {
     }
     catch (FileNotFoundException fnfe) {
         println("load fnfe");
+        is_newbie = true;
         ui.showInfoDialog(
             "Welcome! Please check your audio levels.\n\n" +
             
             "For help on advanced usage, check the HELP button or\n" +
-            "the project's website at https://vlcoo.github.io/p3synth\n"
+            "the project's website at https://vlcoo.net/p3synth\n"
         );
         save_config();
     }
@@ -342,10 +344,11 @@ void mouseReleased() {
                 "Drag and drop a new MIDI file to play.\n" +
                 "REPLAY: skip back to the beginning of the song.\n" +
                 "PAUSE: pause any playing music or resume if paused.\n" +
-                "EXIT: safely close the program.\n\n" +
+                "STOP: unload the file.\n\n" +
                 
                 "The Labs menu has experimental playback/tinkering options!\n" +
-                "The buttons on the other side provide some info and configs.\n\n" +
+                "The buttons on the other side provide some info and configs.\n" +
+                "Try loading a soundfont file by dropping it into the upper right box!\n\n" +
                 
                 "Left click the X on any channel to mute it, or right click it to solo.\n" +
                 "You can use the lower left rectangle to control the song's position.\n" +
@@ -420,7 +423,7 @@ void mouseReleased() {
         }
         
         else if (player.disp.collided_sfload_rect()) {
-            if (!player.system_synth && player.sf_filename.equals("Default") && !showed_sf_tip) {
+            if (is_newbie && !showed_sf_tip && !player.system_synth && player.sf_filename.equals("Default")) {
                 ui.showWarningDialog(
                     "Bonus: drag and drop SF2/DLS file in that box to load it!\n",
                     "Switching modes"

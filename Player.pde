@@ -161,6 +161,11 @@ class Player {
     
     
     String play_file(String filename) {
+        return play_file(filename, false);
+    }
+    
+    
+    String play_file(String filename, boolean keep_paused) {
         if (midi_in_mode) stop_midi_in();
         File file = new File(filename);
         if (system_synth) try_match_soundfont(filename);
@@ -174,7 +179,7 @@ class Player {
             midi_resolution = mid.getResolution();
             curr_filename = filename;
             setTicks(0);
-            set_playing_state(1);
+            set_playing_state(keep_paused ? 0 : 1);
         }
         catch(InvalidMidiDataException imde) {
             return "Invalid MIDI data!";
@@ -287,9 +292,8 @@ class Player {
         
         if (playing_state_before >= 0) {
             prep_javax_midi();
-            play_file(prev_filename);
+            play_file(prev_filename, playing_state_before == 0); // keep paused if it was
             setTicks(prev_ticks);
-            if (playing_state_before == 0) set_playing_state(0); // keep paused if it was
         }
     }
     
