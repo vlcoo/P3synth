@@ -1,3 +1,7 @@
+/** crude but good enough implementation of a SoundObject
+ *  that supports amp attack-sustain-release envelope
+ *  and frequency modulation
+ */
 class RTSoundObject {
     Oscillator osc;
     int playing = 0;
@@ -6,18 +10,21 @@ class RTSoundObject {
     float freq = 0.0;
     float enved_amp = 0.0;
     float modded_freq = 0.0;
-    float amp_env_start_ticks = 1.0;
-    float amp_env_start_curtick = 0.0;
-    float amp_env_start_mod = 1.0;
-    float amp_env_mid_amp = 1.0;
-    float amp_env_end_ticks = 4.0;
-    float amp_env_end_curtick = 0.0;
-    float amp_env_end_mod = 0.2;
-    float freq_mod_mod = 2.0;
-    float freq_mod_startafter = 16.0;
-    float freq_mod_limit = 4.0;
-    float freq_mod_curdir = 1.0;
-    float freq_mod_curtick = 0.0;
+    
+    int amp_env_start_ticks = 1;    // attack duration
+    float amp_env_start_mod = 0.8;  // attack strength
+    float amp_env_mid_amp = 0.8;    // sustain amplitude
+    int amp_env_end_ticks = 6;      // release duration
+    float amp_env_end_mod = 0.1;    // release strength
+    
+    float freq_mod_mod = 0.25;       // modulation strength
+    int freq_mod_startafter = 16;   // modulation delay
+    float freq_mod_limit = 0.5;     // modulation bounds
+    
+    int amp_env_start_curtick = 0;
+    int amp_env_end_curtick = 0;
+    int freq_mod_curtick = 0;
+    int freq_mod_curdir = 1;
     
     
     RTSoundObject(Oscillator osc) {
@@ -63,6 +70,8 @@ class RTSoundObject {
     void freq(float f) {
         this.freq = f;
         this.modded_freq = f;
+        freq_mod_curdir = 1;
+        freq_mod_curtick = 0;
         osc.freq(f);
     }
     
@@ -74,7 +83,8 @@ class RTSoundObject {
     
     void amp(float a) {
         this.amp = a;
-        this.enved_amp = 0;
+        if (NO_REALTIME) osc.amp(a);
+        else this.enved_amp = a;
     }
     
     
@@ -82,10 +92,10 @@ class RTSoundObject {
         osc.freq(freq);
         enved_amp = 0;
         modded_freq = freq;
-        amp_env_start_curtick = 0.0;
-        amp_env_end_curtick = 0.0;
-        freq_mod_curdir = 1.0;
-        freq_mod_curtick = 0.0;
+        amp_env_start_curtick = 0;
+        amp_env_end_curtick = 0;
+        freq_mod_curdir = 1;
+        freq_mod_curtick = 0;
     }
     
     

@@ -164,17 +164,17 @@ class Player {
         set_playing_state(-1);
         if (midi_in_mode) stop_midi_in();
         File file = new File(filename);
+        if (system_synth) try_match_soundfont(filename);
         
         try {
-            Sequence mid = MidiSystem.getSequence(file);
+            Sequence mid = prep_javax_midi(MidiSystem.getSequence(file));
             seq.setSequence(mid);
             if (seq.getTempoInBPM() >= TEMPO_LIMIT) throw new InvalidMidiDataException();
             
             midi_resolution = mid.getResolution();
             curr_filename = filename;
+            setTicks(0);
             set_playing_state(1);
-            
-            zero_reverb();
         }
         catch(InvalidMidiDataException imde) {
             return "Invalid MIDI data!";
@@ -187,21 +187,42 @@ class Player {
     }
     
     
-    void zero_reverb() {
-        // for system_synth only
+    Sequence prep_javax_midi(Sequence mid) {
+        //if (!system_synth) return mid;
         try {
-            for (int i = 0; i <= 15; i++) {
-                event_listener.send(new ShortMessage(176, i, 91, 0), 0);
+            for (int i = 0; i < mid.getTracks().length; i++) {
+                mid.getTracks()[i].add(new MidiEvent(new ShortMessage(176, i, 91, 0), 0));
+                mid.getTracks()[i].add(new MidiEvent(new SysexMessage(
+                    new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)0x2f, (byte)0xf7}, 8)
+                , 0));
+                //event_listener.send(new ShortMessage(176, i, 91, 0), 0);    // remove reverb
+                /*event_listener.send(new SysexMessage(
+                    new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)0x2f, (byte)0xf7}, 8)
+                , 0); // soften volume*/
             }
         }
         catch (InvalidMidiDataException imde) {
-            println("reverb forever >:) (invalid msg)");
+            println("can't adjust system synth (imde)");
         }
+        return mid;
     }
     
     
     void reload_curr_file() {
         setTicks(0);
+    }
+    
+    
+    void try_match_soundfont(String mid_filename) {
+        mid_filename = mid_filename.replaceFirst("[.][^.]+$", "");
+        File f = new File(mid_filename + ".dls");
+        if (!f.exists() || f.isDirectory()) {
+            f = new File(mid_filename + ".sf2");
+        }
+        if (f.exists() && !f.isDirectory()) {
+            load_soundfont(f);
+        }
+        else return;
     }
     
     
@@ -213,10 +234,10 @@ class Player {
             sf_filename = check_and_shrink_string(file.getName().replaceFirst("[.][^.]+$", ""), 16);
         }
         catch (InvalidMidiDataException imd) {
-            println("Invalid SF data!");
+            return "Invalid SF data!";
         }
         catch (IOException ioe) {
-            println("I/O Error!");
+            return "I/O Error!";
         }
         return "";
     }
@@ -239,6 +260,7 @@ class Player {
                     alt_syn = MidiSystem.getSynthesizer();
                     alt_syn.open();
                 }
+                //prep_javax_midi();
                 // sf_filename = "Default";
             }
             transmitter.setReceiver(event_listener);
@@ -361,6 +383,7 @@ class Player {
             seq.start();
             break;
         }
+        
         playing_state = how;
     }
     
@@ -394,7 +417,7 @@ class Player {
     
     void set_channel_muted(boolean how, int chan) {
         channels[chan].set_muted(how);
-        alt_syn.getChannels()[chan].setMute(how);
+        if (alt_syn != null) alt_syn.getChannels()[chan].setMute(how);
     }
     
     
@@ -424,6 +447,7 @@ class Player {
         }
         
         this.disp.redraw(true);
+        //if (playing_state == 1 && seq.getTickPosition() < 10) prep_javax_midi();
     }
     
     

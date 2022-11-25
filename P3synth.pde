@@ -9,7 +9,7 @@ final processing.core.PApplet PARENT = this;
 final float VERCODE = 23.23;
 final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
-boolean NO_REALTIME = false;
+boolean NO_REALTIME = true;
 
 Frame frame;
 String osname;
@@ -19,6 +19,7 @@ DnDMidListener dnd_mid;
 DnDSfListener dnd_sf;
 PImage[] logo_anim;
 PImage[] osc_type_textures;
+PImage midi_program_icon;
 PImage logo_icon;
 PFont[] fonts;
 SoundFile[] samples;
@@ -231,6 +232,7 @@ void setup_images() {
         PImage img = loadImage("graphics/osc_" + i + ".png");
         osc_type_textures[i+1] = img;
     }
+    midi_program_icon = loadImage("graphics/midi_program.png");
     
     logo_icon = loadImage("graphics/icon.png");
     surface.setIcon(logo_icon);
@@ -399,7 +401,7 @@ void mouseClicked() {
         }
         
         else if (player.disp.collided_sfload_rect()) {
-            if (!player.system_synth) ui.showWarningDialog(
+            if (!player.system_synth && player.sf_filename.equals("Default")) ui.showWarningDialog(
                 "Bonus: drag and drop SF2/DLS file in that box to load it!\n",
                 "Switching modes"
             );

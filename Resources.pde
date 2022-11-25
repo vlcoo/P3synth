@@ -1,5 +1,5 @@
 String check_and_shrink_string(String original, int max_len) {
-     if (original.length() > max_len) original = original.substring(0, max_len - 3) + "...";
+     if (original.length() > max_len) original = original.substring(0, max_len - 1) + "…";
      return original;
 }
 
@@ -34,8 +34,8 @@ class ThemeEngine {
         available_themes.put("Summer Yellow", theme_06);
         int[] theme_02 = {#5c1f09, #b2593f, #df825f, #ffd2a2, #ffffff};
         available_themes.put("GX Peach", theme_02);
-        int[] theme_05 = {#ffffff, #000000, #000000, #ffffff, #ffffff};
-        available_themes.put("Black & White", theme_05);
+        int[] theme_05 = {#000000, #777777, #aaaaaa, #444444, #ffffff};
+        available_themes.put("Metallic Grayscale", theme_05);
     }
 }
 
@@ -88,12 +88,21 @@ float[] prog_osc_relationship = {
     1, .25, .25, 2, 1, 2, 2, 1, .25, .25, 1, 2, .5, 3, .25,
     .5, .125, .125, .5, 1, .125, .5, .5, .5, .75, .125, .5,
     .25, .125, .75, .125, .5, .5, .125, 1, .125, .125, .125,
-    .125, .75, .125, .125, 1, 1, .25, .5, 1, 1, 1, 1, 2, .5,
+    .125, .75, .125, .125, 1, 1, .25, 4, 4, 4, 4, 4, 4, 4,
     4, 4, 4, 4, 4, 4, 4, 4
 };
 
 float program_to_osc(int prog) {
     return prog_osc_relationship[prog];
+}
+
+
+float[][] prog_env_relationship = {
+    {1.2, 3}, {3, 9.1}
+};
+
+float[] program_to_env(int prog) {
+    return prog_env_relationship[prog];
 }
 
 

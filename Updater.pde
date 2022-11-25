@@ -27,7 +27,7 @@ float check_if_newer_ver() {
 void download_latest_ver() {
     Desktop desktop = java.awt.Desktop.getDesktop();
     try {
-        desktop.browse(new URI("https://github.com/vlcoo/P3synth/releases/latest"));
+        desktop.browse(new URI("https://github.com/vlcoo/P3synth/releases/latest/download/P3synth.jar"));
     }
     catch (URISyntaxException use) {}
     catch (IOException ioe) {}
