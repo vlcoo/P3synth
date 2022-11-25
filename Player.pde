@@ -167,7 +167,7 @@ class Player {
         if (system_synth) try_match_soundfont(filename);
         
         try {
-            Sequence mid = prep_javax_midi(MidiSystem.getSequence(file));
+            Sequence mid = prep_javax_midi(MidiSystem.getSequence(file), false);
             seq.setSequence(mid);
             if (seq.getTempoInBPM() >= TEMPO_LIMIT) throw new InvalidMidiDataException();
             
@@ -187,23 +187,36 @@ class Player {
     }
     
     
-    Sequence prep_javax_midi(Sequence mid) {
-        //if (!system_synth) return mid;
+    Sequence prep_javax_midi() {
+        // bruteforce my way in
+        return prep_javax_midi(null, true);   
+    }
+    
+    
+    Sequence prep_javax_midi(Sequence mid, boolean right_now) {
         try {
-            for (int i = 0; i < mid.getTracks().length; i++) {
-                mid.getTracks()[i].add(new MidiEvent(new ShortMessage(176, i, 91, 0), 0));
-                mid.getTracks()[i].add(new MidiEvent(new SysexMessage(
-                    new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)0x2f, (byte)0xf7}, 8)
-                , 0));
-                //event_listener.send(new ShortMessage(176, i, 91, 0), 0);    // remove reverb
-                /*event_listener.send(new SysexMessage(
-                    new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)0x2f, (byte)0xf7}, 8)
-                , 0); // soften volume*/
+            int n = mid == null ? 16 : mid.getTracks().length;
+            for (int i = 0; i < n; i++) {
+                // msgs: remove reverb, soften volume
+                if (mid != null) {
+                    mid.getTracks()[i].add(new MidiEvent(new ShortMessage(176, i, 91, 0), 0));
+                    mid.getTracks()[i].add(new MidiEvent(new SysexMessage(
+                        new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)0x2f, (byte)0xf7}, 8)
+                    , 0));
+                }
+                
+                if (right_now) {
+                    event_listener.send(new ShortMessage(176, i, 91, 0), 0);
+                    event_listener.send(new SysexMessage(
+                        new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)0x2f, (byte)0xf7}, 8)
+                    , 0);
+                }
             }
         }
         catch (InvalidMidiDataException imde) {
             println("can't adjust system synth (imde)");
         }
+        
         return mid;
     }
     
@@ -273,6 +286,7 @@ class Player {
         }
         
         if (playing_before) {
+            prep_javax_midi();
             play_file(prev_filename);
             setTicks(prev_ticks);
         }
