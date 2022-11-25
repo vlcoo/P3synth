@@ -288,17 +288,19 @@ void mousePressed() {
         for (Button b : setting_buttons.buttons.values()) {
             if (b.collided()) curr_mid_pressed = b;
         }
-        if (b_meta_msgs.collided()) curr_mid_pressed = b_meta_msgs;
-        if (b_loop.collided()) curr_mid_pressed = b_loop;
-        if (b_labs.collided()) curr_mid_pressed = b_labs;
         
         if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
     }
 }
 
 
-void mouseClicked() {
+void mouseReleased() {
     if (mouseButton == LEFT) {
+        if (curr_mid_pressed != null) {
+            curr_mid_pressed.set_pressed(false);
+            curr_mid_pressed = null;
+        }
+        
         if(media_buttons.collided("Exit")) {
             cursor(WAIT);
             media_buttons.get_button("Exit").set_pressed(true);
@@ -431,11 +433,6 @@ void mouseClicked() {
     
     player.disp.check_buttons(mouseButton);
     player.check_chan_disp_buttons(mouseButton);   // check for any presses on the channel display
-    
-    media_buttons.redraw();
-    setting_buttons.redraw();
-    b_meta_msgs.redraw();
-    b_labs.redraw();
 }
 
 
