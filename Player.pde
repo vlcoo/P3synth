@@ -161,13 +161,13 @@ class Player {
     
     
     String play_file(String filename) {
-        set_playing_state(-1);
         if (midi_in_mode) stop_midi_in();
         File file = new File(filename);
         if (system_synth) try_match_soundfont(filename);
         
         try {
             Sequence mid = prep_javax_midi(MidiSystem.getSequence(file), false);
+            set_playing_state(-1);
             seq.setSequence(mid);
             if (seq.getTempoInBPM() >= TEMPO_LIMIT) throw new InvalidMidiDataException();
             
@@ -244,7 +244,8 @@ class Player {
             Soundbank sf = MidiSystem.getSoundbank(file);
             set_seq_synth(true);
             alt_syn.loadAllInstruments(sf);
-            sf_filename = check_and_shrink_string(file.getName().replaceFirst("[.][^.]+$", ""), 16);
+            sf_filename = check_and_shrink_string(sf.getName(), 16);
+            //sf_filename = check_and_shrink_string(file.getName().replaceFirst("[.][^.]+$", ""), 16);
         }
         catch (InvalidMidiDataException imd) {
             return "Invalid SF data!";
@@ -257,7 +258,7 @@ class Player {
     
     
     void set_seq_synth(boolean is_system) {
-        boolean playing_before = playing_state >= 0;
+        int playing_state_before = playing_state;
         String prev_filename = curr_filename;
         int prev_ticks = seq == null ? 0 : int(seq.getTickPosition());
         set_playing_state(-1);
@@ -266,6 +267,7 @@ class Player {
             if (seq != null) seq.close();
             seq = MidiSystem.getSequencer(false);
             seq.open();
+            seq.setLoopCount(b_loop.pressed ? -1 : 0);
             seq.addMetaEventListener(meta_listener);
             Transmitter transmitter = seq.getTransmitter();
             if (is_system) {
@@ -273,8 +275,6 @@ class Player {
                     alt_syn = MidiSystem.getSynthesizer();
                     alt_syn.open();
                 }
-                //prep_javax_midi();
-                // sf_filename = "Default";
             }
             transmitter.setReceiver(event_listener);
             
@@ -285,10 +285,11 @@ class Player {
             println("Midi device unavailable!");
         }
         
-        if (playing_before) {
+        if (playing_state_before >= 0) {
             prep_javax_midi();
             play_file(prev_filename);
             setTicks(prev_ticks);
+            if (playing_state_before == 0) set_playing_state(0); // keep paused if it was
         }
     }
     
@@ -399,6 +400,7 @@ class Player {
         }
         
         playing_state = how;
+        request_media_buttons_refresh();
     }
     
     

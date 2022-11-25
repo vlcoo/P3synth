@@ -241,8 +241,8 @@ class PlayerDisplay {
     final int WIDTH_MESSAGEBAR = 308;
     final int HEIGHT_POSBAR = 18;
     
-    float label_labs = 0.0;
     String label_filename = "";
+    String label_dnd_msg = "";
     float meter_midi_pos = 0.0;
     String label_message = "- no message -";
     float meter_loop_begin = 0.0;
@@ -276,12 +276,11 @@ class PlayerDisplay {
                 // what a mess... but it works
             label_filename = check_and_shrink_string(label_filename, 68);
         }
-        else label_filename = player.custom_info_msg;
+        else label_filename = parent.custom_info_msg;
         
         if (parent.seq.getTickLength() > 0) meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
         label_message = player.last_text_message;    
         label_message = check_and_shrink_string(label_message, 36);    // we don't want it to get out of the rectangle...
-        //label_labs = parent.curr_detune;
         
         if (parent.playing_state != -1) {
             meter_loop_begin = map(parent.seq.getLoopStartPoint(), 0, player.seq.getTickLength(), 0.0, 1.0);
@@ -388,25 +387,11 @@ class PlayerDisplay {
             fill(t.theme[4]);
             textFont(fonts[0]);
             textAlign(CENTER, TOP);
-            text("• Soundfont load •\n" + (parent.system_synth ? ("Java synth:\n" + player.sf_filename) : "\nOsc synth"), width-70, 16);
-        
-        // Manufacturers / MIDI formats
-            fill(t.theme[0] - 0x64000000);
-            textFont(fonts[4]);
-            textAlign(RIGHT);
-            if (label_GM) text("GM", 724 - 10, 18);
-            if (label_GM2) text("GM2", 724 - 10, 32);
-            if (label_XG) text("XG", 724 - 10, 46);
-            if (label_GS) text("GS", 724 - 10, 60);
-        
-        /*
-        fill(t.theme[2]);
-        noStroke();
-        rect(44, 10, 80, 50);
-        textAlign(LEFT);
-        fill(t.theme[0]);
-        textFont(fonts[0]);
-        text(label_labs, 44, 32);*/
+            text(
+                "• Soundfont load •\n" + 
+                (parent.system_synth ? ("Java synth:\n" + player.sf_filename) : "\nOsc synth"),
+                width-70, 16
+            );
     }
     
     

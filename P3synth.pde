@@ -24,6 +24,7 @@ PImage logo_icon;
 PFont[] fonts;
 SoundFile[] samples;
 ThemeEngine t;
+boolean showed_sf_tip = false;
 ButtonToolbar media_buttons;
 ButtonToolbar setting_buttons;
 Button b_meta_msgs;
@@ -100,9 +101,9 @@ void setup() {
     drop.addDropListener(dnd_mid);
     drop.addDropListener(dnd_sf);
     
+    request_media_buttons_refresh();
     redraw_all();
 }
-    
     
     
 void draw() {
@@ -132,7 +133,6 @@ void draw() {
     else if (dnd_sf.draggedOnto) player.custom_info_msg = "OK! (Soundfont)";
     else player.custom_info_msg = "";
 }
-
 
 
 void load_config(boolean just_opened) {
@@ -173,7 +173,6 @@ void load_config(boolean just_opened) {
 }
 
 
-
 void save_config() {
     try {
         PrintStream f = new PrintStream(new File("P3synth config"));
@@ -188,7 +187,6 @@ void save_config() {
         println("save ioe");
     }
 }
-
 
 
 void redraw_all() {
@@ -261,7 +259,7 @@ void setup_fonts() {
 
 void setup_buttons() {
     Button b1 = new Button(12, 376, "reload", "Replay");
-    Button b2 = new Button("stop", "Exit");
+    Button b2 = new Button("stop", "Stop");
     Button b3 = new Button("pause", "Pause");
     Button[] buttons_ctrl = {b1, b3, b2};
     media_buttons = new ButtonToolbar(150, 16, 1.3, 0, buttons_ctrl);
@@ -279,10 +277,16 @@ void setup_buttons() {
 }
 
 
+void request_media_buttons_refresh() {
+    media_buttons.get_button("Pause").set_pressed(player.playing_state == 0);
+    media_buttons.get_button("Stop").set_pressed(player.playing_state == -1);
+}
+
+
 void mousePressed() {
     if (mouseButton == LEFT) {
         for (Button b : media_buttons.buttons.values()) {
-            if (b.icon_filename.equals("pause")) continue;
+            if (b.icon_filename.equals("pause") || b.icon_filename.equals("stop")) continue;
             if (b.collided()) curr_mid_pressed = b;
         }
         for (Button b : setting_buttons.buttons.values()) {
@@ -301,21 +305,16 @@ void mouseReleased() {
             curr_mid_pressed = null;
         }
         
-        if(media_buttons.collided("Exit")) {
-            cursor(WAIT);
-            media_buttons.get_button("Exit").set_pressed(true);
-            //ui.showWaitingDialog("Exiting...", "Please wait");
+        if(media_buttons.collided("Stop")) {
+            if (player.playing_state == -1) return;
             player.set_playing_state(-1);
-            if (player.midi_in_mode) player.stop_midi_in();
-            player.seq.close();
-            exit();
         }
         
         else if(media_buttons.collided("Pause")) {
             if (player.playing_state == -1) return;
             Button b = media_buttons.get_button("Pause");
             player.set_playing_state( b.pressed ? 1 : 0 );
-            b.set_pressed(!b.pressed);
+            //b.set_pressed(!b.pressed);
         }
         
         else if(media_buttons.collided("Replay")) {
@@ -421,10 +420,13 @@ void mouseReleased() {
         }
         
         else if (player.disp.collided_sfload_rect()) {
-            if (!player.system_synth && player.sf_filename.equals("Default")) ui.showWarningDialog(
-                "Bonus: drag and drop SF2/DLS file in that box to load it!\n",
-                "Switching modes"
-            );
+            if (!player.system_synth && player.sf_filename.equals("Default") && !showed_sf_tip) {
+                ui.showWarningDialog(
+                    "Bonus: drag and drop SF2/DLS file in that box to load it!\n",
+                    "Switching modes"
+                );
+                showed_sf_tip = true;
+            }
             cursor(WAIT);
             player.set_seq_synth(!player.system_synth);
             cursor(ARROW);
