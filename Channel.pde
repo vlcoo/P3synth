@@ -93,7 +93,7 @@ public class ChannelOsc {
         
         float mod_note_code = note_code + curr_noteDetune + player.ktrans.transform[(note_code - 2 + player.mid_rootnote) % 12];
         float freq = midi_to_freq(mod_note_code);
-        float amp = map(note_code, 0, 127, 0.0, 1.0);
+        float amp = map(velocity, 0, 127, 0.0, 1.0);
         
         RTSoundObject s = current_notes.get(note_code);
         if (s == null) {

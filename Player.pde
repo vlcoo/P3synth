@@ -161,6 +161,16 @@ class Player {
     
     
     String play_file(String filename) {
+        return play_file(filename, false);
+    }
+    
+    
+    String play_file(String filename, boolean keep_paused) {
+        /*if (filename.toLowerCase().endsWith("wav")) {
+            play_wav(filename);
+            return "";
+        }*/
+        
         if (midi_in_mode) stop_midi_in();
         File file = new File(filename);
         if (system_synth) try_match_soundfont(filename);
@@ -174,7 +184,7 @@ class Player {
             midi_resolution = mid.getResolution();
             curr_filename = filename;
             setTicks(0);
-            set_playing_state(1);
+            set_playing_state(keep_paused ? 0 : 1);
         }
         catch(InvalidMidiDataException imde) {
             return "Invalid MIDI data!";
@@ -184,6 +194,25 @@ class Player {
         }
         
         return "";
+    }
+    
+    
+    void play_wav(String filename) {
+        set_playing_state(-1);
+        File file = new File(filename);
+        load_soundfont(file);
+        prep_javax_midi();
+        try {
+            for (int i = 0; i < 16; i++) {
+                event_listener.send(new ShortMessage(128, i, 48, 127), 0);
+                event_listener.send(new ShortMessage(192, i, 0, 0), 0);
+                event_listener.send(new ShortMessage(144, i, 48, 127), 0);
+                delay(100);
+            }
+        }
+        catch (InvalidMidiDataException imde) {
+            println("imde on wav");
+        }
     }
     
     
@@ -289,7 +318,7 @@ class Player {
         
         if (playing_state_before >= 0) {
             prep_javax_midi();
-            play_file(prev_filename);
+            play_file(prev_filename, playing_state_before == 0);
             seq.setLoopStartPoint(prev_looppoints[0]);
             seq.setLoopEndPoint(prev_looppoints[1]);
             setTicks(prev_ticks);
@@ -340,6 +369,12 @@ class Player {
         catch (IOException ioe) { println("ioe on close???"); }
         ui.showInfoDialog("MIDI In disconnected!");
         set_playing_state(-1);
+    }
+    
+    
+    void reset_looppoints() {
+        seq.setLoopEndPoint(-1);
+        seq.setLoopStartPoint(0);
     }
     
     
@@ -426,8 +461,7 @@ class Player {
         mid_scale = 0;
         curr_filename = DEFAULT_STOPPED_MSG;
         
-        seq.setLoopEndPoint(-1);
-        seq.setLoopStartPoint(0);
+        reset_looppoints();
         
         file_is_GM = false;
         file_is_GM2 = false;

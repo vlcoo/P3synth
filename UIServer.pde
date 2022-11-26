@@ -324,12 +324,12 @@ class PlayerDisplay {
             try {
                 if (handle_no == -1) {
                     int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-                    parent.seq.setLoopStartPoint(snap_number(new_pos, player.midi_resolution));
+                    parent.seq.setLoopStartPoint(snap_number(new_pos, player.midi_resolution*2));
                 }
                 
                 else if (handle_no == 1) {
                     int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-                    parent.seq.setLoopEndPoint(snap_number(new_pos, player.midi_resolution));
+                    parent.seq.setLoopEndPoint(snap_number(new_pos, player.midi_resolution*2));
                 }
             }
             catch (IllegalArgumentException iae) { }
@@ -417,6 +417,11 @@ class PlayerDisplay {
     
     boolean collided_sfload_rect() {
         return (_mouseX > width-128 && _mouseX < width-4) && (_mouseY > 8 && _mouseY < 56);
+    }
+    
+    
+    boolean collided_metamsg_rect() {
+        return (_mouseX > x + POS_X_MESSAGEBAR && _mouseX < width-50) && (_mouseY > y + POS_Y_POSBAR && _mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR);
     }
 }
 

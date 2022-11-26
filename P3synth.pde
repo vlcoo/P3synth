@@ -25,9 +25,10 @@ PFont[] fonts;
 SoundFile[] samples;
 ThemeEngine t;
 boolean showed_sf_tip = false;
+boolean is_newbie = false;
 ButtonToolbar media_buttons;
 ButtonToolbar setting_buttons;
-Button b_meta_msgs;
+Button b_metadata;
 Button b_loop;
 Button b_labs;
 Button curr_mid_pressed;
@@ -147,11 +148,12 @@ void load_config(boolean just_opened) {
     }
     catch (FileNotFoundException fnfe) {
         println("load fnfe");
+        is_newbie = true;
         ui.showInfoDialog(
             "Welcome! Please check your audio levels.\n\n" +
             
             "For help on advanced usage, check the HELP button or\n" +
-            "the project's website at https://vlcoo.github.io/p3synth\n"
+            "the project's website at https://vlcoo.net/p3synth\n"
         );
         save_config();
     }
@@ -203,7 +205,7 @@ void redraw_all() {
         media_buttons.redraw();
         setting_buttons.redraw();
         image(logo_anim[0], 311, 10);
-        b_meta_msgs.redraw();
+        b_metadata.redraw();
         b_loop.redraw();
         b_labs.redraw();
     }
@@ -270,7 +272,7 @@ void setup_buttons() {
     Button[] buttons_set = {b2, b1, b3};
     setting_buttons = new ButtonToolbar(464, 16, 1.3, 0, buttons_set);
     
-    b_meta_msgs = new Button(682, 376, "message", "Hist.");    // next to the player's message bar
+    b_metadata = new Button(682, 376, "metadata", "Metadata ");    // next to the player's message bar
     b_loop = new Button(12, 376, "loop", "Loop");
     b_loop.set_pressed(true);
     b_labs = new Button(12, 16, "labs", "Labs");
@@ -292,6 +294,7 @@ void mousePressed() {
         for (Button b : setting_buttons.buttons.values()) {
             if (b.collided()) curr_mid_pressed = b;
         }
+        if (b_metadata.collided()) curr_mid_pressed = b_metadata;
         
         if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
     }
@@ -336,39 +339,27 @@ void mouseReleased() {
         }
         
         else if(setting_buttons.collided("Help")) {
-            ui.showInfoDialog(
-                "Thanks for using P3synth (v" + VERCODE + ")!\n\n" + 
-                
-                "Drag and drop a new MIDI file to play.\n" +
-                "REPLAY: skip back to the beginning of the song.\n" +
-                "PAUSE: pause any playing music or resume if paused.\n" +
-                "EXIT: safely close the program.\n\n" +
-                
-                "The Labs menu has experimental playback/tinkering options!\n" +
-                "The buttons on the other side provide some info and configs.\n\n" +
-                
-                "Left click the X on any channel to mute it, or right click it to solo.\n" +
-                "You can use the lower left rectangle to control the song's position.\n" +
-                "The arrows above and below it control the loop start and end positions!\n" +
-                "The lower right rectangle shows the last text message the MIDI sent out.\n\n" +
-                
-                "Please beware of the bugs.\n" +
-                "vlcoo.net  |  github.com/vlcoo/P3synth"
+            ui.showList(
+                "Choose a help topic",
+                "Guide",
+                new SelectElementListener() {public void onSelected(ListElement e) {
+                    show_help_topic(e.getTitle());}},
+                new ListElement("1 • Basic usage", "Play MIDI files using the built-in synthesizer.\n​"),
+                new ListElement("2 • Visualization", "Overview of the different MIDI messages that are supported.\n​"),
+                new ListElement("3 • Advanced usage", "Use custom soundfonts and instrument banks.\n​"),
+                new ListElement("4 • Labs dialog", "Other experimental options.\n​"));
+        }
+        
+        else if(player.disp.collided_metamsg_rect() && player != null) {
+            if (dialog_meta_msgs != null) dialog_meta_msgs.close();
+            dialog_meta_msgs = ui.showWaitingDialog(
+                "These are lyrics, comments, or other text in the MIDI file.",
+                "Meta message history", player.history_text_messages
             );
         }
         
-        else if(b_meta_msgs.collided() && player != null) {
-            if(!b_meta_msgs.pressed) {
-                b_meta_msgs.set_pressed(true);
-                dialog_meta_msgs = ui.showWaitingDialog(
-                    "These are lyrics, comments, or other text in the MIDI file.",
-                    "Meta message history", player.history_text_messages, false
-                );
-            }
-            else if(b_meta_msgs.pressed && dialog_meta_msgs != null) {
-                b_meta_msgs.set_pressed(false);
-                dialog_meta_msgs.close();
-            }
+        else if(b_metadata.collided()) {
+            println("ho");
         }
         
         else if(setting_buttons.collided("Update")) {
@@ -420,7 +411,7 @@ void mouseReleased() {
         }
         
         else if (player.disp.collided_sfload_rect()) {
-            if (!player.system_synth && player.sf_filename.equals("Default") && !showed_sf_tip) {
+            if (is_newbie && !showed_sf_tip && !player.system_synth && player.sf_filename.equals("Default")) {
                 ui.showWarningDialog(
                     "Bonus: drag and drop SF2/DLS file in that box to load it!\n",
                     "Switching modes"
@@ -430,6 +421,12 @@ void mouseReleased() {
             cursor(WAIT);
             player.set_seq_synth(!player.system_synth);
             cursor(ARROW);
+        }
+    }
+    
+    else if (mouseButton == RIGHT) {
+        if (b_loop.collided()) {
+            player.reset_looppoints();
         }
     }
     
@@ -446,9 +443,32 @@ void mouseDragged() {
 
 
 void mouseMoved() {
-        if (player.disp.collided_sfload_rect()) cursor(HAND);
-        else cursor(ARROW);
+    if (player.disp.collided_sfload_rect() ||
+        player.disp.collided_metamsg_rect()
+    ) cursor(HAND);
+    else cursor(ARROW);
+}
+
+
+void show_help_topic(String which) {
+    switch (which.charAt(0)) {
+        case '1':
+        ui.showInfoDialog("one");
+        break;
+        
+        case '2':
+        ui.showInfoDialog("two");
+        break;
+        
+        case '3':
+        ui.showInfoDialog("three");
+        break;
+        
+        case '4':
+        ui.showInfoDialog("four");
+        break;
     }
+}
 
 
 // this doesn't stand for dungeons and dragons
