@@ -6,7 +6,7 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 23.23;
+final float VERCODE = 23.30;
 final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
 boolean NO_REALTIME = true;

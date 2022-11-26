@@ -1,3 +1,8 @@
+int snap_number(int num, int mult) {
+    return ((num + mult - 1) / mult) * mult;
+}
+
+
 String check_and_shrink_string(String original, int max_len) {
      if (original.length() > max_len) original = original.substring(0, max_len - 1) + "…";
      return original;

@@ -261,6 +261,8 @@ class Player {
         int playing_state_before = playing_state;
         String prev_filename = curr_filename;
         int prev_ticks = seq == null ? 0 : int(seq.getTickPosition());
+        long[] prev_looppoints = null;
+        if (seq != null) prev_looppoints = new long[] {seq.getLoopStartPoint(), seq.getLoopEndPoint()};
         set_playing_state(-1);
         
         try {
@@ -288,6 +290,8 @@ class Player {
         if (playing_state_before >= 0) {
             prep_javax_midi();
             play_file(prev_filename);
+            seq.setLoopStartPoint(prev_looppoints[0]);
+            seq.setLoopEndPoint(prev_looppoints[1]);
             setTicks(prev_ticks);
             if (playing_state_before == 0) set_playing_state(0); // keep paused if it was
         }

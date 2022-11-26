@@ -324,12 +324,12 @@ class PlayerDisplay {
             try {
                 if (handle_no == -1) {
                     int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-                    parent.seq.setLoopStartPoint(new_pos);
+                    parent.seq.setLoopStartPoint(snap_number(new_pos, player.midi_resolution));
                 }
                 
                 else if (handle_no == 1) {
                     int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-                    parent.seq.setLoopEndPoint(new_pos);
+                    parent.seq.setLoopEndPoint(snap_number(new_pos, player.midi_resolution));
                 }
             }
             catch (IllegalArgumentException iae) { }
