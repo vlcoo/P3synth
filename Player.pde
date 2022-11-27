@@ -37,6 +37,7 @@ void readMIDIn() {
 
 
 class Player {
+    final int LENGTH_THRESHOLD = 135000000;
     final int TEMPO_LIMIT = 1000;
     final String DEFAULT_STOPPED_MSG = "Drag and drop a file to play...";
     
@@ -73,10 +74,12 @@ class Player {
     boolean file_is_GM2 = false;
     boolean file_is_XG = false;
     boolean file_is_GS = false;
+    HashMap<String, String> metadata_map;
     
     
     Player() {
         ktrans = new KeyTransformer();
+        metadata_map = new HashMap();
         final int nChannels = 16;
         channels = new ChannelOsc[nChannels];
         
@@ -89,7 +92,8 @@ class Player {
         }
         
         create_display(0, 318);
-        set_seq_synth(false);
+        set_seq_synth(prefs.getBoolean("system synth", false));
+        load_soundfont(new File(prefs.get("sf path", "")), false);
     }
     
     
@@ -166,10 +170,10 @@ class Player {
     
     
     String play_file(String filename, boolean keep_paused) {
-        /*if (filename.toLowerCase().endsWith("wav")) {
+        if (filename.toLowerCase().endsWith("wav")) {
             play_wav(filename);
             return "";
-        }*/
+        }
         
         if (midi_in_mode) stop_midi_in();
         File file = new File(filename);
@@ -198,21 +202,24 @@ class Player {
     
     
     void play_wav(String filename) {
+        // no
         set_playing_state(-1);
         File file = new File(filename);
         load_soundfont(file);
         prep_javax_midi();
         try {
-            for (int i = 0; i < 16; i++) {
-                event_listener.send(new ShortMessage(128, i, 48, 127), 0);
-                event_listener.send(new ShortMessage(192, i, 0, 0), 0);
-                event_listener.send(new ShortMessage(144, i, 48, 127), 0);
-                delay(100);
-            }
+            event_listener.send(new ShortMessage(128, 0, 48, 127), 0);
+            event_listener.send(new ShortMessage(192, 0, 0, 0), 0);
+            event_listener.send(new ShortMessage(144, 0, 48, 127), 0);
         }
         catch (InvalidMidiDataException imde) {
             println("imde on wav");
         }
+    }
+    
+    
+    boolean is_song_long() {
+        return seq.getMicrosecondLength() > LENGTH_THRESHOLD;
     }
     
     
@@ -269,9 +276,14 @@ class Player {
     
     
     String load_soundfont(File file) {
+        return load_soundfont(file, true);
+    }
+    
+    
+    String load_soundfont(File file, boolean switch_mode) {
         try {
             Soundbank sf = MidiSystem.getSoundbank(file);
-            set_seq_synth(true);
+            if (switch_mode) set_seq_synth(true);
             alt_syn.loadAllInstruments(sf);
             sf_filename = check_and_shrink_string(sf.getName(), 16);
             //sf_filename = check_and_shrink_string(file.getName().replaceFirst("[.][^.]+$", ""), 16);
@@ -367,7 +379,7 @@ class Player {
             stdIn.close();
         }
         catch (IOException ioe) { println("ioe on close???"); }
-        ui.showInfoDialog("MIDI In disconnected!");
+        ui.showInfoDialog("MIDI In disconnected!", "Switching modes");
         set_playing_state(-1);
     }
     
@@ -487,6 +499,12 @@ class Player {
                 set_channel_muted(!c.silenced, c.id);
             }
         }
+    }
+    
+    
+    String[][] get_metadata_table() {
+        String[][] t = new String[metadata_map.size()][2];
+        return t;
     }
     
     

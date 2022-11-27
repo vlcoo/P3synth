@@ -6,10 +6,10 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 23.30;
+final float VERCODE = 23.28;
 final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
-boolean NO_REALTIME = true;
+boolean NO_REALTIME = false;
 
 Frame frame;
 String osname;
@@ -24,8 +24,7 @@ PImage logo_icon;
 PFont[] fonts;
 SoundFile[] samples;
 ThemeEngine t;
-boolean showed_sf_tip = false;
-boolean is_newbie = false;
+boolean is_newbie;
 ButtonToolbar media_buttons;
 ButtonToolbar setting_buttons;
 Button b_metadata;
@@ -33,7 +32,7 @@ Button b_loop;
 Button b_labs;
 Button curr_mid_pressed;
 WaitingDialog dialog_meta_msgs;
-HashMap<String, String> config_map;
+Form dialog_settings;
 boolean hi_res = false;
 boolean low_frate = false;
 
@@ -48,40 +47,15 @@ float _mouseY = 0;
 
 
 void settings() {
-    setup_config();
-    try {
-        int conf_hi_res = Integer.parseInt(config_map.get("high resolution"));
-        hi_res = conf_hi_res == 1;
-    }
-    catch (NumberFormatException nfe) {}
-    try {
-        int conf_low_frate = Integer.parseInt(config_map.get("low framerate"));
-        low_frate = conf_low_frate == 1;
-    }
-    catch (NumberFormatException nfe) {}
-    try {
-        int conf_demo_ui = Integer.parseInt(config_map.get("demoable uiserver"));
-        demo_ui = conf_demo_ui == 1;
-    }
-    catch (NumberFormatException nfe) {}
-    
     osname = System.getProperty("os.name");
     int sizeX = 724;
     int sizeY = 430;
     if (osname.contains("Windows")) sizeY = 460;
-    
-    if (hi_res) {
-        sizeX *= HIRES_MULT;
-        sizeY *= HIRES_MULT;
-        noSmooth();
-    }
     size(sizeX, sizeY);
 }
 
 
 void setup() {
-    if (low_frate) frameRate(30);
-    else frameRate(75);
     new Sound(PARENT).volume(1);    // fixes crackling? (sometimes??)
     
     surface.setTitle("vlco_o P3synth");
@@ -89,11 +63,11 @@ void setup() {
     
     t = new ThemeEngine();
     
+    setup_config();
     setup_images();
     setup_fonts();
     setup_buttons();
     setup_samples();
-    t.set_theme(config_map.get("theme name"));
     
     player = new Player();
     SDrop drop = new SDrop(PARENT);
@@ -101,6 +75,19 @@ void setup() {
     dnd_sf = new DnDSfListener();
     drop.addDropListener(dnd_mid);
     drop.addDropListener(dnd_sf);
+    
+    if (is_newbie) {
+        ui.showInfoDialog(
+            "Welcome! Please check your audio levels.\n\n" +
+            
+            "Feel free to check the usage guide via the HELP button.\n",
+        "Hello");
+        if (new File("P3synth config").exists()) ui.showWarningDialog(
+            "This version uses a new settings backend, and the old config file will be ignored!\n" +
+            "It's recommended to delete the 'P3synth config' file from the executable's directory.",
+        "Settings conflict");
+        prefs.putBoolean("new user", false);
+    }
     
     request_media_buttons_refresh();
     redraw_all();
@@ -120,7 +107,7 @@ void draw() {
         
     redraw_all();
     
-    if (player.playing_state == 1 && !demo_ui) {
+    if (player.seq.isRunning() && !demo_ui) {
         int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/4)) % 8;
         image(logo_anim[abs(n)], 311, 10);
     }
@@ -133,61 +120,6 @@ void draw() {
     if (dnd_mid.draggedOnto) player.custom_info_msg = "OK! (MID file)";
     else if (dnd_sf.draggedOnto) player.custom_info_msg = "OK! (Soundfont)";
     else player.custom_info_msg = "";
-}
-
-
-void load_config(boolean just_opened) {
-    try {
-        BufferedReader br = new BufferedReader(new FileReader("P3synth config"));
-        while (br.ready()) {
-            String param_n = br.readLine();
-            String param_v = br.readLine();
-            if (!param_n.equals("") && param_n != null && !param_v.equals("") && param_v != null) config_map.put(param_n, param_v);
-        }
-        br.close();
-    }
-    catch (FileNotFoundException fnfe) {
-        println("load fnfe");
-        is_newbie = true;
-        ui.showInfoDialog(
-            "Welcome! Please check your audio levels.\n\n" +
-            
-            "For help on advanced usage, check the HELP button or\n" +
-            "the project's website at https://vlcoo.net/p3synth\n"
-        );
-        save_config();
-    }
-    catch (IOException ioe) {
-        println("load ioe");
-    }
-    
-    try {
-        String s = config_map.get("custom theme");
-        if (s != null && !s.equals("") && s.split(",").length == 5) {
-            int[] colors = new int[5];
-            for (int i = 0; i < 5; i++) {
-                colors[i] = unhex(s.split(",")[i]);
-            }
-            t.available_themes.put("Custom loaded", colors);
-        }
-    }
-    catch (NumberFormatException nfe) { ui.showErrorDialog("Custom theme data is invalid.", "Can't load custom theme"); }
-}
-
-
-void save_config() {
-    try {
-        PrintStream f = new PrintStream(new File("P3synth config"));
-        for (Entry<String, String> config_pair : config_map.entrySet()) {
-            f.println(config_pair.getKey());
-            f.println(config_pair.getValue());
-        }
-        f.flush();
-        f.close();
-    }
-    catch (IOException ioe) {
-        println("save ioe");
-    }
 }
 
 
@@ -240,14 +172,6 @@ void setup_images() {
 }
 
 
-void setup_config() {
-    config_map = new HashMap<String, String>();
-    config_map.put("theme name", "Fresh Blue");
-    
-    load_config(true);
-}
-
-
 void setup_fonts() {
     fonts = new PFont[6];
     fonts[0] = loadFont("TerminusTTF-12.vlw");
@@ -267,7 +191,7 @@ void setup_buttons() {
     media_buttons = new ButtonToolbar(150, 16, 1.3, 0, buttons_ctrl);
     
     b1 = new Button("info", "Help");
-    b2 = new Button("confTheme", "Theme");
+    b2 = new Button("conf", "Config");
     b3 = new Button("update", "Update");
     Button[] buttons_set = {b2, b1, b3};
     setting_buttons = new ButtonToolbar(464, 16, 1.3, 0, buttons_set);
@@ -280,6 +204,8 @@ void setup_buttons() {
 
 
 void request_media_buttons_refresh() {
+    if (player == null) return;
+    
     media_buttons.get_button("Pause").set_pressed(player.playing_state == 0);
     media_buttons.get_button("Stop").set_pressed(player.playing_state == -1);
 }
@@ -324,30 +250,21 @@ void mouseReleased() {
             player.reload_curr_file();
         }
         
-        else if(setting_buttons.collided("Theme")) {
-            String selection = new UiBooster().showSelectionDialog(
-                "What color scheme?",
-                "Config",
-                new ArrayList(t.available_themes.keySet())
-            );
-            if (selection == null) return;
-            
-            config_map.put("theme name", selection);
-            save_config();
-            t.set_theme(selection);
-            redraw_all();
+        else if(setting_buttons.collided("Config")) {
+            open_config_dialog();
         }
         
         else if(setting_buttons.collided("Help")) {
             ui.showList(
-                "Choose a help topic",
+                "Thanks for using P3synth (v" + VERCODE + ")!\nChoose a help topic:",
                 "Guide",
                 new SelectElementListener() {public void onSelected(ListElement e) {
                     show_help_topic(e.getTitle());}},
                 new ListElement("1 • Basic usage", "Play MIDI files using the built-in synthesizer.\n​"),
                 new ListElement("2 • Visualization", "Overview of the different MIDI messages that are supported.\n​"),
                 new ListElement("3 • Advanced usage", "Use custom soundfonts and instrument banks.\n​"),
-                new ListElement("4 • Labs dialog", "Other experimental options.\n​"));
+                new ListElement("4 • Settings", "Description of the values in the settings dialog.\n​"),
+                new ListElement("5 • Labs dialog", "Other experimental options.\n​"));
         }
         
         else if(player.disp.collided_metamsg_rect() && player != null) {
@@ -359,7 +276,7 @@ void mouseReleased() {
         }
         
         else if(b_metadata.collided()) {
-            println("ho");
+            ui.showTable(player.get_metadata_table(), Arrays.asList("Parameter", "Value"), "Files' metadata");
         }
         
         else if(setting_buttons.collided("Update")) {
@@ -371,13 +288,13 @@ void mouseReleased() {
             
             if (v > 0) {
                 ui.showConfirmDialog(
-                    "There is a newer release available. Download now?", "Update",
+                    "There is a newer release available. Download it?", "Update",
                     new Runnable() { public void run() { download_latest_ver(); } },
                     new Runnable() { public void run() {} }
                 );
             }
-            else if (v == 0) ui.showInfoDialog("You're running the latest release of P3synth.");
-            else  ui.showInfoDialog("You're running P3synth from source newer than the latest release.");
+            else if (v == 0) ui.showInfoDialog("You're running the latest release of P3synth.", "Update");
+            else  ui.showInfoDialog("You may be running a P3synth from source or a fork of it.", "Update");
             
         }
         
@@ -411,12 +328,12 @@ void mouseReleased() {
         }
         
         else if (player.disp.collided_sfload_rect()) {
-            if (is_newbie && !showed_sf_tip && !player.system_synth && player.sf_filename.equals("Default")) {
-                ui.showWarningDialog(
+            if (!player.system_synth && player.sf_filename.equals("Default") && !prefs.getBoolean("dismiss sf tip", false)) {
+                ui.showInfoDialog(
                     "Bonus: drag and drop SF2/DLS file in that box to load it!\n",
                     "Switching modes"
                 );
-                showed_sf_tip = true;
+                prefs.putBoolean("dismiss sf tip", true);
             }
             cursor(WAIT);
             player.set_seq_synth(!player.system_synth);
@@ -447,27 +364,6 @@ void mouseMoved() {
         player.disp.collided_metamsg_rect()
     ) cursor(HAND);
     else cursor(ARROW);
-}
-
-
-void show_help_topic(String which) {
-    switch (which.charAt(0)) {
-        case '1':
-        ui.showInfoDialog("one");
-        break;
-        
-        case '2':
-        ui.showInfoDialog("two");
-        break;
-        
-        case '3':
-        ui.showInfoDialog("three");
-        break;
-        
-        case '4':
-        ui.showInfoDialog("four");
-        break;
-    }
 }
 
 

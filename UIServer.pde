@@ -316,20 +316,23 @@ class PlayerDisplay {
             if (collided_posbar()) {
                 if (parent.playing_state == -1) return;
                 int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-                parent.setTicks(new_pos);
+                int snap = snap_pos_mult * (player.is_song_long() ? 2 : 1);
+                parent.setTicks(snap_number(new_pos, player.midi_resolution*snap));
                 return;
             }
             
             int handle_no = collided_loopset_bar();
             try {
+                int snap = snap_loop_mult * (player.is_song_long() ? 2 : 1);
+                
                 if (handle_no == -1) {
                     int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-                    parent.seq.setLoopStartPoint(snap_number(new_pos, player.midi_resolution*2));
+                    parent.seq.setLoopStartPoint(snap_number(new_pos, player.midi_resolution*snap));
                 }
                 
                 else if (handle_no == 1) {
                     int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-                    parent.seq.setLoopEndPoint(snap_number(new_pos, player.midi_resolution*2));
+                    parent.seq.setLoopEndPoint(snap_number(new_pos, player.midi_resolution*snap));
                 }
             }
             catch (IllegalArgumentException iae) { }

@@ -1,4 +1,5 @@
 int snap_number(int num, int mult) {
+    if (mult == 0) return num;
     return ((num + mult - 1) / mult) * mult;
 }
 
@@ -12,6 +13,7 @@ String check_and_shrink_string(String original, int max_len) {
 class ThemeEngine {
     HashMap<String, int[]> available_themes = new HashMap<String, int[]>();
     int[] theme;
+    String curr_theme_name;
 
 
     ThemeEngine() {
@@ -21,9 +23,8 @@ class ThemeEngine {
     
     void set_theme(String theme_name) {
         theme = available_themes.get(theme_name);
-        if (theme == null) {
-            theme = available_themes.get("Fresh Blue");
-        }
+        if (theme == null) theme = available_themes.get("Fresh Blue");
+        else curr_theme_name = theme_name;
     }
 
 
@@ -71,6 +72,31 @@ class KeyTransformer {
         available_transforms.put("Major", tr_02);
         int[] tr_03 = {0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, -1};
         available_transforms.put("Minor", tr_03);
+    }
+}
+
+
+void show_help_topic(String which) {
+    switch (which.charAt(0)) {
+        case '1':
+        ui.showInfoDialog("one", "a");
+        break;
+        
+        case '2':
+        ui.showInfoDialog("two", "a");
+        break;
+        
+        case '3':
+        ui.showInfoDialog("three", "a");
+        break;
+        
+        case '4':
+        ui.showInfoDialog("four", "a");
+        break;
+        
+        case '5':
+        ui.showInfoDialog("five", "a");
+        break;
     }
 }
 

@@ -158,9 +158,7 @@ public class LabsModule extends PApplet {
                     Arrays.asList("Unchanged", "0.125", "0.25", "0.5", "0.75")
                 )
                 .addButton("Toggle demo UI", new Runnable() { public void run() {
-                    ui.showInfoDialog("Setting will take effect on next program restart.");
-                    config_map.put("demoable uiserver", demo_ui ? "0" : "1");
-                    save_config();
+                    ui.showInfoDialog("Setting will take effect on next program restart.", "Setting saved");
                 }})
                 .setCloseListener(new FormCloseListener() { public void onClose(Form form) {
                     String t = form.getByIndex(0).asString();
