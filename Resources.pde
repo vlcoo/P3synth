@@ -76,26 +76,86 @@ class KeyTransformer {
 }
 
 
-void show_help_topic(String which) {
-    switch (which.charAt(0)) {
+void show_help_topic(char which) {
+    switch (which) {
         case '1':
-        ui.showInfoDialog("one", "a");
+        ui.showInfoDialog(
+            "- The only thing you need to know: drag and drop a valid " +
+            "MIDI file (usual extension: .mid) into the main window of " +
+            "P3synth to play it. If you need help discovering other features, " +
+            "I invite you to keep reading.\n\n" +
+            
+            "- The three topmost buttons on the left control playback of the song." +
+            "\n   · Replaying will start the current song from the beginning.\n   · " +
+            "Pausing will temporarily stop the song until the Pause button is pressed " +
+            "a second time.\n   · Stopping will unload the file.\n\n" +
+            
+            "- The bar on the bottom left shows the song's current position in "+
+            "minutes and seconds, as well as the total length. Clicking on any part " +
+            "of the bar will skip the song to that position in time.\n   · The looping function" +
+            " can be toggled, and will restart the song when reaching the end instead " +
+            "of stopping.\n   · While looping is enabled, the starting and ending points of " +
+            "the loop are controlled by the sliding ticks above and below the position bar.\n\n" +
+            
+            "- The other bar, on the bottom right, displays some text in real time. " +
+            "This text is contained in the MIDI file itself, and might contain lyrics or " +
+            "other comments.\n   · Clicking on the bar itself will show the history of " +
+            "this stream of text.\n   · The metadata button will display additional information" +
+            "such as author, copyright, date... if available.\n\n",
+            "Basic usage");
         break;
         
         case '2':
-        ui.showInfoDialog("two", "a");
+        ui.showInfoDialog(
+            "- While playing a MIDI sequence, the events get logged and displayed in a " +
+            "variety of ways. Currently, the most common, but not all, MIDI messages are supported." +
+            "\n\n" +
+            
+            "- Every one of the 16 channels have their own display area. The ID is shown at the " +
+            "top left corner of it (on top of the X mute button).\n\n" +
+            
+            "- Roughly in the middle, a simulated 'VU meter' shows the total volume of the " +
+            "entire channel.\n   · Right below it, a bar shows the Expression value.\n\n" +
+            
+            "- From left to right and top to bottom, the 4 squares on the right contain..." +
+            "\n   · the last musical note pitch and its Velocity;" +
+            " the instrument being used (or the Program Change ID depending on the mode);" +
+            " the Pitchbend; and the Stereo Pan.", 
+            "Visualization");
         break;
         
         case '3':
-        ui.showInfoDialog("three", "a");
+        ui.showInfoDialog(
+            "wiwi",
+            "Advanced usage");
         break;
         
         case '4':
-        ui.showInfoDialog("four", "a");
+        ui.showInfoDialog(
+            "- Adjustments to the behaviour of the program can be made via the Config button " +
+            "on the top right.\n\n" +
+            
+            "Parameters marked with * will have effect on a program restart;" +
+            " otherwise, settings will be saved when the Settings dialog is closed.\n   " +
+            "· The theme changes the colours of the interface.\n   · *Reducing the framerate " +
+            "runs the visuals at a limited 30 FPS instead of 75 FPS.\n   · *Booting with system " +
+            "synth enabled will always use the device's instrument bank instead of the " +
+            "oscillators.\n   · *Optionally, the path to a custom soundfont file can be given to " +
+            "automatically load it on boot.\n   · Snapping to beat helps align the loop or position" +
+            " points to the beat/tempo of the song.",
+            "Settings");
         break;
         
         case '5':
-        ui.showInfoDialog("five", "a");
+        ui.showInfoDialog(
+            "wawo",
+            "Labs dialog");
+        break;
+        
+        case '6':
+        ui.showInfoDialog(
+            "by me for myself",
+            "About project");
         break;
     }
 }

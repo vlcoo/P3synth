@@ -91,6 +91,12 @@ void setup() {
     
     request_media_buttons_refresh();
     redraw_all();
+    
+    if (args != null && args.length > 0) {
+        player.vu_anim_val = -1.0;
+        if (args.length > 1) try_load_sf(new File(args[1]));
+        try_play_file(new File(args[0]));
+    }
 }
     
     
@@ -107,11 +113,12 @@ void draw() {
         
     redraw_all();
     
-    if (player.seq.isRunning() && !demo_ui) {
+    if (player.playing_state == 1 && !demo_ui) {
         int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/4)) % 8;
         image(logo_anim[abs(n)], 311, 10);
     }
     else {
+        image(logo_anim[0], 311, 10);
         if (player.vu_anim_val >= 0.0) {
             player.vu_anim_step();
         }
@@ -136,7 +143,6 @@ void redraw_all() {
     if (!demo_ui) {
         media_buttons.redraw();
         setting_buttons.redraw();
-        image(logo_anim[0], 311, 10);
         b_metadata.redraw();
         b_loop.redraw();
         b_labs.redraw();
@@ -259,12 +265,13 @@ void mouseReleased() {
                 "Thanks for using P3synth (v" + VERCODE + ")!\nChoose a help topic:",
                 "Guide",
                 new SelectElementListener() {public void onSelected(ListElement e) {
-                    show_help_topic(e.getTitle());}},
+                    show_help_topic(e.getTitle().charAt(0));}},
                 new ListElement("1 • Basic usage", "Play MIDI files using the built-in synthesizer.\n​"),
                 new ListElement("2 • Visualization", "Overview of the different MIDI messages that are supported.\n​"),
                 new ListElement("3 • Advanced usage", "Use custom soundfonts and instrument banks.\n​"),
                 new ListElement("4 • Settings", "Description of the values in the settings dialog.\n​"),
-                new ListElement("5 • Labs dialog", "Other experimental options.\n​"));
+                new ListElement("5 • Labs dialog", "Other experimental options.\n​"),
+                new ListElement("6 • About the project", "What, how, who?.\n​"));
         }
         
         else if(player.disp.collided_metamsg_rect() && player != null) {
@@ -276,7 +283,7 @@ void mouseReleased() {
         }
         
         else if(b_metadata.collided()) {
-            ui.showTable(player.get_metadata_table(), Arrays.asList("Parameter", "Value"), "Files' metadata");
+            ui.showTableImmutable(player.get_metadata_table(), Arrays.asList("Parameter", "Value"), "Files' metadata");
         }
         
         else if(setting_buttons.collided("Update")) {

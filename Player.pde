@@ -35,7 +35,6 @@ void readMIDIn() {
 }
 
 
-
 class Player {
     final int LENGTH_THRESHOLD = 135000000;
     final int TEMPO_LIMIT = 1000;
@@ -538,20 +537,10 @@ class Player {
                 int comm = event.getCommand();
                 int data1 = event.getData1();
                 int data2 = event.getData2();
-                
-                //println(chan + " " + comm + " " + data1 + " " + data2);
-                /*try { 
-                    if (comm == ShortMessage.CONTROL_CHANGE && data1 == 6) {
-                        println(chan + " " + comm + " " + data1 + " " + event.getData2());
-                        syn.getReceiver().send(new ShortMessage(ShortMessage.CONTROL_CHANGE, chan, data1, data2+10), timeStamp+10); 
-                    }
-                    else syn.getReceiver().send(event, timeStamp+10); 
-                }
-                catch (MidiUnavailableException mue) { println("mue on msg"); }
-                catch (InvalidMidiDataException imde) { println("imde on msg"); }*/
             
                 if (comm == ShortMessage.NOTE_ON && data2 > 0) {
                     channels[chan].play_note(data1, data2);
+                    
                 }
                 
                 else if (comm == ShortMessage.NOTE_OFF || (comm == ShortMessage.NOTE_ON && data2 <= 0)) {
@@ -623,14 +612,7 @@ class Player {
                     }
                 }
             }
-            
-            else if (msg instanceof SysexMessage) {
-              return;
-                //SysexMessage event = (SysexMessage) msg;
-                //set_params_from_sysex(event.getData());
-            }
         }
-        
         
         void close() {}
     };
