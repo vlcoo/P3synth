@@ -9,7 +9,7 @@ final processing.core.PApplet PARENT = this;
 final float VERCODE = 23.28;
 final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
-boolean NO_REALTIME = false;
+boolean NO_REALTIME = true;
 
 Frame frame;
 String osname;
@@ -434,8 +434,8 @@ class DnDSfListener extends DropListener {
 
 boolean try_play_file(File selection) {
     if (selection != null) {
-        String filename = selection.getAbsolutePath();
-        String response = player.play_file(filename);
+        String s = selection.getAbsolutePath();
+        String response = player.play_file(s);
         
         if (!response.equals("")) {
             ui.showErrorDialog(response, "Can't play");

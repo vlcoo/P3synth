@@ -1,5 +1,6 @@
 import javax.sound.midi.*;
 import java.net.*;
+import java.util.LinkedHashMap;
 
 
 void readMIDIn() {
@@ -43,12 +44,16 @@ class Player {
     boolean new_engine = false;
     Sequencer seq;
     Synthesizer alt_syn;
+    MidiFileFormat metadata;
     KeyTransformer ktrans;
     Thread sent;
     Socket sock;
     BufferedReader stdIn;
     PlayerDisplay disp;
     int midi_resolution;
+    int meta_channel_prefix = -1;
+    int meta_curr_track = 1;
+    int num_tracks = 0;
     ChannelOsc[] channels;
     long prev_position;
     String curr_filename = DEFAULT_STOPPED_MSG;
@@ -78,9 +83,9 @@ class Player {
     
     Player() {
         ktrans = new KeyTransformer();
-        metadata_map = new HashMap();
         final int nChannels = 16;
         channels = new ChannelOsc[nChannels];
+        metadata_map = new LinkedHashMap();
         
         for (int i = 0; i < nChannels; i++) {
             channels[i] = new ChannelOsc(-1);
@@ -180,6 +185,7 @@ class Player {
         
         try {
             Sequence mid = prep_javax_midi(MidiSystem.getSequence(file), false);
+            num_tracks = mid.getTracks().length;
             set_playing_state(-1);
             seq.setSequence(mid);
             if (seq.getTempoInBPM() >= TEMPO_LIMIT) throw new InvalidMidiDataException();
@@ -284,8 +290,11 @@ class Player {
             Soundbank sf = MidiSystem.getSoundbank(file);
             if (switch_mode) set_seq_synth(true);
             alt_syn.loadAllInstruments(sf);
-            sf_filename = check_and_shrink_string(sf.getName(), 16);
-            //sf_filename = check_and_shrink_string(file.getName().replaceFirst("[.][^.]+$", ""), 16);
+            sf_filename = check_and_shrink_string(file.getName().replaceFirst("[.][^.]+$", ""), 16);
+            
+            metadata_map.put("SF Name", sf.getName());
+            metadata_map.put("SF Description", sf.getDescription());
+            metadata_map.put("SF Vendor", sf.getVendor());
         }
         catch (InvalidMidiDataException imd) {
             return "Invalid SF data!";
@@ -423,8 +432,8 @@ class Player {
     
     
     void setTicks(int ticks) {
-        //stop_all();
         seq.setTickPosition(ticks);
+        meta_curr_track = 1;
     }
     
     
@@ -465,6 +474,7 @@ class Player {
         
         last_text_message = "- no message -";
         history_text_messages = "";
+        clear_metadata_map_keep_sf();
         if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
         curr_rpn = 0;
         curr_bank = 0;
@@ -479,6 +489,20 @@ class Player {
         file_is_XG = false;
         file_is_GS = false;
     }
+    
+    
+    void clear_metadata_map_keep_sf() {
+        String n = metadata_map.get("SF Name");
+        String d = metadata_map.get("SF Description");
+        String v = metadata_map.get("SF Version");
+        
+        metadata_map.clear();
+        
+        metadata_map.put("SF Name", n);
+        metadata_map.put("SF Description", d);
+        metadata_map.put("SF Vendor", v);
+    }
+    
     
     void set_channel_muted(boolean how, int chan) {
         channels[chan].set_muted(how);
@@ -502,7 +526,19 @@ class Player {
     
     
     String[][] get_metadata_table() {
-        String[][] t = new String[metadata_map.size()][2];
+        if (metadata_map == null) return null;
+        int size = metadata_map.size();
+        String[][] t = new String[size][2];
+        
+        int i = 0;
+        for (Entry e : metadata_map.entrySet()) {
+            if (e.getValue() == null ||((String) e.getValue()).equals("")) continue;
+            if (!system_synth && (((String) e.getKey()).contains("SF"))) continue;
+            
+            t[i] = new String[] {(String) e.getKey(), (String) e.getValue()};
+            i++;
+        }
+        
         return t;
     }
     
@@ -518,7 +554,6 @@ class Player {
         }
         
         this.disp.redraw(true);
-        //if (playing_state == 1 && seq.getTickPosition() < 10) prep_javax_midi();
     }
     
     
@@ -623,24 +658,45 @@ class Player {
             int type = msg.getType();
             byte[] data = msg.getData();
             
-            if (type == 3) return;    // ignoring track names for now... actually scratch that
-            if (type == 89) {
+            if (type == 32) {        // Channel prefix
+                meta_channel_prefix = (int) data[0];
+            }
+            
+            else if (type == 2) {        // Copyright
+                metadata_map.put("Copyright", bytes_to_text(data));
+            }
+            
+            else if (type == 3) {        // Track name
+                metadata_map.put(
+                    "Track " + meta_curr_track + " name" +
+                    (num_tracks == 1 ? " (Sequence title)" : ""),
+                bytes_to_text(data));
+                meta_curr_track++;
+            }
+            
+            else if (type == 4) {        // Instrument name
+                metadata_map.put("Instrument " + meta_channel_prefix + " name", bytes_to_text(data));
+            }
+            
+            else if (type == 1 | type == 5) {        // Lyrics or text
+                String text = bytes_to_text(data);
+                if (!text.equals("")) {
+                    last_text_message = text;
+                    history_text_messages += text + "\n";
+                    dialog_meta_msgs.addToLargeMessage(text);
+                }
+            }
+            
+            else if (type == 89) {        // Key signature
                 mid_scale = data[data.length - 1];
                 if (mid_scale == 0) mid_rootnote = major_rootnotes[data[0] + 7];
                 else if (mid_scale == 1) mid_rootnote = minor_rootnotes[data[0] + 7];
                 return;
             }
             
-            else if (type == 47) {
+            else if (type == 47) {        // End
                 set_playing_state(-1);
                 return;
-            }
-            
-            String text = bytes_to_text(data);
-            if (!text.equals("")) {
-                last_text_message = text;
-                history_text_messages += text + "\n";
-                dialog_meta_msgs.addToLargeMessage(text);
             }
         }
     };
