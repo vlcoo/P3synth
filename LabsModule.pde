@@ -1,3 +1,6 @@
+import javax.swing.JFrame;
+
+
 public class LabsModule extends PApplet {
     Frame parentFrame;
     Frame selfFrame;
@@ -12,6 +15,17 @@ public class LabsModule extends PApplet {
     public void settings() {
         if (osname.contains("Windows")) this.size(210, 404);
         else this.size(210, 360);
+        
+        /* Runtime.getRuntime().addShutdownHook( new Thread(new Runnable() {
+            public void run() {
+                println("weawr");
+            }
+        })); */
+    }
+    
+    
+    public void exit() {
+        toggle_labs_win();
     }
     
     
@@ -20,8 +34,9 @@ public class LabsModule extends PApplet {
         this.fill(t.theme[0]);
         
         this.setup_buttons();
-        
         this.selfFrame = ( (PSurfaceAWT.SmoothCanvas)this.surface.getNative() ).getFrame();
+        ((JFrame) this.selfFrame).setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        
         reposition();
         this.redraw_all();
     }

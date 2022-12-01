@@ -217,6 +217,30 @@ void request_media_buttons_refresh() {
 }
 
 
+void toggle_labs_win() {
+    if (!b_labs.pressed) {
+        if (win_labs == null) {
+            cursor(WAIT);
+            win_labs = new LabsModule(frame);
+            String[] args = {""};
+            runSketch(args, win_labs);
+            cursor(ARROW);
+        }
+        else {
+            win_labs.selfFrame.setVisible(true);
+            win_labs.loop();
+        }
+    }
+    
+    else {
+        win_labs.selfFrame.setVisible(false);
+        win_labs.noLoop();
+    }
+    b_labs.set_pressed(!b_labs.pressed);
+    win_labs.reposition();
+}
+
+
 void mousePressed() {
     if (mouseButton == LEFT) {
         for (Button b : media_buttons.buttons.values()) {
@@ -271,7 +295,7 @@ void mouseReleased() {
                 new ListElement("3 • Advanced usage", "Use custom soundfonts and instrument banks.\n​"),
                 new ListElement("4 • Settings", "Description of the values in the settings dialog.\n​"),
                 new ListElement("5 • Labs dialog", "Other experimental options.\n​"),
-                new ListElement("6 • About the project", "What, how, who?.\n​"));
+                new ListElement("6 • About the project", "What, how, who?\n​"));
         }
         
         else if(player.disp.collided_metamsg_rect() && player != null) {
@@ -314,24 +338,7 @@ void mouseReleased() {
         }
         
         else if(b_labs.collided()) {
-            if (!b_labs.pressed) {
-                if (win_labs == null) {
-                    cursor(WAIT);
-                    win_labs = new LabsModule(frame);
-                    String[] args = {""};
-                    runSketch(args, win_labs);
-                    cursor(ARROW);
-                }
-                else {
-                    win_labs.selfFrame.setVisible(true);
-                }
-            }
-            
-            else {
-                win_labs.selfFrame.setVisible(false);
-            }
-            b_labs.set_pressed(!b_labs.pressed);
-            win_labs.reposition();
+            toggle_labs_win();
         }
         
         else if (player.disp.collided_sfload_rect()) {
