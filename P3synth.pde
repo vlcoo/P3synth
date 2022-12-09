@@ -33,11 +33,11 @@ Button b_labs;
 Button curr_mid_pressed;
 WaitingDialog dialog_meta_msgs;
 Form dialog_settings;
+boolean show_key_hints = false;
 boolean hi_res = false;
 boolean low_frate = false;
 
 boolean demo_ui = false;
-
 String demo_layout = "NES (NTSC)";
 String demo_title = "- No title -";
 String demo_description = "- no description -\n\nUnknown composer";
@@ -110,7 +110,7 @@ void draw() {
         _mouseX = mouseX;
         _mouseY = mouseY;
     }
-        
+    
     redraw_all();
     
     if (player.playing_state == 1 && !demo_ui) {
@@ -131,14 +131,8 @@ void draw() {
 
 
 void redraw_all() {
-    background(t.theme[2]);
-    
-    push();
-    noFill();
-    strokeWeight(2);
-    stroke(t.theme[1]);
-    rect(1, 1, width-2, height-2);
-    pop();
+    if (t.theme.length == 6) gradientRect(0, 0, width, height, (int) t.theme[2], t.theme[5], 0, this);
+    else background(t.theme[2]);
     
     if (!demo_ui) {
         media_buttons.redraw();
@@ -191,21 +185,29 @@ void setup_fonts() {
 
 void setup_buttons() {
     Button b1 = new Button(12, 376, "reload", "Replay");
+    b1.set_key_hint("Home");
     Button b2 = new Button("stop", "Stop");
+    b2.set_key_hint("End");
     Button b3 = new Button("pause", "Pause");
+    b3.set_key_hint("Space");
     Button[] buttons_ctrl = {b1, b3, b2};
     media_buttons = new ButtonToolbar(150, 16, 1.3, 0, buttons_ctrl);
     
     b1 = new Button("info", "Help");
+    //b1.set_key_hint("F1");
     b2 = new Button("conf", "Config");
+    b2.set_key_hint("F2");
     b3 = new Button("update", "Update");
     Button[] buttons_set = {b2, b1, b3};
     setting_buttons = new ButtonToolbar(464, 16, 1.3, 0, buttons_set);
     
     b_metadata = new Button(682, 376, "metadata", "Metadata ");    // next to the player's message bar
+    b_metadata.set_key_hint("m");
     b_loop = new Button(12, 376, "loop", "Loop");
+    b_loop.set_key_hint("l");
     b_loop.set_pressed(true);
     b_labs = new Button(12, 16, "labs", "Labs");
+    b_labs.set_key_hint("F3");
 }
 
 
@@ -242,7 +244,105 @@ void toggle_labs_win() {
 
 
 void keyPressed() {
+    if (keyCode == 18) {        // ALT
+        show_key_hints = true;
+    }
     
+    if (key == ' ') {
+        if (player.playing_state == -1) return;
+        Button b = media_buttons.get_button("Pause");
+        player.set_playing_state( b.pressed ? 1 : 0 );
+    }
+    
+    else if (key == 'o') {
+        File file = ui.showFileSelection("MIDI files", "mid", "midi");
+        try_play_file(file);
+    }
+    
+    else if (key == 'l') {
+        if (player.seq == null) return;
+        
+        int n = b_loop.pressed ? 0 : 64;
+        player.seq.setLoopCount(n);
+        b_loop.set_pressed(!b_loop.pressed);
+    }
+    
+    else if (key == 'm') {
+        ui.showTableImmutable(player.get_metadata_table(), Arrays.asList("Parameter", "Value"), "Files' metadata");
+    }
+    
+    else if (key == 'n') {
+        if (dialog_meta_msgs != null) dialog_meta_msgs.close();
+        dialog_meta_msgs = ui.showWaitingDialog(
+            "These are lyrics, comments, or other text in the MIDI file.",
+            "Meta message history", player.history_text_messages
+        );
+    }
+    
+    else if (key == 's') {
+        File file = ui.showFileSelection("Instrument patch files", "sf2", "dls");
+        cursor(WAIT);
+        try_load_sf(file);
+        cursor(ARROW);
+    }
+    
+    else if (keyCode == 112) {        // F1
+        
+    }
+    
+    else if (keyCode == 113) {
+        open_config_dialog();
+    }
+    
+    else if (keyCode == 114) {        // F3
+        toggle_labs_win();
+    }
+    
+    else if (keyCode == 115) {
+        cursor(WAIT);
+        player.set_seq_synth(!player.system_synth);
+        cursor(ARROW);
+    }
+    
+    else if (keyCode == 36) {        // HOME
+        player.reload_curr_file();
+    }
+    
+    else if (keyCode == 35) {        // END
+        if (player.playing_state == -1) return;
+        player.set_playing_state(-1);
+    }
+    
+    if (player.playing_state != -1) {
+        if (keyCode == LEFT) {
+            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() - 1000000);
+        }
+        
+        else if (keyCode == RIGHT) {
+            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() + 1000000);
+        }
+        
+        if (win_labs != null && win_labs.isLooping()) {
+            if (keyCode == UP) {
+                player.seq.setTempoFactor(constrain(player.seq.getTempoFactor() + 0.1, 0.1, 4));
+            }
+            
+            else if (keyCode == DOWN) {
+                player.seq.setTempoFactor(constrain(player.seq.getTempoFactor() - 0.1, 0.1, 4));
+            }
+        }
+    }
+    
+    if (Character.isDigit(key)) {
+        int chan = Integer.parseInt(String.valueOf(key)) - 1;
+        if (chan == -1) chan = 9;
+        player.set_channel_muted(!player.channels[chan].silenced, chan);
+    }
+}
+
+
+void keyReleased() {
+    show_key_hints = false;
 }
 
 
@@ -263,6 +363,8 @@ void mousePressed() {
 
 
 void mouseReleased() {
+    show_key_hints = false;
+    
     if (mouseButton == LEFT) {
         if (curr_mid_pressed != null) {
             curr_mid_pressed.set_pressed(false);
@@ -278,7 +380,6 @@ void mouseReleased() {
             if (player.playing_state == -1) return;
             Button b = media_buttons.get_button("Pause");
             player.set_playing_state( b.pressed ? 1 : 0 );
-            //b.set_pressed(!b.pressed);
         }
         
         else if(media_buttons.collided("Replay")) {
@@ -300,7 +401,8 @@ void mouseReleased() {
                 new ListElement("3 • Advanced usage", "Use custom soundfonts and instrument banks.\n​"),
                 new ListElement("4 • Settings", "Description of the values in the settings dialog.\n​"),
                 new ListElement("5 • Labs dialog", "Other experimental options.\n​"),
-                new ListElement("6 • About the project", "What, how, who?\n​"));
+                new ListElement("6 • About the project", "What, how, who?\n​")
+            );
         }
         
         else if(player.disp.collided_metamsg_rect() && player != null) {

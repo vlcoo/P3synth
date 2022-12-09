@@ -199,14 +199,8 @@ public class LabsModule extends PApplet {
     
     
     public void redraw_all() {
-        this.background(t.theme[2]);
-            
-        this.push();
-        this.noFill();
-        this.strokeWeight(2);
-        this.stroke(t.theme[1]);
-        this.rect(1, 1, this.width-2, this.height-2);
-        this.pop();
+        if (t.theme.length == 6) gradientRect(0, 0, this.width, this.height, (int) t.theme[2], t.theme[5], 0, this);
+        else this.background(t.theme[2]);
         
         this.textFont(fonts[2]);
         this.fill(t.theme[0]);

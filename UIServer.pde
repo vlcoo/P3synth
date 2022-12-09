@@ -44,6 +44,11 @@ class ChannelDisplay {
         this.parent = parent;
         
         button_mute = new Button(x+4, y+37, "mute", "");
+        if (id < 10) {
+            int hint = id + 1;
+            if (id == 9) hint = 0;
+            button_mute.set_key_hint(Integer.toString(hint));
+        }
     }
     
     
@@ -103,9 +108,9 @@ class ChannelDisplay {
         
         // drawing all the meters here...
         // try to use as little changing functions as possible (reuse)
-        fill(t.theme[2]);
+        /*fill(t.theme[2]);
         noStroke();
-        rect(x+1, y+1, 160, 63);
+        rect(x+1, y+1, 160, 63);*/
         
         // Lines
             strokeWeight(1);
@@ -222,7 +227,8 @@ class ChannelDisplay {
             if (button_mute.pressed) {
                 noStroke();
                 fill(t.theme[2] - 0x64000000);
-                rect(x, y, 161, 65);
+                rect(x, y, 161, 33);
+                rect(x+32, y+33, 129, 33);
             }
         
         button_mute.redraw();
@@ -270,13 +276,18 @@ class PlayerDisplay {
     
     
     private void update_all_values() {
-        if (parent.custom_info_msg.equals("")) {
-            label_filename = java.nio.file.Paths.get(parent.curr_filename)
-                .getFileName().toString().replaceFirst("[.][^.]+$", "");
-                // what a mess... but it works
-            label_filename = check_and_shrink_string(label_filename, 68);
+        if (show_key_hints) {
+            label_filename = "Press 'o' to open a file to play...";
         }
-        else label_filename = parent.custom_info_msg;
+        else {
+            if (parent.custom_info_msg.equals("")) {
+                label_filename = java.nio.file.Paths.get(parent.curr_filename)
+                    .getFileName().toString().replaceFirst("[.][^.]+$", "");
+                    // what a mess... but it works
+                label_filename = check_and_shrink_string(label_filename, 68);
+            }
+            else label_filename = parent.custom_info_msg;
+        }
         
         if (parent.seq.getTickLength() > 0) meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
         label_message = player.last_text_message;    
@@ -343,10 +354,10 @@ class PlayerDisplay {
     void redraw(boolean renew_values) {
         if (renew_values) update_all_values();
         
-        fill(t.theme[2]);
+        /*fill(t.theme[2]);
         noStroke();
         rect(58, y+42, 600, 20);
-        strokeWeight(1);
+        strokeWeight(1);*/
         
         // Pos meter
             stroke(t.theme[0]);
@@ -363,6 +374,10 @@ class PlayerDisplay {
             int auxX = x + POS_X_POSBAR + WIDTH_POSBAR/2;
             int auxY = y + POS_Y_POSBAR + 9;
             outlinedText(label_timestamp + " / " + label_timelength, auxX, auxY, t.theme[4], t.theme[0] - color(0x40000000));
+            if (show_key_hints) {
+                textFont(fonts[0]);
+                text("<-      ->", auxX - 29, auxY + 11, t.theme[4]);
+            }
         
         // Loop set meter
             fill(parent.seq.getLoopCount() == 0 ? t.theme[1] : t.theme[3]);
@@ -381,10 +396,14 @@ class PlayerDisplay {
             rect(x + POS_X_MESSAGEBAR, y + POS_Y_POSBAR, WIDTH_MESSAGEBAR, HEIGHT_POSBAR, 4);    // reusing some dimensions...
             fill(t.theme[4]);
             textFont(fonts[1]);
-            text(label_message,  x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, y + POS_Y_POSBAR + 9);
+            text(label_message, x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, auxY);
+            if (show_key_hints) {
+                textFont(fonts[0]);
+                text("n", x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, auxY + 11, t.theme[4]);
+            }
         
         // SF2 load DnD section
-            fill(t.theme[1] - 0x64000000);
+            fill(t.theme[1] - 0x7f000000);
             stroke(t.theme[0]);
             rect(width-128, 8, 116, 48, 4);
             fill(t.theme[4]);
@@ -395,6 +414,7 @@ class PlayerDisplay {
                 (parent.system_synth ? ("Java synth:\n" + player.sf_filename) : "\nOsc synth"),
                 width-70, 16
             );
+            if (show_key_hints) text("F4 / s", width-70, 52);
     }
     
     
@@ -433,6 +453,7 @@ class PlayerDisplay {
 class Button {
     int x, y, width, height;
     String icon_filename, label;
+    String shortcut = "";
     PImage texture;
     boolean pressed = false;
     boolean show_label = true;
@@ -451,6 +472,11 @@ class Button {
         this.icon_filename = icon;
         this.label = label;
         set_pressed(false);
+    }
+    
+    
+    void set_key_hint(String shortcut) {
+        this.shortcut = shortcut;
     }
     
     
@@ -476,6 +502,10 @@ class Button {
         textAlign(CENTER);
         textFont(fonts[0], 12);
         if (show_label) text(label, x + this.width / 2, y - 2);
+        if (show_key_hints) {
+            fill(t.theme[4]);
+            text(shortcut, x + this.width / 2 + 1, y + this.height + 4);
+        }
     }
     
     void redraw(PApplet win) {
@@ -547,7 +577,6 @@ class ButtonToolbar {
         return b.collided(win);
     }
 }
-
 
 
 void outlinedText(String text, int x, int y, color cFill, color cStroke) {
