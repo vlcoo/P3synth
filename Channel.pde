@@ -91,7 +91,7 @@ public class ChannelOsc {
         }
         stop_note(note_code);
         
-        float mod_note_code = note_code + curr_noteDetune + player.ktrans.transform[(note_code - 2 + player.mid_rootnote) % 12];
+        float mod_note_code = note_code + curr_noteDetune;
         float freq = midi_to_freq(mod_note_code);
         float amp = map(velocity, 0, 127, 0.0, 1.0);
         

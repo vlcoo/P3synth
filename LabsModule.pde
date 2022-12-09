@@ -13,14 +13,9 @@ public class LabsModule extends PApplet {
     
     
     public void settings() {
-        if (osname.contains("Windows")) this.size(210, 404);
-        else this.size(210, 360);
+        if (osname.contains("Windows")) this.size(210, 364);
+        else this.size(210, 320);
         
-        /* Runtime.getRuntime().addShutdownHook( new Thread(new Runnable() {
-            public void run() {
-                println("weawr");
-            }
-        })); */
     }
     
     
@@ -56,15 +51,13 @@ public class LabsModule extends PApplet {
         b3.show_label = false;
         Button b7 = new Button("overrideOscs", "overrideOscs");
         b7.show_label = false;
-        Button b4 = new Button("transform", "transform");
-        b4.show_label = false;
         Button b6 = new Button("midiIn", "midiIn");
         b6.show_label = false;
         Button b8 = new Button("rtEngine", "rtEngine");
         b8.show_label = false;
         Button b9 = new Button("demoUi", "demoUi");
         b9.show_label = false;
-        Button[] bs = new Button[] {b1, b2, b3, b7, b4, b6, b8, b9};
+        Button[] bs = new Button[] {b1, b2, b3, b7, b6, b8, b9};
         all_buttons = new ButtonToolbar(8, 45, 0, 1.4, bs);
         
     }
