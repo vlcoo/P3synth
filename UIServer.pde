@@ -32,7 +32,7 @@ class ChannelDisplay {
     boolean label_sostenuto_pedal = false;
     boolean label_soft_pedal = false;
     
-    final float METER_LERP_QUICKNESS = 0.5;
+    float METER_LERP_QUICKNESS = 0.5;
     final int METER_VU_LENGTH = 30;
     final String[] NOTE_NAMES = new String[] {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
     
@@ -43,7 +43,7 @@ class ChannelDisplay {
         this.id = id;
         this.parent = parent;
         
-        button_mute = new Button(x+5, y+37, "mute", "");
+        button_mute = new Button(x+4, y+37, "mute", "");
     }
     
     

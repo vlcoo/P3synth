@@ -6,6 +6,7 @@ public class LabsModule extends PApplet {
     Frame selfFrame;
     ButtonToolbar all_buttons;
     String curr_transform = "None";
+    int voice_index = 0;
     
     LabsModule(Frame f) {
         this.parentFrame = f;
@@ -15,7 +16,6 @@ public class LabsModule extends PApplet {
     public void settings() {
         if (osname.contains("Windows")) this.size(210, 364);
         else this.size(210, 320);
-        
     }
     
     
@@ -128,20 +128,6 @@ public class LabsModule extends PApplet {
                 }
             }
             
-            else if (all_buttons.collided("transform", this)) {
-                String selection = new UiBooster().showSelectionDialog(
-                    "New key/chord mode?",
-                    "LabsModule",
-                    new ArrayList(player.ktrans.available_transforms.keySet())
-                );
-                
-                if (selection != null) {
-                    player.ktrans.set_transform(selection);
-                    player.setTicks((int)player.seq.getTickPosition());    // this applies the changes...?
-                    curr_transform = selection;
-                }
-            }
-            
             else if (all_buttons.collided("midiIn", this)) {
                 if (!player.midi_in_mode) player.start_midi_in();
                 else player.stop_midi_in();
@@ -196,11 +182,10 @@ public class LabsModule extends PApplet {
     
     
     void mouseMoved() {
-        if (all_buttons.collided("freqDetune", this) || 
-            all_buttons.collided("noteDetune", this) || 
+        if (all_buttons.collided("freqDetune", this) ||
+            all_buttons.collided("noteDetune", this) ||
             all_buttons.collided("tempo", this) ||
-            all_buttons.collided("overrideOscs", this) || 
-            all_buttons.collided("transform", this) || 
+            all_buttons.collided("overrideOscs", this) ||
             all_buttons.collided("midiIn", this) ||
             all_buttons.collided("rtEngine", this) ||
             all_buttons.collided("demoUi", this)
@@ -232,10 +217,8 @@ public class LabsModule extends PApplet {
         this.text(player.last_freqDetune, 179, 60);
         this.text(player.last_noteDetune, 179, 99);
         this.text("x" + player.seq.getTempoFactor(), 179, 138);
-        //this.text("x", 179, 177);
-        this.text(curr_transform, 179, 216);
-        this.text((player.midi_in_mode ? "On" : "Off"), 179, 255);
-        this.text((NO_REALTIME ? "Off" : "On"), 179, 294);
+        this.text((player.midi_in_mode ? "On" : "Off"), 179, 216);
+        this.text((NO_REALTIME ? "Off" : "On"), 179, 255);
         
         all_buttons.redraw(this);
     }

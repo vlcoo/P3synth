@@ -28,6 +28,10 @@ void open_config_dialog() {
         "Theme",
         new ArrayList(t.available_themes.keySet())
     )
+    .addSelection(
+        "VU meter decay rate",
+        Arrays.asList("Slow", "Smooth", "Instant")
+    )
     .addCheckbox("Reduce framerate *")
     .addCheckbox("Boot with system synth enabled *")
     .addText("Default soundfont for system synth *")
@@ -41,13 +45,15 @@ void open_config_dialog() {
     )
     .setCloseListener(new FormCloseListener() { public void onClose(Form form) {
         String th = form.getByIndex(0).asString();
-        boolean lf = (boolean) form.getByIndex(1).getValue();
-        boolean ss = (boolean) form.getByIndex(2).getValue();
-        String sf = form.getByIndex(3).asString();
-        String snl = form.getByIndex(4).asString();
-        String snp = form.getByIndex(5).asString();
+        String md = form.getByIndex(1).asString();
+        boolean lf = (boolean) form.getByIndex(2).getValue();
+        boolean ss = (boolean) form.getByIndex(3).getValue();
+        String sf = form.getByIndex(4).asString();
+        String snl = form.getByIndex(5).asString();
+        String snp = form.getByIndex(6).asString();
         
         prefs.put("theme", th);
+        prefs.put("meter decay", md);
         prefs.putBoolean("low framerate", lf);
         prefs.putBoolean("system synth", ss);
         prefs.put("sf path", sf);
@@ -55,17 +61,20 @@ void open_config_dialog() {
         prefs.put("pos snap", snp);
         
         t.set_theme(th);
+        float quickness = md.equals("Instant") ? 1 : md.equals("Slow") ? 0.1 : 0.5;
+        for (ChannelOsc c : player.channels) { c.disp.METER_LERP_QUICKNESS = quickness; }
         snap_loop_mult = snl.equals("No") ? 0 : snl.equals("Yes (coarse)") ? 8 : 2;
         snap_pos_mult = snp.equals("Yes (fine)") ? 2 : snp.equals("Yes (coarse)") ? 8 : 0;
     }})
     .run();
     
     dialog_settings.getByIndex(0).setValue(prefs.get("theme", "Fresh Blue"));
-    dialog_settings.getByIndex(1).setValue(prefs.getBoolean("low framerate", false));
-    dialog_settings.getByIndex(2).setValue(prefs.getBoolean("system synth", false));
-    dialog_settings.getByIndex(3).setValue(prefs.get("sf path", ""));
-    dialog_settings.getByIndex(4).setValue(prefs.get("loop snap", "Yes (fine)"));
-    dialog_settings.getByIndex(5).setValue(prefs.get("pos snap", "No"));
+    dialog_settings.getByIndex(1).setValue(prefs.get("meter decay", "Smooth"));
+    dialog_settings.getByIndex(2).setValue(prefs.getBoolean("low framerate", false));
+    dialog_settings.getByIndex(3).setValue(prefs.getBoolean("system synth", false));
+    dialog_settings.getByIndex(4).setValue(prefs.get("sf path", ""));
+    dialog_settings.getByIndex(5).setValue(prefs.get("loop snap", "Yes (fine)"));
+    dialog_settings.getByIndex(6).setValue(prefs.get("pos snap", "No"));
     
     dialog_settings.getWindow().setSize(260, 460);
 }

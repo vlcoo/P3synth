@@ -43,7 +43,7 @@ class Player {
     
     boolean new_engine = false;
     Sequencer seq;
-    Synthesizer alt_syn;
+    javax.sound.midi.Synthesizer alt_syn;
     MidiFileFormat metadata;
     KeyTransformer ktrans;
     Thread sent;
@@ -51,8 +51,8 @@ class Player {
     BufferedReader stdIn;
     PlayerDisplay disp;
     int midi_resolution;
-    int meta_channel_prefix = -1;
-    int meta_curr_track = 1;
+    int meta_channel_prefix = 0;
+    int meta_curr_track = 0;
     int num_tracks = 0;
     ChannelOsc[] channels;
     long prev_position;
@@ -97,7 +97,7 @@ class Player {
         
         create_display(0, 318);
         set_seq_synth(prefs.getBoolean("system synth", false));
-        load_soundfont(new File(prefs.get("sf path", "")), false);
+        if (system_synth) load_soundfont(new File(prefs.get("sf path", "")), false);
     }
     
     
@@ -494,7 +494,7 @@ class Player {
     void clear_metadata_map_keep_sf() {
         String n = metadata_map.get("SF Name");
         String d = metadata_map.get("SF Description");
-        String v = metadata_map.get("SF Version");
+        String v = metadata_map.get("SF Vendor");
         
         metadata_map.clear();
         
@@ -575,7 +575,6 @@ class Player {
             
                 if (comm == ShortMessage.NOTE_ON && data2 > 0) {
                     channels[chan].play_note(data1, data2);
-                    
                 }
                 
                 else if (comm == ShortMessage.NOTE_OFF || (comm == ShortMessage.NOTE_ON && data2 <= 0)) {
@@ -668,8 +667,8 @@ class Player {
             
             else if (type == 3) {        // Track name
                 metadata_map.put(
-                    "Track " + meta_curr_track + " name" +
-                    (num_tracks == 1 ? " (Sequence title)" : ""),
+                    num_tracks == 1 ? "Sequence title" : 
+                    "Track " + meta_curr_track + " name",
                 bytes_to_text(data));
                 meta_curr_track++;
             }
@@ -678,7 +677,7 @@ class Player {
                 metadata_map.put("Instrument " + meta_channel_prefix + " name", bytes_to_text(data));
             }
             
-            else if (type == 1 | type == 5) {        // Lyrics or text
+            else if (type == 1 || type == 5 || type == 6) {        // Lyrics or text
                 String text = bytes_to_text(data);
                 if (!text.equals("")) {
                     last_text_message = text;

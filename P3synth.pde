@@ -48,10 +48,9 @@ float _mouseY = 0;
 
 void settings() {
     osname = System.getProperty("os.name");
-    int sizeX = 724;
-    int sizeY = 430;
+    int sizeY = 460;
     if (osname.contains("Windows")) sizeY = 460;
-    size(sizeX, sizeY);
+    size(724, sizeY);
 }
 
 
@@ -60,6 +59,7 @@ void setup() {
     
     surface.setTitle("vlco_o P3synth");
     frame = ( (PSurfaceAWT.SmoothCanvas)surface.getNative() ).getFrame();
+    frame.setSize(new Dimension(724, 460));
     
     t = new ThemeEngine();
     
@@ -238,6 +238,11 @@ void toggle_labs_win() {
     }
     b_labs.set_pressed(!b_labs.pressed);
     win_labs.reposition();
+}
+
+
+void keyPressed() {
+    
 }
 
 
