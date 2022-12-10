@@ -617,6 +617,10 @@ class Player {
                         curr_rpn = data2;                    // rpn set
                         break;
                         
+                        case 98:
+                        curr_rpn = data2;
+                        break;
+                        
                         case 6:
                         set_rpn_param_val(chan, data2);      // data entry
                         break;
