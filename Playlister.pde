@@ -1,9 +1,16 @@
+import java.util.stream.Stream;
+import java.nio.file.*;
+import java.util.Comparator;
+import java.util.Collections;
+
+
 public class PlaylistModule extends PApplet {
     Frame parentFrame;
     Frame selfFrame;
     ButtonToolbar all_buttons;
     
     boolean active = false;
+    boolean shuffled = false;
     ArrayList<PlaylistItem> items;
     int current_item = -1;
     int scroll_offset = 0;
@@ -27,8 +34,7 @@ public class PlaylistModule extends PApplet {
     
     
     public void setup() {
-        this.textFont(fonts[2]);
-        this.fill(t.theme[0]);
+        this.surface.setTitle("Playlist");
         
         this.selfFrame = ( (PSurfaceAWT.SmoothCanvas)this.surface.getNative() ).getFrame();
         this.selfFrame.setSize(new Dimension(210, 420));
@@ -97,24 +103,23 @@ public class PlaylistModule extends PApplet {
     
     public void keyPressed() {
         println(key + " " + keyCode);
-        int prev_item_count = items.size();
         
         if (key == 'a') {
-            PlaylistItem i = new PlaylistItem(ui.showFileSelection("MIDI files", "mid", "midi"));
-            if (i.file != null && is_valid_midi(i.file)) items.add(i);
+            int prev_item_count = items.size();
+            add_single_file(ui.showFileSelection("MIDI files", "mid", "midi"));
+            if (prev_item_count == 0 && items.size() > prev_item_count) set_current_item(0);
         }
         
         else if (key == 'f') {
-            File folder = ui.showDirectorySelection();
-            if (folder == null) return;
-            for (File child : folder.listFiles()) {
-                PlaylistItem i = new PlaylistItem(child);
-                if (i.file != null && is_valid_midi(i.file)) items.add(i);
-            }
+            add_folder(true, true, ui.showDirectorySelection());
         }
         
         else if (key == 'p') {
             set_current_item(active ? -1 : 0);
+        }
+        
+        else if (key == 'r') {
+            set_shuffle(!shuffled);
         }
         
         else if (keyCode == 116) {
@@ -128,8 +133,70 @@ public class PlaylistModule extends PApplet {
         else if (keyCode == 34) {        // PGDOWN
             set_current_item(current_item + 1);
         }
+    }
+    
+    
+    void add_folder(boolean recursive, boolean replace, File folder) {
+        if (folder == null) return;
+        ArrayList<PlaylistItem> aux = new ArrayList<>();
         
-        if (prev_item_count == 0 && items.size() > prev_item_count) set_current_item(0);
+        try (Stream<Path> stream = recursive ? Files.walk(folder.toPath(), 2) : Files.list(folder.toPath())) {
+            stream.filter(Files::isRegularFile).forEach( (k) -> {
+                PlaylistItem i = new PlaylistItem(k);
+                if (i.file != null && is_valid_midi(i.file)) aux.add(i);
+            });
+        }
+        catch (IOException ioe) {
+            println("ioe on recursive folder");
+        }
+        
+        if (!aux.isEmpty()) {
+            if (replace) {
+                items = aux;
+                set_shuffle(shuffled);
+            }
+            else {
+                Collections.sort(aux, new PlaylistItem());
+                items.addAll(aux);
+            }
+        }
+        else ui.showErrorDialog("Folder didn't contain any valid MIDI files.", "Can't add");
+    }
+    
+    
+    void add_single_file(File file) {
+        if (file == null) return;
+        if (!is_valid_midi(file)) {
+            ui.showErrorDialog("Invalid MIDI data!", "Can't add");
+            return;
+        }
+        
+        items.add(new PlaylistItem(file));
+    }
+    
+    
+    void set_shuffle(boolean how) {
+        if (items.size() <= 1) return;
+        
+        if (how) {
+            Collections.shuffle(items);
+        }
+        else {
+            Collections.sort(items, new PlaylistItem());
+        }
+        
+        shuffled = how;
+        set_current_item(active ? 0 : -1);
+    }
+    
+    
+    void save_as_m3u(String filename) {
+        // File out = new 
+    }
+    
+    
+    void load_m3u(File in) {
+        
     }
 }
 
@@ -148,15 +215,33 @@ boolean is_valid_midi(File mid) {
 }
 
 
-class PlaylistItem {
+class PlaylistItem implements Comparator<PlaylistItem> {
     File file;
     String filename;
+    
+    
+    PlaylistItem() {
+        
+    }
     
     
     PlaylistItem(File f) {
         if (f == null) return;
         
         file = f;
-        filename = f.getName();
+        filename = check_and_shrink_string(f.getName().replaceFirst("[.][^.]+$", ""), 18);
+    }
+    
+    
+    PlaylistItem(Path p) {
+        if (p == null) return;
+        
+        file = p.toFile();
+        filename = check_and_shrink_string(p.getFileName().toString().replaceFirst("[.][^.]+$", ""), 18);
+    }
+    
+    @Override
+    public int compare(PlaylistItem a, PlaylistItem b) {
+        return a.filename.compareTo(b.filename);
     }
 }
