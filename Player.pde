@@ -699,6 +699,7 @@ class Player {
             
             else if (type == 47) {        // End
                 set_playing_state(-1);
+                if (win_plist != null && win_plist.active) win_plist.set_current_item(win_plist.current_item + 1);
                 return;
             }
         }
