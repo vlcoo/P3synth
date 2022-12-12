@@ -5,6 +5,8 @@ import java.util.Collections;
 
 
 public class PlaylistModule extends PApplet {
+    final int ITEM_UI_HEIGHT = 28;
+    
     PApplet parentPApplet;
     Frame parentFrame;
     Frame selfFrame;
@@ -67,16 +69,16 @@ public class PlaylistModule extends PApplet {
         else {
             this.stroke(t.theme[0]);
             this.fill(t.theme[1]);
-            this.rect(14, 28 * (1.8 - scroll_offset), 180, (28 * items.size()), 6, 6, 6, 6);
+            this.rect(14, ITEM_UI_HEIGHT * (1.8 - scroll_offset), 180, ITEM_UI_HEIGHT * items.size(), 6, 6, 6, 6);
             
             for (int i = 0; i < items.size(); i++) {
-                float y = 28 * (1.8 + i - scroll_offset);
+                float y = ITEM_UI_HEIGHT * (1.8 + i - scroll_offset);
                 if (i == current_item) {
                     this.fill(t.theme[3]);
                     this.noStroke();
                     int rUp = i == 0 ? 6 : 0;
                     int rDown = i == items.size()-1 ? 6 : 0;
-                    this.rect(15, y + 0.5, 179, 27.5, rUp, rUp, rDown, rDown);
+                    this.rect(15, y + 0.5, 179, ITEM_UI_HEIGHT - 0.5, rUp, rUp, rDown, rDown);
                     this.fill(t.theme[0]);
                     this.stroke(t.theme[0]);
                 }
@@ -86,7 +88,7 @@ public class PlaylistModule extends PApplet {
                 this.textAlign(LEFT, BOTTOM);
                 this.textFont(fonts[1]);
                 this.text(items.get(i).filename, 20, y + 21);
-                if(i != items.size() - 1) this.line(14, y + 28, 194, y + 28);
+                if(i != items.size() - 1) this.line(14, y + ITEM_UI_HEIGHT, 194, y + ITEM_UI_HEIGHT);
                 items.get(i).button_delete.redraw_at_pos(170, (int) y + 6, this);
             }
         }
@@ -186,6 +188,12 @@ public class PlaylistModule extends PApplet {
             set_shuffle(!shuffled);
         }
         
+        else if (key == 'c') {
+            items.clear();
+            if (active) player.set_playing_state(-1);
+            set_current_item(-1);
+        }
+        
         else if (keyCode == 116) {
             toggle_playlist_win();
         }
@@ -261,15 +269,41 @@ public class PlaylistModule extends PApplet {
             }
             
             else if (buttons_bottom.collided("Save", this)) {
-                String msg = save_as_m3u(ui.showFileSelection());
+                String msg = items.isEmpty() ? 
+                    "Playlist is empty" : 
+                    save_as_m3u(ui.showFileSelection("Playlist files", "m3u"))
+                ;
                 if (!msg.equals("")) ui.showErrorDialog(msg, "Can't save");
             }
             
             else if (buttons_bottom.collided("Load", this)) {
-                String msg = load_m3u(ui.showFileSelection());
+                String msg = load_m3u(ui.showFileSelection("Playlist files", "m3u"));
                 if (!msg.equals("")) ui.showErrorDialog(msg, "Can't load");
             }
+            
+            int i = which_index_clicked();
+            if (i > -1) set_current_item(i);
         }
+    }
+    
+    
+    void mouseMoved() {
+        if (collided_plist()) cursor(HAND);
+        else cursor(ARROW);
+    }
+    
+    
+    boolean collided_plist() {
+        return mouseX > 14 && mouseX < 168 &&
+        mouseY > max(46, ITEM_UI_HEIGHT * (1.8 - scroll_offset)) &&
+        mouseY < min(365, ITEM_UI_HEIGHT * (1.8 - scroll_offset + items.size()));
+    }
+    
+    
+    int which_index_clicked() {
+        if (!collided_plist()) return -1;
+        
+        return floor((mouseY - (ITEM_UI_HEIGHT * (1.8 - scroll_offset))) / ITEM_UI_HEIGHT);
     }
     
     
@@ -293,8 +327,7 @@ public class PlaylistModule extends PApplet {
     }
     
     
-    void add_folder(boolean recursive, boolean replace, File folder) {
-        if (folder == null) return;
+    ArrayList<PlaylistItem> add_folder_to_list(boolean recursive, File folder) {
         ArrayList<PlaylistItem> aux = new ArrayList<>();
         
         try (Stream<Path> stream = recursive ? Files.walk(folder.toPath(), 2) : Files.list(folder.toPath())) {
@@ -306,6 +339,14 @@ public class PlaylistModule extends PApplet {
         catch (IOException ioe) {
             println("ioe on recursive folder");
         }
+        
+        return aux;
+    }
+    
+    
+    void add_folder(boolean recursive, boolean replace, File folder) {
+        if (folder == null) return;
+        ArrayList<PlaylistItem> aux = add_folder_to_list(recursive, folder);
         
         if (!aux.isEmpty()) {
             if (replace) {
@@ -350,12 +391,59 @@ public class PlaylistModule extends PApplet {
     
     
     String save_as_m3u(File out) {
-        // File out = new 
+        if (out == null) return "";
+        if (out.exists() &&
+            !ui.showConfirmDialog("File already exists. Overwrite?", "Saving playlist")
+        ) return "";
+        
+        try {
+            String path = out.getAbsolutePath();
+            if (!path.toLowerCase().endsWith(".m3u")) path += ".m3u";
+            FileWriter writer = new FileWriter(path);
+            for (PlaylistItem item : items) {
+                writer.write(item.file.getAbsolutePath() + "\n");
+            }
+            writer.close();
+        }
+        catch (IOException ioe) {
+            return "IOException!";
+        }
+        
         return "";
     }
     
     
     String load_m3u(File in) {
+        if (in == null) return "";
+        ArrayList<PlaylistItem> aux = new ArrayList<>();
+        
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(in.getAbsolutePath()));
+            String l = reader.readLine();
+            
+            while (l != null) {
+                try { Paths.get(l); }
+                catch (InvalidPathException | NullPointerException pex) { break; }
+                
+                File f = new File(l);
+                if (f.exists() && is_valid_midi(f)) {
+                    if (f.isDirectory()) aux.addAll(add_folder_to_list(false, f));
+                    else if (f.isFile()) aux.add(new PlaylistItem(f));
+                }
+                
+                l = reader.readLine();
+            }
+            
+            reader.close();
+        }
+        catch (IOException ioe) {
+            return "IOException!";
+        }
+        
+        if (aux.isEmpty()) return "Playlist didn't contain any valid MIDI files.";
+        
+        items = aux;
+        set_shuffle(shuffled);
         return "";
     }
 }
