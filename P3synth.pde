@@ -15,6 +15,7 @@ Frame frame;
 String osname;
 Player player;
 LabsModule win_labs;
+PlaylistModule win_plist;
 DnDMidListener dnd_mid;
 DnDSfListener dnd_sf;
 PImage[] logo_anim;
@@ -243,6 +244,29 @@ void toggle_labs_win() {
 }
 
 
+void toggle_playlist_win() {
+    if (win_plist == null) {
+        cursor(WAIT);
+        win_plist = new PlaylistModule(frame, this);
+        String[] args = {""};
+        runSketch(args, win_plist);
+        cursor(ARROW);
+    }
+    else {
+        if (win_plist.isLooping()) {
+            win_plist.selfFrame.setVisible(false);
+            win_plist.noLoop();
+        }
+        else {
+            win_plist.selfFrame.setVisible(true);
+            win_plist.loop();
+        }
+    }
+    
+    win_plist.reposition();
+}
+
+
 void keyPressed() {
     if (keyCode == 18) {        // ALT
         show_key_hints = true;
@@ -304,6 +328,10 @@ void keyPressed() {
         cursor(ARROW);
     }
     
+    else if (keyCode == 116) {        // F5
+        toggle_playlist_win();
+    }
+    
     else if (keyCode == 36) {        // HOME
         player.reload_curr_file();
     }
@@ -311,6 +339,7 @@ void keyPressed() {
     else if (keyCode == 35) {        // END
         if (player.playing_state == -1) return;
         player.set_playing_state(-1);
+        win_plist.set_current_item(-1);
     }
     
     if (player.playing_state != -1) {
@@ -374,6 +403,7 @@ void mouseReleased() {
         if(media_buttons.collided("Stop")) {
             if (player.playing_state == -1) return;
             player.set_playing_state(-1);
+            if (win_plist != null) win_plist.set_current_item(-1);
         }
         
         else if(media_buttons.collided("Pause")) {
@@ -539,7 +569,7 @@ class DnDSfListener extends DropListener {
 }
 
 
-boolean try_play_file(File selection) {
+boolean try_play_file(File selection, boolean invoked_from_playlist) {
     if (selection != null) {
         String s = selection.getAbsolutePath();
         String response = player.play_file(s);
@@ -548,6 +578,7 @@ boolean try_play_file(File selection) {
             ui.showErrorDialog(response, "Can't play");
             return false;
         }
+        if (!invoked_from_playlist && win_plist != null) win_plist.set_current_item(-1);
         return true;
     }
     return false;
