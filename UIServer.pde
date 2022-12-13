@@ -115,6 +115,7 @@ class ChannelDisplay {
         // Lines
             strokeWeight(1);
             stroke(t.theme[0]);
+            noFill();
             // top, bottom, col1, mid1-2, col2, col3, col4, col5, mid3-4-5
             line(x, y, x+160, y);
             line(x+32, y+64, x+160, y+64);
@@ -122,13 +123,14 @@ class ChannelDisplay {
             line(x, y+32, x+32, y+32);
             line(x+32, y+32, x+32, y+64);
             line(x+96, y, x+96, y+64);
-            line(x+128, y, x+128, y+64);
+            line(x+128, y+1, x+128, y+64);
             line(x+160, y, x+160, y+64);
             line(x+96, y+32, x+160, y+32);
+            
         
         // BGs
-            noStroke();                    
             fill(t.theme[1]);
+            noStroke();
             rect(x+33, y+1, 63, 63);
             rect(x+1, y+1, 32, 31);
         
@@ -239,6 +241,10 @@ class ChannelDisplay {
 class PlayerDisplay {
     int x, y;
     Player parent;
+    Button b_metadata;
+    Button b_loop;
+    Button b_next;
+    Button b_prev;
     
     final int POS_X_POSBAR = 50;
     final int POS_Y_POSBAR = 64;
@@ -263,6 +269,7 @@ class PlayerDisplay {
     boolean label_GM2 = false;
     boolean label_XG = false;
     boolean label_GS = false;
+    String queue_bottom_str = "Empty";
     
     
     PlayerDisplay(int x, int y, Player parent) {
@@ -272,6 +279,18 @@ class PlayerDisplay {
         
         meter_loop_begin_Y = y + POS_Y_POSBAR;
         meter_loop_end_Y = y + POS_Y_POSBAR + HEIGHT_POSBAR;
+        
+        b_metadata = new Button(682, 376, "metadata", "Metadata ");    // next to the player's message bar
+        b_metadata.set_key_hint("m");
+        b_loop = new Button(12, 376, "loop", "Loop");
+        b_loop.set_key_hint("l");
+        b_loop.set_pressed(true);
+        b_next = new Button(104, 25, "next", "");
+        b_next.show_label = false;
+        b_next.set_key_hint("PGDN");
+        b_prev = new Button(30, 25, "previous", "");
+        b_prev.show_label = false;
+        b_prev.set_key_hint("PGUP");
     }
     
     
@@ -313,20 +332,36 @@ class PlayerDisplay {
         meter_loop_begin_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_begin);
         meter_loop_end_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_end);
         
-        label_GM = parent.file_is_GM;
+        /*label_GM = parent.file_is_GM;
         label_GM2 = parent.file_is_GM2;
         label_XG = parent.file_is_XG;
-        label_GS = parent.file_is_GS;
+        label_GS = parent.file_is_GS;*/
+        
+        if (win_plist != null) {
+            if (win_plist.items.isEmpty()) queue_bottom_str = "Empty";
+            else {
+                if (!win_plist.active) queue_bottom_str = "Off";
+                else queue_bottom_str = (win_plist.current_item+1) + " of " + win_plist.items.size();
+            }
+        }
     }
     
     
     void check_buttons(int mButton) {
         if (mButton == LEFT) {
+            if(b_loop.collided()) {
+                if (parent.seq == null) return;
+                
+                int n = b_loop.pressed ? 0 : 64;
+                parent.seq.setLoopCount(n);
+                b_loop.set_pressed(!b_loop.pressed);
+            }
+            
             if (parent.playing_state == -1) return;
             
             if (collided_posbar()) {
                 if (parent.playing_state == -1) return;
-                int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
                 int snap = snap_pos_mult * (player.is_song_long() ? 2 : 1);
                 parent.setTicks(snap_number(new_pos, player.midi_resolution*snap));
                 return;
@@ -337,16 +372,36 @@ class PlayerDisplay {
                 int snap = snap_loop_mult * (player.is_song_long() ? 2 : 1);
                 
                 if (handle_no == -1) {
-                    int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                    int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
                     parent.seq.setLoopStartPoint(snap_number(new_pos, player.midi_resolution*snap));
                 }
                 
                 else if (handle_no == 1) {
-                    int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                    int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
                     parent.seq.setLoopEndPoint(snap_number(new_pos, player.midi_resolution*snap));
                 }
             }
             catch (IllegalArgumentException iae) { }
+            
+            if (b_metadata.collided()) {
+                ui.showTableImmutable(parent.get_metadata_table(), Arrays.asList("Parameter", "Value"), "Files' metadata");
+            }
+            
+            if (win_plist != null) {
+                if (b_prev.collided()) {
+                    win_plist.previous();
+                }
+                
+                else if (b_next.collided()) {
+                    win_plist.next();
+                }
+            }
+        }
+        
+        else if (mouseButton == RIGHT) {
+            if (b_loop.collided()) {
+                parent.reset_looppoints();
+            }
         }
     }
     
@@ -362,10 +417,10 @@ class PlayerDisplay {
         // Pos meter
             stroke(t.theme[0]);
             fill(t.theme[1]);
-            rect(x + POS_X_POSBAR, y + POS_Y_POSBAR, WIDTH_POSBAR, HEIGHT_POSBAR, 4);
+            rect(x + POS_X_POSBAR, y + POS_Y_POSBAR, WIDTH_POSBAR, HEIGHT_POSBAR, 6);
             noStroke();
             fill(t.theme[3]);
-            rect(x+1 + POS_X_POSBAR, y+1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1, 4);
+            rect(x+1 + POS_X_POSBAR, y+1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1, 6);
         
         // Song pos and length labels
             textAlign(CENTER, CENTER);
@@ -376,7 +431,7 @@ class PlayerDisplay {
             outlinedText(label_timestamp + " / " + label_timelength, auxX, auxY, t.theme[4], t.theme[0] - color(0x40000000));
             if (show_key_hints) {
                 textFont(fonts[0]);
-                text("<-      ->", auxX - 29, auxY + 11, t.theme[4]);
+                text("<-      ->", auxX - 29, auxY + 11);
             }
         
         // Loop set meter
@@ -387,13 +442,13 @@ class PlayerDisplay {
             
         // File name label
             fill(t.theme[0]);
-            textFont(fonts[3]);
-            text(label_filename, 362, y + POS_Y_POSBAR - 12);
+            textFont(fonts[5]);
+            text(label_filename, 362, y + POS_Y_POSBAR - 18);
         
         // Messages label
             stroke(t.theme[0]);
             fill(t.theme[1]);
-            rect(x + POS_X_MESSAGEBAR, y + POS_Y_POSBAR, WIDTH_MESSAGEBAR, HEIGHT_POSBAR, 4);    // reusing some dimensions...
+            rect(x + POS_X_MESSAGEBAR, y + POS_Y_POSBAR, WIDTH_MESSAGEBAR, HEIGHT_POSBAR, 6);    // reusing some dimensions...
             fill(t.theme[4]);
             textFont(fonts[1]);
             text(label_message, x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, auxY);
@@ -405,7 +460,7 @@ class PlayerDisplay {
         // SF2 load DnD section
             fill(t.theme[1] - 0x7f000000);
             stroke(t.theme[0]);
-            rect(width-128, 8, 116, 48, 4);
+            rect(width-128, 8, 116, 48, 6);
             fill(t.theme[4]);
             textFont(fonts[0]);
             textAlign(CENTER, TOP);
@@ -415,11 +470,23 @@ class PlayerDisplay {
                 width-70, 16
             );
             if (show_key_hints) text("F4 / s", width-70, 52);
+        
+        // Playlist section
+            fill(t.theme[1] - 0x7f000000);
+            rect(40, 8, 70, 48, 6);
+            fill(t.theme[4]);
+            text("• Queue •\n\n" + queue_bottom_str, 75, 16);
+            if (show_key_hints) text("F5", 75, 52);
+        
+        b_metadata.redraw();
+        b_loop.redraw();
+        b_prev.redraw();
+        b_next.redraw();
     }
     
     
     boolean collided_posbar() {
-        return (_mouseX > x + POS_X_POSBAR && _mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (_mouseY > y + POS_Y_POSBAR && _mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
+        return (mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (mouseY > y + POS_Y_POSBAR && mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
     }
     
     
@@ -427,10 +494,10 @@ class PlayerDisplay {
         int which = 0;    // 0 is not pressed
         if (parent.seq.getLoopCount() == 0) return 0;
         
-        if ((_mouseX > x + POS_X_POSBAR && _mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (_mouseY > y + POS_Y_POSBAR - 16 && _mouseY < y + POS_Y_POSBAR)) {
+        if ((mouseX > x + POS_X_POSBAR - 6 && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 6) && (mouseY > y + POS_Y_POSBAR - 16 && mouseY < y + POS_Y_POSBAR)) {
             which = -1;    // -1 is begin
         }
-        else if ((_mouseX > x + POS_X_POSBAR && _mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (_mouseY > y + POS_Y_POSBAR + HEIGHT_POSBAR && _mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR + 16)) {
+        else if ((mouseX > x + POS_X_POSBAR - 6 && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 6) && (mouseY > y + POS_Y_POSBAR + HEIGHT_POSBAR && mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR + 16)) {
             which = 1;    // 1 is end
         }
         
@@ -439,12 +506,16 @@ class PlayerDisplay {
     
     
     boolean collided_sfload_rect() {
-        return (_mouseX > width-128 && _mouseX < width-4) && (_mouseY > 8 && _mouseY < 56);
+        return (mouseX > width-128 && mouseX < width-4) && (mouseY > 8 && mouseY < 56);
+    }
+    
+    boolean collided_queue_rect() {
+        return (mouseX > 48 && mouseX < 102) && (mouseY > 8 && mouseY < 56);
     }
     
     
     boolean collided_metamsg_rect() {
-        return (_mouseX > x + POS_X_MESSAGEBAR && _mouseX < width-50) && (_mouseY > y + POS_Y_POSBAR && _mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR);
+        return (mouseX > x + POS_X_MESSAGEBAR && mouseX < width-50) && (mouseY > y + POS_Y_POSBAR && mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR);
     }
 }
 
@@ -508,17 +579,36 @@ class Button {
         }
     }
     
+    
     void redraw(PApplet win) {
         win.image(texture, x, y);
         win.fill(t.theme[0]);
         win.textAlign(CENTER);
         win.textFont(fonts[0], 12);
         if (show_label) win.text(label, x + this.width / 2, y - 2);
+        if (show_key_hints) {
+            win.fill(t.theme[4]);
+            win.text(shortcut, x + this.width / 2 + 1, y + this.height + 4);
+        }
+    }
+    
+    
+    void redraw_at_pos(int x, int y) {
+        this.x = x;
+        this.y = y;
+        redraw();
+    }
+    
+    
+    void redraw_at_pos(int x, int y, PApplet win) {
+        this.x = x;
+        this.y = y;
+        redraw(win);
     }
 
 
     boolean collided() {
-        return (_mouseX > this.x && _mouseX < this.width + this.x) && (_mouseY > this.y && _mouseY < this.height + this.y);
+        return (mouseX > this.x && mouseX < this.width + this.x) && (mouseY > this.y && mouseY < this.height + this.y);
     }
     
     boolean collided(PApplet win) {
@@ -592,4 +682,27 @@ void outlinedText(String text, int x, int y, color cFill, color cStroke) {
     text(text, x, y);
     
     pop();
+}
+
+
+void gradientRect(int x, int y, int w, int h, int c1, int c2, int axis, PApplet win) {
+    win.noFill();
+
+    if (axis == 0) {  // Top to bottom gradient
+      for (int i = y; i <= y+h; i++) {
+        float inter = map(i, y, y+h, 0, 1);
+        color c = lerpColor(c1, c2, inter);
+        win.stroke(c);
+        win.line(x, i, x+w, i);
+      }
+    }
+    
+    else if (axis == 1) {  // Left to right gradient
+      for (int i = x; i <= x+w; i++) {
+        float inter = map(i, x, x+w, 0, 1);
+        color c = lerpColor(c1, c2, inter);
+        win.stroke(c);
+        win.line(i, y, i, y+h);
+      }
+    }
 }

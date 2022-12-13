@@ -10,6 +10,7 @@ public class PlaylistModule extends PApplet {
     PApplet parentPApplet;
     Frame parentFrame;
     Frame selfFrame;
+    DnDPlistListener dnd_playlist;
     ButtonToolbar buttons_top;
     ButtonToolbar buttons_bottom;
     PImage[] playlist_item_bgs;
@@ -20,6 +21,7 @@ public class PlaylistModule extends PApplet {
     PlaylistItem pending_removal;
     int current_item = -1;
     int scroll_offset = 0;
+    String custom_msg = "";
     
     
     PlaylistModule(Frame f, PApplet parent) {
@@ -48,10 +50,15 @@ public class PlaylistModule extends PApplet {
         ((JFrame) this.selfFrame).setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         
         player.seq.setLoopCount(0);
-        b_loop.set_pressed(false);
+        player.disp.b_loop.set_pressed(false);
         
         this.setup_buttons();
         this.setup_images();
+        
+        SDrop drop = new SDrop(this);
+        dnd_playlist = new DnDPlistListener(this);
+        drop.addDropListener(dnd_playlist);
+        
         this.reposition();
     }
     
@@ -64,7 +71,12 @@ public class PlaylistModule extends PApplet {
             textFont(fonts[5]);
             this.fill(t.theme[0]);
             textAlign(CENTER, CENTER);
-            text("Empty", 105, 210);
+            
+            // too many words? idk
+            if (dnd_playlist.draggedOnto) custom_msg = "OK! (Add to queue)";
+            else custom_msg = (show_key_hints ? "Press\n'a' or 'f' to open" : "Drag and drop") +
+                "\na file or folder\nto add...";
+            text(custom_msg, 105, 210);
         }
         else {
             this.stroke(t.theme[0]);
@@ -127,6 +139,18 @@ public class PlaylistModule extends PApplet {
     }
     
     
+    public void next() {
+        set_current_item(current_item + 1);
+        reposition_scroll();
+    }
+    
+    
+    public void previous() {
+        set_current_item(current_item - 1);
+        reposition_scroll();
+    }
+    
+    
     public void setup_buttons() {
         Button b1 = new Button("standby", "On/Off");
         b1.set_key_hint("p");
@@ -175,7 +199,11 @@ public class PlaylistModule extends PApplet {
         
         else if (key == 'f') {
             this.cursor(WAIT);
-            add_folder(true, true, ui.showDirectorySelection());
+            add_folder(
+                prefs.getBoolean("recursive folder", false),
+                prefs.getBoolean("replace playlist", true),
+                ui.showDirectorySelection()
+            );
             this.cursor(ARROW);
         }
         
@@ -196,16 +224,6 @@ public class PlaylistModule extends PApplet {
         
         else if (keyCode == 116) {
             toggle_playlist_win();
-        }
-        
-        else if (keyCode == 33) {        // PGUP
-            set_current_item(current_item - 1);
-            reposition_scroll();
-        }
-        
-        else if (keyCode == 34) {        // PGDOWN
-            set_current_item(current_item + 1);
-            reposition_scroll();
         }
         
         if (prev_item_count == 0 && items.size() > prev_item_count) set_current_item(0);
@@ -271,8 +289,7 @@ public class PlaylistModule extends PApplet {
             else if (buttons_bottom.collided("Save", this)) {
                 String msg = items.isEmpty() ? 
                     "Playlist is empty" : 
-                    save_as_m3u(ui.showFileSelection("Playlist files", "m3u"))
-                ;
+                    save_as_m3u(ui.showFileSelection("Playlist files", "m3u"));
                 if (!msg.equals("")) ui.showErrorDialog(msg, "Can't save");
             }
             
@@ -373,6 +390,17 @@ public class PlaylistModule extends PApplet {
     }
     
     
+    void try_add_auto(File file) {
+        if (!file.exists()) return;
+        if (file.isFile()) add_single_file(file);
+        else if (file.isDirectory()) add_folder(
+            prefs.getBoolean("recursive folder", false), 
+            prefs.getBoolean("replace playlist", true), 
+            file
+        );
+    }
+    
+    
     void set_shuffle(boolean how) {
         shuffled = how;
         buttons_top.get_button("Shuffle").set_pressed(how);
@@ -460,6 +488,35 @@ boolean is_valid_midi(File mid) {
         return false;
     }
     return true;
+}
+
+
+class DnDPlistListener extends DropListener {
+    boolean draggedOnto = false;
+    int PADDING = 32;
+    PlaylistModule win;
+    
+    DnDPlistListener(PlaylistModule win) {
+        this.win = win;
+        setTargetRect(win.width-128, 8, 116, 48);
+        setTargetRect(PADDING, 46, win.width-PADDING*2, win.height-92);
+    }
+    
+    void dropEnter() {
+        draggedOnto = true;
+    }
+    
+    void dropLeave() {
+        draggedOnto = false;
+    }
+    
+    void dropEvent(DropEvent e) {
+        if (e.file() == null) return;
+        
+        cursor(WAIT);
+        win.try_add_auto(e.file());
+        cursor(ARROW);
+    }
 }
 
 
