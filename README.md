@@ -2,7 +2,7 @@
 
 ---
 
-A synthesizer and MIDI visualization program programmed with Processing 3.
+A synthesizer and MIDI visualization program programmed with Processing 3 and 4.
 Supports playback of MID files.
 
 ### Quick start
@@ -14,7 +14,7 @@ Upon opening, simply drag and drop a MIDI file onto the program to begin!
 
 ### Source code
 The source code may include features sooner than the releases, but it might be less stable. 
-Keep in mind this is Processing 3 code, not plain old Java. The following libraries are needed in the P3 sketch:
+Keep in mind this is Processing code, not plain old Java. The following libraries are needed in the P3 sketch:
 - Sound
 - HTTP Requests for Processing
 - UiBooster
