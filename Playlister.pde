@@ -13,15 +13,17 @@ public class PlaylistModule extends PApplet {
     DnDPlistListener dnd_playlist;
     ButtonToolbar buttons_top;
     ButtonToolbar buttons_bottom;
-    PImage[] playlist_item_bgs;
     
     boolean active = false;
     boolean shuffled = false;
     ArrayList<PlaylistItem> items;
     PlaylistItem pending_removal;
     int current_item = -1;
-    int scroll_offset = 0;
     String custom_msg = "";
+    
+    final float SCROLL_LERP_QUICKNESS = 0.5; 
+    int scroll_offset_target = 0;
+    float scroll_offset = 0;
     
     
     PlaylistModule(Frame f, PApplet parent) {
@@ -53,7 +55,6 @@ public class PlaylistModule extends PApplet {
         player.disp.b_loop.set_pressed(false);
         
         this.setup_buttons();
-        this.setup_images();
         
         SDrop drop = new SDrop(this);
         dnd_playlist = new DnDPlistListener(this);
@@ -66,6 +67,15 @@ public class PlaylistModule extends PApplet {
     public void draw() {
         if (t.is_extended_theme) gradientRect(0, 0, this.width, this.height, (int) t.theme[2], t.theme[5], 0, this);
         else this.background(t.theme[2]);
+        
+        float scroll_lerp_diff = scroll_offset_target - scroll_offset;
+        if (scroll_lerp_diff > SCROLL_LERP_QUICKNESS/2) {
+            scroll_offset += SCROLL_LERP_QUICKNESS * abs(scroll_lerp_diff/2);
+        }
+        else if (scroll_lerp_diff < -SCROLL_LERP_QUICKNESS/2) {
+            scroll_offset -= SCROLL_LERP_QUICKNESS * abs(scroll_lerp_diff/2);
+        }
+        
         
         if (items.isEmpty()) {
             textFont(fonts[5]);
@@ -167,13 +177,6 @@ public class PlaylistModule extends PApplet {
     }
     
     
-    public void setup_images() {
-        playlist_item_bgs = new PImage[2];
-        playlist_item_bgs[0] = parentPApplet.loadImage("buttons/wideUp.png");
-        playlist_item_bgs[1] = parentPApplet.loadImage("buttons/wideDown.png");
-    }
-    
-    
     public void reposition() {
         int x = this.parentFrame.getX();
         int y = this.parentFrame.getY();
@@ -183,8 +186,8 @@ public class PlaylistModule extends PApplet {
     
     
     public void mouseWheel(MouseEvent e) {
-        //if (items.isEmpty()) return;
-        scroll_offset = constrain(scroll_offset + e.getCount() * 2, -9, items.size() - 1);
+        if (items.isEmpty()) return;
+        scroll_offset_target = constrain(scroll_offset_target + e.getCount() * 2, -9, items.size() - 1);
     }
     
     
