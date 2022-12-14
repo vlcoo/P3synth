@@ -184,7 +184,7 @@ public class PlaylistModule extends PApplet {
     
     public void mouseWheel(MouseEvent e) {
         //if (items.isEmpty()) return;
-        scroll_offset = constrain(scroll_offset + e.getCount(), -9, items.size() - 1);
+        scroll_offset = constrain(scroll_offset + e.getCount() * 2, -9, items.size() - 1);
     }
     
     
@@ -513,9 +513,11 @@ class DnDPlistListener extends DropListener {
     void dropEvent(DropEvent e) {
         if (e.file() == null) return;
         
-        cursor(WAIT);
+        int prev_item_count = win.items.size();
+        win.cursor(WAIT);
         win.try_add_auto(e.file());
-        cursor(ARROW);
+        win.cursor(ARROW);
+        if (prev_item_count == 0 && win.items.size() > prev_item_count) win.set_current_item(0);
     }
 }
 

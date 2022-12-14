@@ -33,32 +33,42 @@ void open_config_dialog() {
         Arrays.asList("Slow", "Smooth", "Instant")
     )
     .addCheckbox("Reduce framerate *")
-    .addCheckbox("Boot with system synth enabled *")
+    .addCheckbox("System synth enabled by default *")
     .addText("Default soundfont for system synth *")
+    .addCheckbox("Autoload SF with same name as MIDI")
     .addSelection(
         "Snap loop points to beat",
         Arrays.asList("No", "Yes (fine)", "Yes (coarse)")
     )
     .addSelection(
-        "Snap song position to beat",
+        "Snap setting song position to beat",
         Arrays.asList("No", "Yes (fine)", "Yes (coarse)")
     )
+    .addCheckbox("Adding folder to playlist is recursive")
+    .addCheckbox("Adding folder to playlist clears it first")
+    .addLabel("* The options marked will have effect only on startup.")
     .setCloseListener(new FormCloseListener() { public void onClose(Form form) {
         String th = form.getByIndex(0).asString();
         String md = form.getByIndex(1).asString();
         boolean lf = (boolean) form.getByIndex(2).getValue();
         boolean ss = (boolean) form.getByIndex(3).getValue();
         String sf = form.getByIndex(4).asString();
-        String snl = form.getByIndex(5).asString();
-        String snp = form.getByIndex(6).asString();
+        boolean al = (boolean) form.getByIndex(5).getValue();
+        String snl = form.getByIndex(6).asString();
+        String snp = form.getByIndex(7).asString();
+        boolean rf = (boolean) form.getByIndex(8).getValue();
+        boolean cf = (boolean) form.getByIndex(9).getValue();
         
         prefs.put("theme", th);
         prefs.put("meter decay", md);
         prefs.putBoolean("low framerate", lf);
         prefs.putBoolean("system synth", ss);
         prefs.put("sf path", sf);
+        prefs.putBoolean("autoload sf", al);
         prefs.put("loop snap", snl);
         prefs.put("pos snap", snp);
+        prefs.putBoolean("recursive folder", rf);
+        prefs.putBoolean("replace playlist", cf);
         
         t.set_theme(th);
         float quickness = md.equals("Instant") ? 1 : md.equals("Slow") ? 0.1 : 0.5;
@@ -73,8 +83,11 @@ void open_config_dialog() {
     dialog_settings.getByIndex(2).setValue(prefs.getBoolean("low framerate", false));
     dialog_settings.getByIndex(3).setValue(prefs.getBoolean("system synth", false));
     dialog_settings.getByIndex(4).setValue(prefs.get("sf path", ""));
-    dialog_settings.getByIndex(5).setValue(prefs.get("loop snap", "Yes (fine)"));
-    dialog_settings.getByIndex(6).setValue(prefs.get("pos snap", "No"));
+    dialog_settings.getByIndex(5).setValue(prefs.getBoolean("autoload sf", true));
+    dialog_settings.getByIndex(6).setValue(prefs.get("loop snap", "Yes (fine)"));
+    dialog_settings.getByIndex(7).setValue(prefs.get("pos snap", "No"));
+    dialog_settings.getByIndex(8).setValue(prefs.getBoolean("recursive folder", false));
+    dialog_settings.getByIndex(9).setValue(prefs.getBoolean("replace playlist", true));
     
-    dialog_settings.getWindow().setSize(260, 460);
+    dialog_settings.getWindow().setSize(285, 580);
 }

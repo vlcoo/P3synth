@@ -14,6 +14,7 @@ class ThemeEngine {
     HashMap<String, int[]> available_themes = new HashMap<String, int[]>();
     int[] theme;
     String curr_theme_name;
+    boolean is_extended_theme;
 
 
     ThemeEngine() {
@@ -25,11 +26,12 @@ class ThemeEngine {
         theme = available_themes.get(theme_name);
         if (theme == null) theme = available_themes.get("Fresh Blue");
         else curr_theme_name = theme_name;
+        is_extended_theme = theme.length > 5;
     }
 
 
     private void load_themes() {
-        // theme is an array of ints (colors in hex) in order: darker, dark, neutral, light, lightest
+        // theme is an array of ints (colors in hex) in order: darker, dark, neutral, bright, brigthest, optional
         int[] theme_01 = {#000000, #5151cf, #809fff, #bfcfff, #ffffff};
         available_themes.put("Fresh Blue", theme_01);
         int[] theme_03 = {#000000, #d50000, #ff5131, #ff867c, #ffffff};
@@ -40,8 +42,10 @@ class ThemeEngine {
         available_themes.put("Summer Yellow", theme_06);
         int[] theme_02 = {#5c1f09, #b2593f, #df825f, #ffd2a2, #ffffff};
         available_themes.put("GX Peach", theme_02);
-        int[] theme_05 = {#000000, #777777, #aaaaaa, #444444, #ffffff};
+        int[] theme_05 = {#000000, #575757, #888888, #cccccc, #ffffff};
         available_themes.put("Metallic Grayscale", theme_05);
+        int[] theme_07 = {#0a0c37, #375971, #ff9900, #5cecff, #f4ff61, #ff61c6};
+        available_themes.put("Sick Gradient", theme_07);
     }
 }
 

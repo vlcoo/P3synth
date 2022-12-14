@@ -37,7 +37,7 @@ void readMIDIn() {
 
 
 class Player {
-    final int LENGTH_THRESHOLD = 135000000;
+    final int LENGTH_THRESHOLD = 90000000;
     final int TEMPO_LIMIT = 1000;
     final String DEFAULT_STOPPED_MSG = "Drag and drop a file to play...";
     
@@ -181,7 +181,7 @@ class Player {
         
         if (midi_in_mode) stop_midi_in();
         File file = new File(filename);
-        if (system_synth) try_match_soundfont(filename);
+        if (system_synth && prefs.getBoolean("autoload sf", true)) try_match_soundfont(filename);
         
         try {
             Sequence mid = prep_javax_midi(MidiSystem.getSequence(file), false);
@@ -211,7 +211,7 @@ class Player {
         set_playing_state(-1);
         File file = new File(filename);
         load_soundfont(file);
-        prep_javax_midi();
+        //prep_javax_midi();
         try {
             event_listener.send(new ShortMessage(128, 0, 48, 127), 0);
             event_listener.send(new ShortMessage(192, 0, 0, 0), 0);
@@ -318,7 +318,7 @@ class Player {
             if (seq != null) seq.close();
             seq = MidiSystem.getSequencer(false);
             seq.open();
-            seq.setLoopCount(b_loop.pressed ? -1 : 0);
+            seq.setLoopCount(disp.b_loop.pressed ? -1 : 0);
             seq.addMetaEventListener(meta_listener);
             Transmitter transmitter = seq.getTransmitter();
             if (is_system) {
@@ -431,7 +431,7 @@ class Player {
     }
     
     
-    void setTicks(int ticks) {
+    void setTicks(long ticks) {
         seq.setTickPosition(ticks);
         meta_curr_track = 1;
     }
@@ -563,7 +563,7 @@ class Player {
                 try {
                     alt_syn.getReceiver().send(msg, timeStamp);
                 }
-                catch (MidiUnavailableException mue) { println("wawa"); }
+                catch (MidiUnavailableException mue) { println("mue on system synth"); }
             }
             
             if (msg instanceof ShortMessage) {

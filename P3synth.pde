@@ -28,8 +28,6 @@ ThemeEngine t;
 boolean is_newbie;
 ButtonToolbar media_buttons;
 ButtonToolbar setting_buttons;
-Button b_metadata;
-Button b_loop;
 Button b_labs;
 Button curr_mid_pressed;
 WaitingDialog dialog_meta_msgs;
@@ -43,15 +41,9 @@ String demo_layout = "NES (NTSC)";
 String demo_title = "- No title -";
 String demo_description = "- no description -\n\nUnknown composer";
 
-float _mouseX = 0;
-float _mouseY = 0;
-
 
 void settings() {
-    osname = System.getProperty("os.name");
-    int sizeY = 460;
-    if (osname.contains("Windows")) sizeY = 460;
-    size(724, sizeY);
+    size(724, 460);
 }
 
 
@@ -102,16 +94,6 @@ void setup() {
     
     
 void draw() {
-    if (hi_res) {
-        scale(HIRES_MULT);
-        _mouseX = mouseX / HIRES_MULT;
-        _mouseY = mouseY / HIRES_MULT;
-    }
-    else {
-        _mouseX = mouseX;
-        _mouseY = mouseY;
-    }
-    
     redraw_all();
     
     if (player.playing_state == 1 && !demo_ui) {
@@ -132,15 +114,13 @@ void draw() {
 
 
 void redraw_all() {
-    if (t.theme.length == 6) gradientRect(0, 0, width, height, (int) t.theme[2], t.theme[5], 0, this);
+    if (t.is_extended_theme) gradientRect(0, 0, width, height, (int) t.theme[2], t.theme[5], 0, this);
     else background(t.theme[2]);
     
     if (!demo_ui) {
         media_buttons.redraw();
         setting_buttons.redraw();
-        b_metadata.redraw();
-        b_loop.redraw();
-        b_labs.redraw();
+        //b_labs.redraw();
     }
     player.redraw();
 }
@@ -192,7 +172,7 @@ void setup_buttons() {
     Button b3 = new Button("pause", "Pause");
     b3.set_key_hint("Space");
     Button[] buttons_ctrl = {b1, b3, b2};
-    media_buttons = new ButtonToolbar(150, 16, 1.3, 0, buttons_ctrl);
+    media_buttons = new ButtonToolbar(160, 16, 1.3, 0, buttons_ctrl);
     
     b1 = new Button("info", "Help");
     //b1.set_key_hint("F1");
@@ -200,14 +180,9 @@ void setup_buttons() {
     b2.set_key_hint("F2");
     b3 = new Button("update", "Update");
     Button[] buttons_set = {b2, b1, b3};
-    setting_buttons = new ButtonToolbar(464, 16, 1.3, 0, buttons_set);
+    setting_buttons = new ButtonToolbar(456, 16, 1.3, 0, buttons_set);
     
-    b_metadata = new Button(682, 376, "metadata", "Metadata ");    // next to the player's message bar
-    b_metadata.set_key_hint("m");
-    b_loop = new Button(12, 376, "loop", "Loop");
-    b_loop.set_key_hint("l");
-    b_loop.set_pressed(true);
-    b_labs = new Button(12, 16, "labs", "Labs");
+    b_labs = new Button(347, 16, "labs", "Labs");
     b_labs.set_key_hint("F3");
 }
 
@@ -286,9 +261,9 @@ void keyPressed() {
     else if (key == 'l') {
         if (player.seq == null) return;
         
-        int n = b_loop.pressed ? 0 : 64;
+        int n = player.disp.b_loop.pressed ? 0 : 64;
         player.seq.setLoopCount(n);
-        b_loop.set_pressed(!b_loop.pressed);
+        player.disp.b_loop.set_pressed(!player.disp.b_loop.pressed);
     }
     
     else if (key == 'm') {
@@ -342,6 +317,16 @@ void keyPressed() {
         win_plist.set_current_item(-1);
     }
     
+    if (win_plist != null) {
+        if (keyCode == 33) {        // PGUP
+            win_plist.previous();
+        }
+        
+        else if (keyCode == 34) {        // PGDOWN
+            win_plist.next();
+        }
+    }
+    
     if (player.playing_state != -1) {
         if (keyCode == LEFT) {
             player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() - 1000000);
@@ -384,7 +369,9 @@ void mousePressed() {
         for (Button b : setting_buttons.buttons.values()) {
             if (b.collided()) curr_mid_pressed = b;
         }
-        if (b_metadata.collided()) curr_mid_pressed = b_metadata;
+        if (player.disp.b_metadata.collided()) curr_mid_pressed = player.disp.b_metadata;
+        else if (player.disp.b_prev.collided()) curr_mid_pressed = player.disp.b_prev;
+        else if (player.disp.b_next.collided()) curr_mid_pressed = player.disp.b_next;
         
         if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
     }
@@ -421,7 +408,7 @@ void mouseReleased() {
         }
         
         else if(setting_buttons.collided("Help")) {
-            ui.showList(
+            /*ui.showList(
                 "Thanks for using P3synth (v" + VERCODE + ")!\nChoose a help topic:",
                 "Guide",
                 new SelectElementListener() {public void onSelected(ListElement e) {
@@ -432,7 +419,15 @@ void mouseReleased() {
                 new ListElement("4 • Settings", "Description of the values in the settings dialog.\n​"),
                 new ListElement("5 • Labs dialog", "Other experimental options.\n​"),
                 new ListElement("6 • About the project", "What, how, who?\n​")
+            );*/
+            boolean go = ui.showConfirmDialog(
+                "Thanks for using P3synth (v" + VERCODE + ")!\n"+
+                "Drag and drop a MIDI file in the main window or press 'o' to begin.\n"+
+                "vlcoo.net  |  github.com/vlcoo/p3synth\n" +
+                "\nThe guide is available online. Open?",
+                "Help"
             );
+            if (go) open_web_url("https://github.com/vlcoo/P3synth/wiki");
         }
         
         else if(player.disp.collided_metamsg_rect() && player != null) {
@@ -441,10 +436,6 @@ void mouseReleased() {
                 "These are lyrics, comments, or other text in the MIDI file.",
                 "Meta message history", player.history_text_messages
             );
-        }
-        
-        else if(b_metadata.collided()) {
-            ui.showTableImmutable(player.get_metadata_table(), Arrays.asList("Parameter", "Value"), "Files' metadata");
         }
         
         else if(setting_buttons.collided("Update")) {
@@ -462,16 +453,12 @@ void mouseReleased() {
                 );
             }
             else if (v == 0) ui.showInfoDialog("You're running the latest release of P3synth.", "Update");
-            else  ui.showInfoDialog("You may be running a P3synth from source or a fork of it.", "Update");
-            
-        }
-        
-        else if(b_loop.collided()) {
-            if (player.seq == null) return;
-            
-            int n = b_loop.pressed ? 0 : 64;
-            player.seq.setLoopCount(n);
-            b_loop.set_pressed(!b_loop.pressed);
+            else if (v == -1000) ui.showErrorDialog("GitHub could not be reached. Try again later.", "Update");
+            else ui.showInfoDialog(
+                "You're running a version that's ahead of the latest release,\n" +
+                "so this may be the nightly source or a fork of P3synth.",
+                "Update"
+            );
         }
         
         else if(b_labs.collided()) {
@@ -490,11 +477,9 @@ void mouseReleased() {
             player.set_seq_synth(!player.system_synth);
             cursor(ARROW);
         }
-    }
-    
-    else if (mouseButton == RIGHT) {
-        if (b_loop.collided()) {
-            player.reset_looppoints();
+        
+        else if (player.disp.collided_queue_rect()) {
+            toggle_playlist_win();
         }
     }
     
@@ -512,7 +497,8 @@ void mouseDragged() {
 
 void mouseMoved() {
     if (player.disp.collided_sfload_rect() ||
-        player.disp.collided_metamsg_rect()
+        player.disp.collided_metamsg_rect() ||
+        player.disp.collided_queue_rect()
     ) cursor(HAND);
     else cursor(ARROW);
 }
@@ -550,7 +536,7 @@ class DnDSfListener extends DropListener {
     int PADDING = 64;
     
     DnDSfListener() {
-        setTargetRect(width-128, 8, 116, 48);
+        setTargetRect(width-138, 8, 106, 48);
     }
     
     void dropEnter() {
@@ -578,10 +564,16 @@ boolean try_play_file(File selection, boolean invoked_from_playlist) {
             ui.showErrorDialog(response, "Can't play");
             return false;
         }
+        if (player.vu_anim_val >= 0.0) player.vu_anim_val = -1.0;
         if (!invoked_from_playlist && win_plist != null) win_plist.set_current_item(-1);
         return true;
     }
     return false;
+}
+
+
+boolean try_play_file(File selection) {
+    return try_play_file(selection, false);
 }
 
 

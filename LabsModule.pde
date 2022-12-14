@@ -8,14 +8,14 @@ public class LabsModule extends PApplet {
     String curr_transform = "None";
     int voice_index = 0;
     
+    
     LabsModule(Frame f) {
         this.parentFrame = f;
     }
     
     
     public void settings() {
-        if (osname.contains("Windows")) this.size(210, 364);
-        else this.size(210, 320);
+        this.size(210, 320);
     }
     
     
@@ -25,20 +25,32 @@ public class LabsModule extends PApplet {
     
     
     public void setup() {
-        this.textFont(fonts[2]);
-        this.fill(t.theme[0]);
-        
-        this.setup_buttons();
         this.selfFrame = ( (PSurfaceAWT.SmoothCanvas)this.surface.getNative() ).getFrame();
+        this.selfFrame.setSize(new Dimension(210, 320));
         ((JFrame) this.selfFrame).setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         
-        reposition();
-        this.redraw_all();
+        this.setup_buttons();
+        this.reposition();
     }
     
     
     public void draw() {
-        this.redraw_all();
+        if (t.is_extended_theme) gradientRect(0, 0, this.width, this.height, (int) t.theme[2], t.theme[5], 0, this);
+        else this.background(t.theme[2]);
+        
+        this.textFont(fonts[2]);
+        this.fill(t.theme[0]);
+        this.textAlign(CENTER, CENTER);
+        this.text("Experimental options!\nUse at your own risk.", this.width/2, 22);
+        
+        this.textFont(fonts[1]);
+        this.text(player.last_freqDetune, 179, 60);
+        this.text(player.last_noteDetune, 179, 99);
+        this.text(String.format("x%.1f", player.seq.getTempoFactor()), 179, 138);
+        this.text((player.midi_in_mode ? "On" : "Off"), 179, 216);
+        this.text((NO_REALTIME ? "Off" : "On"), 179, 255);
+        
+        all_buttons.redraw(this);
     }
     
     
@@ -66,8 +78,14 @@ public class LabsModule extends PApplet {
     void reposition() {
         int x = this.parentFrame.getX();
         int y = this.parentFrame.getY();
-        this.getSurface().setLocation((x < this.width ? x + parentFrame.getWidth() + 8: x - this.width), (y));
+        this.getSurface().setLocation((x < this.width ? x + parentFrame.getWidth() + 2 : x - this.width - 2), (y));
         this.getSurface().setIcon(logo_icon);
+    }
+    
+    void keyPressed() {
+        if (keyCode == 114) {        // F3
+            toggle_labs_win();
+        }
     }
     
     
@@ -198,27 +216,7 @@ public class LabsModule extends PApplet {
     }
     
     
-    public void redraw_all() {
-        if (t.theme.length == 6) gradientRect(0, 0, this.width, this.height, (int) t.theme[2], t.theme[5], 0, this);
-        else this.background(t.theme[2]);
-        
-        this.textFont(fonts[2]);
-        this.fill(t.theme[0]);
-        this.textAlign(CENTER, CENTER);
-        this.text("Experimental options!\nUse at your own risk.", this.width/2, 22);
-        
-        this.textFont(fonts[1]);
-        this.text(player.last_freqDetune, 179, 60);
-        this.text(player.last_noteDetune, 179, 99);
-        this.text("x" + player.seq.getTempoFactor(), 179, 138);
-        this.text((player.midi_in_mode ? "On" : "Off"), 179, 216);
-        this.text((NO_REALTIME ? "Off" : "On"), 179, 255);
-        
-        all_buttons.redraw(this);
-    }
-    
-    
     public boolean altered_values() {
-        return ( player.last_freqDetune != 0 || player.last_noteDetune != 0 || !player.ktrans.transform.equals(player.ktrans.available_transforms.get("None")));
+        return ( player.last_freqDetune != 0 || player.last_noteDetune != 0);
     }
 }

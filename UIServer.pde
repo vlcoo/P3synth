@@ -303,7 +303,7 @@ class PlayerDisplay {
                 label_filename = java.nio.file.Paths.get(parent.curr_filename)
                     .getFileName().toString().replaceFirst("[.][^.]+$", "");
                     // what a mess... but it works
-                label_filename = check_and_shrink_string(label_filename, 68);
+                label_filename = check_and_shrink_string(label_filename, 56);
             }
             else label_filename = parent.custom_info_msg;
         }
@@ -460,16 +460,16 @@ class PlayerDisplay {
         // SF2 load DnD section
             fill(t.theme[1] - 0x7f000000);
             stroke(t.theme[0]);
-            rect(width-128, 8, 116, 48, 6);
+            rect(width-138, 8, 116, 48, 6);
             fill(t.theme[4]);
             textFont(fonts[0]);
             textAlign(CENTER, TOP);
             text(
                 "• Soundfont load •\n" + 
                 (parent.system_synth ? ("Java synth:\n" + player.sf_filename) : "\nOsc synth"),
-                width-70, 16
+                width-80, 16
             );
-            if (show_key_hints) text("F4 / s", width-70, 52);
+            if (show_key_hints) text("F4 / s", width-80, 52);
         
         // Playlist section
             fill(t.theme[1] - 0x7f000000);
@@ -506,7 +506,7 @@ class PlayerDisplay {
     
     
     boolean collided_sfload_rect() {
-        return (mouseX > width-128 && mouseX < width-4) && (mouseY > 8 && mouseY < 56);
+        return (mouseX > width-138 && mouseX < width-20) && (mouseY > 8 && mouseY < 56);
     }
     
     boolean collided_queue_rect() {

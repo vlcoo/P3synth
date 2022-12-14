@@ -282,7 +282,7 @@ class PlayerDisplayDemo extends PlayerDisplay {
             
             if (collided_posbar()) {
                 if (parent.playing_state == -1) return;
-                int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
                 parent.setTicks(new_pos);
                 return;
             }
@@ -290,12 +290,12 @@ class PlayerDisplayDemo extends PlayerDisplay {
             int handle_no = collided_loopset_bar();
             try {
                 if (handle_no == -1) {
-                    int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                    int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
                     parent.seq.setLoopStartPoint(new_pos);
                 }
                 
                 else if (handle_no == 1) {
-                    int new_pos = int( map(_mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
+                    int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
                     parent.seq.setLoopEndPoint(new_pos);
                 }
             }
@@ -355,7 +355,7 @@ class PlayerDisplayDemo extends PlayerDisplay {
     
     
     boolean collided_posbar() {
-        return (_mouseX > x + POS_X_POSBAR && _mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (_mouseY > y + POS_Y_POSBAR && _mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
+        return (mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (mouseY > y + POS_Y_POSBAR && mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
     }
     
     
@@ -363,10 +363,10 @@ class PlayerDisplayDemo extends PlayerDisplay {
         int which = 0;    // 0 is not pressed
         if (parent.seq.getLoopCount() == 0) return 0;
         
-        if ((_mouseX > x + POS_X_POSBAR && _mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (_mouseY > y + POS_Y_POSBAR - 16 && _mouseY < y + POS_Y_POSBAR)) {
+        if ((mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (mouseY > y + POS_Y_POSBAR - 16 && mouseY < y + POS_Y_POSBAR)) {
             which = -1;    // -1 is begin
         }
-        else if ((_mouseX > x + POS_X_POSBAR && _mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (_mouseY > y + POS_Y_POSBAR + HEIGHT_POSBAR && _mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR + 16)) {
+        else if ((mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 4) && (mouseY > y + POS_Y_POSBAR + HEIGHT_POSBAR && mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR + 16)) {
             which = 1;    // 1 is end
         }
         
