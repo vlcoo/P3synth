@@ -408,18 +408,6 @@ void mouseReleased() {
         }
         
         else if(setting_buttons.collided("Help")) {
-            /*ui.showList(
-                "Thanks for using P3synth (v" + VERCODE + ")!\nChoose a help topic:",
-                "Guide",
-                new SelectElementListener() {public void onSelected(ListElement e) {
-                    show_help_topic(e.getTitle().charAt(0));}},
-                new ListElement("1 • Basic usage", "Play MIDI files using the built-in synthesizer.\n​"),
-                new ListElement("2 • Visualization", "Overview of the different MIDI messages that are supported.\n​"),
-                new ListElement("3 • Advanced usage", "Use custom soundfonts and instrument banks.\n​"),
-                new ListElement("4 • Settings", "Description of the values in the settings dialog.\n​"),
-                new ListElement("5 • Labs dialog", "Other experimental options.\n​"),
-                new ListElement("6 • About the project", "What, how, who?\n​")
-            );*/
             boolean go = ui.showConfirmDialog(
                 "Thanks for using P3synth (v" + VERCODE + ")!\n"+
                 "Drag and drop a MIDI file in the main window or press 'o' to begin.\n"+
@@ -440,10 +428,8 @@ void mouseReleased() {
         
         else if(setting_buttons.collided("Update")) {
             cursor(WAIT);
-            //WaitingDialog wd = ui.showWaitingDialog("Checking for updates...", "Please wait");
             float v = check_if_newer_ver();
             cursor(ARROW);
-            //wd.close();
             
             if (v > 0) {
                 ui.showConfirmDialog(

@@ -103,8 +103,7 @@ class Player {
     
     void create_display(int x, int y) {
         PlayerDisplay d;
-        if (demo_ui) d = new PlayerDisplayDemo(x, y, this);
-        else d = new PlayerDisplay(x, y, this);
+        d = new PlayerDisplay(x, y, this);
         this.disp = d;
     }
     
@@ -174,11 +173,6 @@ class Player {
     
     
     String play_file(String filename, boolean keep_paused) {
-        if (filename.toLowerCase().endsWith("wav")) {
-            play_wav(filename);
-            return "";
-        }
-        
         if (midi_in_mode) stop_midi_in();
         File file = new File(filename);
         if (system_synth && prefs.getBoolean("autoload sf", true)) try_match_soundfont(filename);
@@ -203,23 +197,6 @@ class Player {
         }
         
         return "";
-    }
-    
-    
-    void play_wav(String filename) {
-        // no
-        set_playing_state(-1);
-        File file = new File(filename);
-        load_soundfont(file);
-        //prep_javax_midi();
-        try {
-            event_listener.send(new ShortMessage(128, 0, 48, 127), 0);
-            event_listener.send(new ShortMessage(192, 0, 0, 0), 0);
-            event_listener.send(new ShortMessage(144, 0, 48, 127), 0);
-        }
-        catch (InvalidMidiDataException imde) {
-            println("imde on wav");
-        }
     }
     
     
