@@ -490,7 +490,7 @@ void mouseReleased() {
 
 void mouseDragged() {
     if (mouseButton == LEFT) {
-        player.disp.check_buttons(mouseButton);
+        player.disp.check_buttons(mouseButton, true);
     }
 }
 

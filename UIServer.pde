@@ -348,8 +348,13 @@ class PlayerDisplay {
     
     
     void check_buttons(int mButton) {
+        check_buttons(mButton, false);
+    }
+    
+    
+    void check_buttons(int mButton, boolean dragged) {
         if (mButton == LEFT) {
-            if(b_loop.collided()) {
+            if(b_loop.collided() && !dragged) {
                 if (parent.seq == null) return;
                 
                 int n = b_loop.pressed ? 0 : 64;
@@ -383,11 +388,11 @@ class PlayerDisplay {
             }
             catch (IllegalArgumentException iae) { }
             
-            if (b_metadata.collided()) {
+            if (b_metadata.collided() && !dragged) {
                 ui.showTableImmutable(parent.get_metadata_table(), Arrays.asList("Parameter", "Value"), "Files' metadata");
             }
             
-            if (win_plist != null) {
+            if (win_plist != null && !dragged) {
                 if (b_prev.collided()) {
                     win_plist.previous();
                 }
@@ -399,7 +404,7 @@ class PlayerDisplay {
         }
         
         else if (mouseButton == RIGHT) {
-            if (b_loop.collided()) {
+            if (b_loop.collided() && !dragged) {
                 parent.reset_looppoints();
             }
         }

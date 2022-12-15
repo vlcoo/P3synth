@@ -22,7 +22,7 @@ public class PlaylistModule extends PApplet {
     String custom_msg = "";
     
     final float SCROLL_LERP_QUICKNESS = 0.5; 
-    int scroll_offset_target = 0;
+    float scroll_offset_target = 0;
     float scroll_offset = 0;
     
     
@@ -61,6 +61,7 @@ public class PlaylistModule extends PApplet {
         drop.addDropListener(dnd_playlist);
         
         this.reposition();
+        this.set_shuffle(true);
     }
     
     
@@ -146,18 +147,17 @@ public class PlaylistModule extends PApplet {
         }
         
         buttons_top.get_button("On/Off").set_pressed(active);
+        reposition_scroll();
     }
     
     
     public void next() {
         set_current_item(current_item + 1);
-        reposition_scroll();
     }
     
     
     public void previous() {
         set_current_item(current_item - 1);
-        reposition_scroll();
     }
     
     
@@ -330,8 +330,8 @@ public class PlaylistModule extends PApplet {
     void reposition_scroll() {
         if (current_item == -1) return;
         
-        if (current_item < scroll_offset) scroll_offset = current_item;
-        else if (current_item > scroll_offset + 9) scroll_offset = current_item - 9;
+        if (current_item < scroll_offset) scroll_offset_target = current_item - 0.3;
+        else if (current_item > scroll_offset + 9) scroll_offset_target = current_item - 9.3;
     }
     
     
