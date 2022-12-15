@@ -1,5 +1,9 @@
 import java.util.stream.Stream;
-import java.nio.file.*;
+import java.util.stream.Collectors;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+import java.nio.file.InvalidPathException;
 import java.util.Comparator;
 import java.util.Collections;
 
@@ -30,7 +34,7 @@ public class PlaylistModule extends PApplet {
         this.parentFrame = f;
         this.parentPApplet = parent;
         
-        items = new ArrayList<>();
+        items = new ArrayList<PlaylistItem>();
     }
     
     
@@ -348,13 +352,19 @@ public class PlaylistModule extends PApplet {
     
     
     ArrayList<PlaylistItem> add_folder_to_list(boolean recursive, File folder) {
-        ArrayList<PlaylistItem> aux = new ArrayList<>();
+        ArrayList<PlaylistItem> aux = new ArrayList<PlaylistItem>();
         
-        try (Stream<Path> stream = recursive ? Files.walk(folder.toPath(), 2) : Files.list(folder.toPath())) {
-            stream.filter(Files::isRegularFile).forEach( (k) -> {
+        try {
+            Stream<Path> stream = recursive ? Files.walk(folder.toPath(), 2) : Files.list(folder.toPath());
+            for (Object path : stream.collect(Collectors.toList())) {
+                PlaylistItem i = new PlaylistItem((Path) path);
+                if (i.file != null && is_valid_midi(i.file)) aux.add(i);
+            };
+            /*stream.filter(Files::isRegularFile).forEach( (k) -> {
                 PlaylistItem i = new PlaylistItem(k);
                 if (i.file != null && is_valid_midi(i.file)) aux.add(i);
-            });
+            });*/
+            stream.close();
         }
         catch (IOException ioe) {
             println("ioe on recursive folder");
@@ -446,7 +456,7 @@ public class PlaylistModule extends PApplet {
     
     String load_m3u(File in) {
         if (in == null) return "";
-        ArrayList<PlaylistItem> aux = new ArrayList<>();
+        ArrayList<PlaylistItem> aux = new ArrayList<PlaylistItem>();
         
         try {
             BufferedReader reader = new BufferedReader(new FileReader(in.getAbsolutePath()));
@@ -454,7 +464,8 @@ public class PlaylistModule extends PApplet {
             
             while (l != null) {
                 try { Paths.get(l); }
-                catch (InvalidPathException | NullPointerException pex) { break; }
+                catch (InvalidPathException ipe) { break; }
+                catch (NullPointerException npe) { break; }
                 
                 File f = new File(l);
                 if (f.exists() && is_valid_midi(f)) {
@@ -537,7 +548,7 @@ class PlaylistItem implements Comparator<PlaylistItem> {
     
     
     PlaylistItem(File f) {
-        if (f == null) return;
+        if (f == null || !f.isFile()) return;
         
         file = f;
         filename = check_and_shrink_string(f.getName().replaceFirst("[.][^.]+$", ""), 18);
@@ -546,7 +557,7 @@ class PlaylistItem implements Comparator<PlaylistItem> {
     
     
     PlaylistItem(Path p) {
-        if (p == null) return;
+        if (p == null || !p.toFile().isFile()) return;
         
         file = p.toFile();
         filename = check_and_shrink_string(p.getFileName().toString().replaceFirst("[.][^.]+$", ""), 18);
