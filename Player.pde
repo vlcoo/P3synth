@@ -79,6 +79,7 @@ class Player {
     boolean file_is_XG = false;
     boolean file_is_GS = false;
     HashMap<String, String> metadata_map;
+    long epoch_at_begin = 0;
     
     
     Player() {
@@ -194,6 +195,7 @@ class Player {
             curr_filename = filename;
             setTicks(0);
             set_playing_state(keep_paused ? 0 : 1);
+            epoch_at_begin = java.time.Instant.now().getEpochSecond();
         }
         catch(InvalidMidiDataException imde) {
             return "Invalid MIDI data!";
@@ -264,6 +266,7 @@ class Player {
     
     void reload_curr_file() {
         setTicks(0);
+        epoch_at_begin = java.time.Instant.now().getEpochSecond();
     }
     
     
@@ -481,6 +484,7 @@ class Player {
         mid_rootnote = 0;
         mid_scale = 0;
         curr_filename = DEFAULT_STOPPED_MSG;
+        epoch_at_begin = 0;
         
         reset_looppoints();
         

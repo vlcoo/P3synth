@@ -6,7 +6,7 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 23.28;
+final float VERCODE = 23.32;
 final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
 boolean NO_REALTIME = true;
@@ -90,10 +90,18 @@ void setup() {
         if (args.length > 1) try_load_sf(new File(args[1]));
         try_play_file(new File(args[0]));
     }
+    
+    beginDiscordActivity();
+}
+
+
+void exit() {
+    DiscordRPC.discordShutdown();
 }
     
     
 void draw() {
+    updateDiscordActivity();
     redraw_all();
     
     if (player.playing_state == 1 && !demo_ui) {
