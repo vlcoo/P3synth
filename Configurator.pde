@@ -71,8 +71,9 @@ void open_config_dialog() {
         prefs.putBoolean("replace playlist", cf);
         
         t.set_theme(th);
-        float quickness = md.equals("Instant") ? 1 : md.equals("Slow") ? 0.1 : 0.5;
-        for (ChannelOsc c : player.channels) { c.disp.METER_LERP_QUICKNESS = quickness; }
+        for (ChannelOsc c : player.channels) { 
+            c.disp.recalc_quickness_from_settings();
+        } 
         snap_loop_mult = snl.equals("No") ? 0 : snl.equals("Yes (coarse)") ? 8 : 2;
         snap_pos_mult = snp.equals("Yes (fine)") ? 2 : snp.equals("Yes (coarse)") ? 8 : 0;
     }})

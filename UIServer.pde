@@ -32,7 +32,8 @@ class ChannelDisplay {
     boolean label_sostenuto_pedal = false;
     boolean label_soft_pedal = false;
     
-    float METER_LERP_QUICKNESS = 0.5;
+    float METER_LERP_QUICKNESS;
+    float METER_LERP_DECAYNESS;
     final int METER_VU_LENGTH = 30;
     final String[] NOTE_NAMES = new String[] {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
     
@@ -49,14 +50,19 @@ class ChannelDisplay {
             if (id == 9) hint = 0;
             button_mute.set_key_hint(Integer.toString(hint));
         }
+        
+        recalc_quickness_from_settings();
     }
     
     
     private void update_all_values() {
         meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_amp;
         
-        if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
-        if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/2 * abs(meter_vu_lerped - meter_vu_target);
+        if (METER_LERP_QUICKNESS > 0) {
+            if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
+            if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/METER_LERP_DECAYNESS * abs(meter_vu_lerped - meter_vu_target);
+        }
+        else meter_vu_lerped = meter_vu_target;
         //if (abs(meter_vu_lerped - meter_vu_target) < METER_LERP_QUICKNESS)
         //    meter_vu_lerped = meter_vu_target;
         
@@ -234,6 +240,16 @@ class ChannelDisplay {
             }
         
         button_mute.redraw();
+    }
+    
+    
+    void recalc_quickness_from_settings() {
+        String md = prefs.get("meter decay", "Smooth");
+        float value = md.equals("Instant") ? 0.5 : md.equals("Slow") ? 6 : 2;
+        
+        METER_LERP_DECAYNESS = value;
+        if (value < 1) METER_LERP_QUICKNESS = -1;
+        else METER_LERP_QUICKNESS = 0.5;
     }
 }
 
