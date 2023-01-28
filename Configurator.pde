@@ -46,6 +46,10 @@ void open_config_dialog() {
     )
     .addCheckbox("Adding folder to playlist is recursive")
     .addCheckbox("Adding folder to playlist clears it first")
+    .addSelection(
+        "Share Discord activity",
+        Arrays.asList("No", "Yes (private)", "Yes (detailed)")
+    )
     .addLabel("* The options marked will have effect only on startup.")
     .setCloseListener(new FormCloseListener() { public void onClose(Form form) {
         String th = form.getByIndex(0).asString();
@@ -58,6 +62,7 @@ void open_config_dialog() {
         String snp = form.getByIndex(7).asString();
         boolean rf = (boolean) form.getByIndex(8).getValue();
         boolean cf = (boolean) form.getByIndex(9).getValue();
+        String da = form.getByIndex(10).asString();
         
         prefs.put("theme", th);
         prefs.put("meter decay", md);
@@ -69,6 +74,7 @@ void open_config_dialog() {
         prefs.put("pos snap", snp);
         prefs.putBoolean("recursive folder", rf);
         prefs.putBoolean("replace playlist", cf);
+        prefs.put("discord rpc", da);
         
         t.set_theme(th);
         for (ChannelOsc c : player.channels) { 
@@ -76,6 +82,8 @@ void open_config_dialog() {
         } 
         snap_loop_mult = snl.equals("No") ? 0 : snl.equals("Yes (coarse)") ? 8 : 2;
         snap_pos_mult = snp.equals("Yes (fine)") ? 2 : snp.equals("Yes (coarse)") ? 8 : 0;
+        if (da.equals("No")) DiscordRPC.discordShutdown();
+        else beginDiscordActivity();
     }})
     .run();
     
@@ -89,6 +97,7 @@ void open_config_dialog() {
     dialog_settings.getByIndex(7).setValue(prefs.get("pos snap", "No"));
     dialog_settings.getByIndex(8).setValue(prefs.getBoolean("recursive folder", false));
     dialog_settings.getByIndex(9).setValue(prefs.getBoolean("replace playlist", true));
+    dialog_settings.getByIndex(10).setValue(prefs.get("discord rpc", "No"));
     
-    dialog_settings.getWindow().setSize(285, 580);
+    dialog_settings.getWindow().setSize(300, 650);
 }

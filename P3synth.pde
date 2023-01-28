@@ -97,6 +97,7 @@ void setup() {
 
 void exit() {
     DiscordRPC.discordShutdown();
+    super.exit();
 }
     
     

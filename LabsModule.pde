@@ -46,7 +46,7 @@ public class LabsModule extends PApplet {
         this.textFont(fonts[1]);
         this.text(player.last_freqDetune, 179, 60);
         this.text(player.last_noteDetune, 179, 99);
-        this.text(String.format("x%.1f", player.seq.getTempoFactor()), 179, 138);
+        this.text(String.format("x%.2f", player.seq.getTempoFactor()), 179, 138);
         this.text((player.midi_in_mode ? "On" : "Off"), 179, 216);
         this.text((NO_REALTIME ? "Off" : "On"), 179, 255);
         

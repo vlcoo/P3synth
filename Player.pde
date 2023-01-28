@@ -194,8 +194,8 @@ class Player {
             midi_resolution = mid.getResolution();
             curr_filename = filename;
             setTicks(0);
-            set_playing_state(keep_paused ? 0 : 1);
             epoch_at_begin = java.time.Instant.now().getEpochSecond();
+            set_playing_state(keep_paused ? 0 : 1);
         }
         catch(InvalidMidiDataException imde) {
             return "Invalid MIDI data!";
