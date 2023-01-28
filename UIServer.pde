@@ -541,6 +541,71 @@ class PlayerDisplay {
 }
 
 
+class Knob {
+    int x, y, width, height;
+    boolean show_label = true;
+    boolean show_value_hint = false;
+    String label;
+    float value = 0;
+    
+    int METER_LENGTH = 12;
+    
+    
+    Knob(String label) {
+        this.label = label;
+    }
+    
+    
+    Knob(int x, int y, String label) {
+        this.x = x;
+        this.y = y;
+        this.label = label;
+    }
+    
+    
+    void set_value(int value) {
+        this.value = value;
+    }
+    
+    
+    void redraw() {
+        fill(t.theme[0]);
+        textAlign(CENTER);
+        textFont(fonts[0], 12);
+        if (show_label) text(label, x / 2, y - 2);
+        
+        strokeWeight(4);
+        circle(x, y, 16);
+    }
+    
+    
+    void redraw(PApplet win) {
+        win.fill(t.theme[0]);
+        win.textAlign(CENTER);
+        win.textFont(fonts[0], 12);
+        if (show_label) win.text(label, x / 2, y - 2);
+        
+        win.ellipseMode(CENTER);
+        win.fill(t.theme[1]);
+        win.stroke(t.theme[0]);
+        win.strokeWeight(2);
+        win.circle(x, y+16, 32);
+        win.stroke(t.theme[3]);
+        win.strokeWeight(3);
+        float angle = radians( map(value, -1.0, 1.0, -150, -30) );
+        win.line(x, y+16, x + METER_LENGTH*cos(angle), y+16 + METER_LENGTH*sin(angle));
+        
+        if (show_value_hint) {
+            win.fill(t.theme[0]);
+            win.text(value, x, y + 34);
+        }
+    }
+    
+    boolean collided(PApplet win) {
+        return (win.mouseX > this.x-16 && win.mouseX < + this.x+16) && (win.mouseY > this.y && win.mouseY < + this.y+32);
+    }
+}
+
 
 class Button {
     int x, y, width, height;
@@ -636,7 +701,6 @@ class Button {
         return (win.mouseX > this.x && win.mouseX < this.width + this.x) && (win.mouseY > this.y && win.mouseY < this.height + this.y);
     }
 }
-
 
 
 class ButtonToolbar {
