@@ -542,24 +542,26 @@ class PlayerDisplay {
 
 
 class Knob {
-    int x, y, width, height;
+    int x, y;
     boolean show_label = true;
     boolean show_value_hint = false;
     String label;
     float value = 0;
+    float lower_bound, upper_bound, neutral_value;
     
     int METER_LENGTH = 12;
+    int METER_LENGTH_EXTRA = 16;
     
     
-    Knob(String label) {
-        this.label = label;
-    }
-    
-    
-    Knob(int x, int y, String label) {
+    Knob(int x, int y, String label, float lower_bound, float upper_bound, float neutral_value) {
         this.x = x;
         this.y = y;
         this.label = label;
+        
+        this.lower_bound = lower_bound;
+        this.upper_bound = upper_bound;
+        this.neutral_value = neutral_value;
+        this.value = neutral_value;
     }
     
     
@@ -581,23 +583,33 @@ class Knob {
     
     void redraw(PApplet win) {
         win.fill(t.theme[0]);
-        win.textAlign(CENTER);
+        win.textAlign(CENTER, BOTTOM);
         win.textFont(fonts[0], 12);
-        if (show_label) win.text(label, x / 2, y - 2);
+        if (show_label) win.text(label, x, y - 2);
         
         win.ellipseMode(CENTER);
         win.fill(t.theme[1]);
         win.stroke(t.theme[0]);
         win.strokeWeight(2);
         win.circle(x, y+16, 32);
+        win.strokeWeight(1);
+        win.line(x, y, x, y + 6);
         win.stroke(t.theme[3]);
         win.strokeWeight(3);
-        float angle = radians( map(value, -1.0, 1.0, -150, -30) );
+        float angle = radians( map(value - neutral_value, -1.0, 1.0, -150, -30) );
         win.line(x, y+16, x + METER_LENGTH*cos(angle), y+16 + METER_LENGTH*sin(angle));
+        
+        win.textAlign(CENTER, CENTER);
+        win.fill(#00ff00);
+        angle = radians( map(lower_bound - neutral_value, -1.0, 1.0, -150, -30) );
+        win.text("•", x + METER_LENGTH_EXTRA*cos(angle), y+16 + METER_LENGTH_EXTRA*sin(angle));
+        win.fill(#ff0000);
+        angle = radians( map(upper_bound - neutral_value, -1.0, 1.0, -150, -30) );
+        win.text("•", x + METER_LENGTH_EXTRA*cos(angle), y+16 + METER_LENGTH_EXTRA*sin(angle));
         
         if (show_value_hint) {
             win.fill(t.theme[0]);
-            win.text(value, x, y + 34);
+            win.text(nf(value, 1, 1), x, y + 48);
         }
     }
     
