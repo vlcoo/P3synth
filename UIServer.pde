@@ -264,9 +264,9 @@ class PlayerDisplay {
     
     final int POS_X_POSBAR = 50;
     final int POS_Y_POSBAR = 64;
-    final int POS_X_MESSAGEBAR = 366;
-    final int WIDTH_POSBAR = 308;
-    final int WIDTH_MESSAGEBAR = 308;
+    final int POS_X_MESSAGEBAR = 376;
+    final int WIDTH_POSBAR = 294;
+    final int WIDTH_MESSAGEBAR = 294;
     final int HEIGHT_POSBAR = 18;
     
     String label_filename = "";
@@ -609,7 +609,7 @@ class Knob {
         
         if (show_value_hint) {
             win.fill(t.theme[0]);
-            win.text(nf(value, 1, 1), x, y + 48);
+            win.text(nf(value, 1, 1), x, y + 40);
         }
     }
     

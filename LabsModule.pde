@@ -10,6 +10,7 @@ public class LabsModule extends PApplet {
     
     Knob k_player_speed;
     Knob k_pitchbend;
+    Knob k_volume;
     
     Knob[] all_knobs;
     Knob curr_knob = null;
@@ -23,7 +24,7 @@ public class LabsModule extends PApplet {
     
     
     public void settings() {
-        this.size(210, 320);
+        this.size(362, 80);
     }
     
     
@@ -33,8 +34,8 @@ public class LabsModule extends PApplet {
     
     
     public void setup() {
+        this.surface.setTitle("Labs module");
         this.selfFrame = ( (PSurfaceAWT.SmoothCanvas)this.surface.getNative() ).getFrame();
-        this.selfFrame.setSize(new Dimension(210, 320));
         ((JFrame) this.selfFrame).setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         
         this.setup_buttons();
@@ -52,23 +53,24 @@ public class LabsModule extends PApplet {
         
         if (curr_knob == null) {
             k_player_speed.value = player.seq.getTempoFactor();
-            k_pitchbend.value = player.channels[15].curr_global_bend;
+            k_pitchbend.value = player.channels[15].curr_global_bend / player.channels[15].curr_bend_range;
         }
     }
     
     
     void setup_buttons() {
-        k_player_speed = new Knob(40, 40, "Playback\nspeed", 0.0, 4.0, 1.0);
-        k_pitchbend = new Knob(120, 40, "Pitchbend\noverride", -1.0, 1.0, 0);
+        k_player_speed = new Knob(40, 30, "Playback\nspeed", 0.0, 4.0, 1.0);
+        k_pitchbend = new Knob(120, 30, "Pitchbend\noverride", -1.0, 1.0, 0);
+        k_volume = new Knob(200, 30, "Volume\noverride", 0.0, 2.0, 1.0);
         
-        all_knobs = new Knob[] {k_player_speed, k_pitchbend};
+        all_knobs = new Knob[] {k_player_speed, k_pitchbend, k_volume};
     }
     
     
     void reposition() {
         int x = this.parentFrame.getX();
         int y = this.parentFrame.getY();
-        this.getSurface().setLocation((x < this.width ? x + parentFrame.getWidth() + 2 : x - this.width - 2), (y));
+        this.getSurface().setLocation((x + 181), (y > parentFrame.getHeight() + this.height ? y - this.height - 30 : y + parentFrame.getHeight() - 18));
         this.getSurface().setIcon(logo_icon);
     }
     
@@ -145,6 +147,17 @@ public class LabsModule extends PApplet {
             }
             catch (InvalidMidiDataException imde) {
                 println("imde on labs pbend!!");
+            }
+        }
+        else if (curr_knob == k_volume) {
+            try {
+                for (int i = 0; i < 16; i++) 
+                    player.event_listener.send(new SysexMessage(
+                        new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)map(k_volume.value, 0.0, 2.0, 0x00, 0x40), (byte)0xf7}, 8)
+                    , 0);
+            }
+            catch (InvalidMidiDataException imde) {
+                println("imde on labs vol!!");
             }
         }
     }

@@ -129,7 +129,7 @@ void redraw_all() {
     if (!demo_ui) {
         media_buttons.redraw();
         setting_buttons.redraw();
-        //b_labs.redraw();
+        b_labs.redraw();
     }
     player.redraw();
 }
@@ -191,7 +191,7 @@ void setup_buttons() {
     Button[] buttons_set = {b2, b1, b3};
     setting_buttons = new ButtonToolbar(456, 16, 1.3, 0, buttons_set);
     
-    b_labs = new Button(347, 16, "labs", "Labs");
+    b_labs = new Button(353, 390, "expand", "Labs");
     b_labs.set_key_hint("F3");
 }
 
