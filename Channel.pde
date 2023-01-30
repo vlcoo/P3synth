@@ -102,7 +102,7 @@ public class ChannelOsc {
             current_notes.put(note_code, s);
         }
         s.pan(curr_global_pan);
-        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1));    // give a volume boost to TRI and SIN
+        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * player.osc_synth_volume_mult);    // give a volume boost to TRI and SIN
         if (osc_type == 0) ((Pulse) s.osc).width(pulse_width);
         
         if (!demo_ui) s.play();
@@ -122,7 +122,7 @@ public class ChannelOsc {
         if (s.isPlaying()) s.stop();
         
         s.pan(curr_global_pan);
-        s.amp(amp * 0.2 * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1));
+        s.amp(amp * 0.2 * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * player.osc_synth_volume_mult);
         if (!demo_ui) s.play();
         
         last_amp = amp;

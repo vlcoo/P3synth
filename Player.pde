@@ -67,6 +67,7 @@ class Player {
     boolean system_synth = false;
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
+    float osc_synth_volume_mult = 1.0;
     
     // values to be read by the display...
     String history_text_messages = "";              // keeping track of every text (meta) msg gotten
@@ -239,19 +240,20 @@ class Player {
     Sequence prep_javax_midi(Sequence mid, boolean right_now) {
         try {
             int n = mid == null ? 16 : mid.getTracks().length;
+            float vol = win_labs == null ? 0x2f : map(win_labs.k_volume.value, 0.0, 2.0, 0x00, 0x40);
             for (int i = 0; i < n; i++) {
                 // msgs: remove reverb, soften volume
                 if (mid != null) {
                     mid.getTracks()[i].add(new MidiEvent(new ShortMessage(176, i, 91, 0), 0));
                     mid.getTracks()[i].add(new MidiEvent(new SysexMessage(
-                        new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)0x2f, (byte)0xf7}, 8)
+                        new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)vol, (byte)0xf7}, 8)
                     , 0));
                 }
                 
                 if (right_now) {
                     event_listener.send(new ShortMessage(176, i, 91, 0), 0);
                     event_listener.send(new SysexMessage(
-                        new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)0x2f, (byte)0xf7}, 8)
+                        new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)vol, (byte)0xf7}, 8)
                     , 0);
                 }
             }
@@ -442,6 +444,8 @@ class Player {
     
     void set_playing_state(int how) {
         if (seq == null) return;
+        if (win_labs != null)
+            win_labs.k_pitchbend.value = win_labs.k_pitchbend.neutral_value;
         
         how = constrain(how, -1, 1);
         switch (how) {
@@ -458,6 +462,7 @@ class Player {
             
             case 1:
             seq.start();
+            seq.setTempoFactor(win_labs == null ? 1 : win_labs.k_player_speed.value);
             break;
         }
         

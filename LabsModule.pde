@@ -51,17 +51,17 @@ public class LabsModule extends PApplet {
             k.redraw(this);
         }
         
-        if (curr_knob == null) {
+        /*if (curr_knob == null) {
             k_player_speed.value = player.seq.getTempoFactor();
             k_pitchbend.value = player.channels[15].curr_global_bend / player.channels[15].curr_bend_range;
-        }
+        }*/
     }
     
     
     void setup_buttons() {
-        k_player_speed = new Knob(40, 30, "Playback\nspeed", 0.0, 4.0, 1.0);
-        k_pitchbend = new Knob(120, 30, "Pitchbend\noverride", -1.0, 1.0, 0);
-        k_volume = new Knob(200, 30, "Volume\noverride", 0.0, 2.0, 1.0);
+        k_player_speed = new Knob(120, 30, "Playback\nspeed", 0.0, 4.0, 1.0);
+        k_pitchbend = new Knob(200, 30, "Pitchbend\noverride", -1.0, 1.0, 0);
+        k_volume = new Knob(40, 30, "Master\nvolume", 0.0, 2.0, 1.0);
         
         all_knobs = new Knob[] {k_player_speed, k_pitchbend, k_volume};
     }
@@ -150,6 +150,7 @@ public class LabsModule extends PApplet {
             }
         }
         else if (curr_knob == k_volume) {
+            player.osc_synth_volume_mult = k_volume.value;
             try {
                 for (int i = 0; i < 16; i++) 
                     player.event_listener.send(new SysexMessage(

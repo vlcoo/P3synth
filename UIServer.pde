@@ -681,7 +681,7 @@ class Button {
     void redraw(PApplet win) {
         win.image(texture, x, y);
         win.fill(t.theme[0]);
-        win.textAlign(CENTER);
+        win.textAlign(CENTER, BOTTOM);
         win.textFont(fonts[0], 12);
         if (show_label) win.text(label, x + this.width / 2, y - 2);
         if (show_key_hints) {
