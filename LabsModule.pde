@@ -11,6 +11,8 @@ public class LabsModule extends PApplet {
     Knob k_player_speed;
     Knob k_pitchbend;
     Knob k_volume;
+    Knob k_rt_adsr;
+    Knob k_rt_mod;
     
     Knob[] all_knobs;
     Knob curr_knob = null;
@@ -48,6 +50,7 @@ public class LabsModule extends PApplet {
         else this.background(t.theme[2]);
         
         for (Knob k : all_knobs) {
+            if ((k == k_rt_adsr || k == k_rt_mod) && player.system_synth) continue;
             k.redraw(this);
         }
         
@@ -59,11 +62,13 @@ public class LabsModule extends PApplet {
     
     
     void setup_buttons() {
-        k_player_speed = new Knob(120, 30, "Playback\nspeed", 0.0, 4.0, 1.0);
-        k_pitchbend = new Knob(200, 30, "Pitchbend\noverride", -1.0, 1.0, 0);
+        k_player_speed = new Knob(110, 30, "Playback\nspeed", 0.0, 4.0, 1.0);
+        k_pitchbend = new Knob(180, 30, "Pitchbend\noverride", -1.0, 1.0, 0);
         k_volume = new Knob(40, 30, "Master\nvolume", 0.0, 2.0, 1.0);
+        k_rt_adsr = new Knob(250, 30, "RT Env\nstrength", 0.0, 2.0, 0.0);
+        k_rt_mod = new Knob(320, 30, "RT Mod\nstrength", 0.0, 2.0, 0.0);
         
-        all_knobs = new Knob[] {k_player_speed, k_pitchbend, k_volume};
+        all_knobs = new Knob[] {k_player_speed, k_pitchbend, k_volume, k_rt_adsr, k_rt_mod};
     }
     
     
@@ -128,6 +133,7 @@ public class LabsModule extends PApplet {
     void mouseDragged() {
         if (curr_knob != null && mouseButton == LEFT) {
             //this.cursor(MOVE);
+            if ((curr_knob == k_rt_adsr || curr_knob == k_rt_adsr) && player.system_synth) return;
             curr_knob.value = Float.parseFloat(nf(constrain(map(this.mouseY, starting_knob_mouse_Ypos + 40, starting_knob_mouse_Ypos - 40, starting_knob_value - 1.0, starting_knob_value + 1.0), curr_knob.lower_bound, curr_knob.upper_bound), 1, 1));
         }
         //else this.cursor(ARROW);
@@ -161,6 +167,16 @@ public class LabsModule extends PApplet {
                 println("imde on labs vol!!");
             }
         }
+        else if (curr_knob == k_rt_adsr && !player.system_synth) {
+            RTSoundObject.amp_env_start_ticks = (int)(k_rt_adsr.value);
+            RTSoundObject.amp_env_end_ticks = (int)(k_rt_adsr.value * 6);
+        }
+        else if (curr_knob == k_rt_mod && !player.system_synth) {
+            RTSoundObject.freq_mod_mod = k_rt_mod.value * 2.5 + 1;
+            RTSoundObject.freq_mod_limit = k_rt_mod.value * 4.5 + 2;
+        }
+        
+        RTSoundObject.enabled = k_rt_adsr.value > 0.0 || k_rt_mod.value > 0.0;
     }
     
     
