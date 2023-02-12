@@ -51,9 +51,6 @@ public class PlaylistModule extends PApplet {
         //this.selfFrame.setSize(new Dimension(210, 420));
         ((JFrame) this.selfFrame).setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         
-        player.seq.setLoopCount(0);
-        player.disp.b_loop.set_pressed(false);
-        
         this.setup_buttons();
         
         SDrop drop = new SDrop(this);

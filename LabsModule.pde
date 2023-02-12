@@ -26,7 +26,7 @@ public class LabsModule extends PApplet {
     
     
     public void settings() {
-        this.size(362, 80);
+        this.size(362, 100);
     }
     
     
@@ -46,6 +46,8 @@ public class LabsModule extends PApplet {
     
     
     public void draw() {
+        if (player == null) return;
+        
         if (t.is_extended_theme) gradientRect(0, 0, this.width, this.height, (int) t.theme[2], t.theme[5], 0, this);
         else this.background(t.theme[2]);
         
@@ -134,7 +136,7 @@ public class LabsModule extends PApplet {
         if (curr_knob != null && mouseButton == LEFT) {
             //this.cursor(MOVE);
             if ((curr_knob == k_rt_adsr || curr_knob == k_rt_adsr) && player.system_synth) return;
-            curr_knob.value = Float.parseFloat(nf(constrain(map(this.mouseY, starting_knob_mouse_Ypos + 40, starting_knob_mouse_Ypos - 40, starting_knob_value - 1.0, starting_knob_value + 1.0), curr_knob.lower_bound, curr_knob.upper_bound), 1, 1));
+            curr_knob.value = Float.parseFloat(nf(constrain(map(this.mouseY, starting_knob_mouse_Ypos + knob_sensitivity, starting_knob_mouse_Ypos - knob_sensitivity, starting_knob_value - 1.0, starting_knob_value + 1.0), curr_knob.lower_bound, curr_knob.upper_bound), 1, 1));
         }
         //else this.cursor(ARROW);
         

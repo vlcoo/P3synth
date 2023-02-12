@@ -98,7 +98,16 @@ class Player {
         }
         
         create_display(0, 318);
-        set_seq_synth(prefs.getBoolean("system synth", false));
+        
+        set_seq_synth(prefs.getBoolean("remember", true) ? prefs.getBoolean("remember synth", true) : true);
+        if (win_plist == null) {
+            seq.setLoopCount(-1);
+            disp.b_loop.set_pressed(true);
+        }
+        else {
+            seq.setLoopCount(0);
+            disp.b_loop.set_pressed(false);
+        }
         if (system_synth) load_soundfont(new File(prefs.get("sf path", "")), false);
     }
     

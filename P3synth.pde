@@ -55,10 +55,10 @@ void setup() {
     
     t = new ThemeEngine();
     
-    setup_config();
     setup_images();
-    setup_fonts();
     setup_buttons();
+    setup_config();
+    setup_fonts();
     setup_samples();
     
     player = new Player();
@@ -96,6 +96,8 @@ void setup() {
 
 void exit() {
     DiscordRPC.discordShutdown();
+    store_control_memory();
+    
     super.exit();
 }
     
@@ -204,13 +206,17 @@ void request_media_buttons_refresh() {
 
 
 void toggle_labs_win() {
-    if (!b_labs.pressed) {
-        if (win_labs == null) {
-            cursor(WAIT);
+    if (win_labs == null) {
+        cursor(WAIT);
             win_labs = new LabsModule(frame);
             String[] args = {""};
             runSketch(args, win_labs);
-            cursor(ARROW);
+        cursor(ARROW);
+    }
+    else {
+        if (win_labs.isLooping()) {
+            win_labs.selfFrame.setVisible(false);
+            win_labs.noLoop();
         }
         else {
             win_labs.selfFrame.setVisible(true);
@@ -218,12 +224,8 @@ void toggle_labs_win() {
         }
     }
     
-    else {
-        win_labs.selfFrame.setVisible(false);
-        win_labs.noLoop();
-    }
-    b_labs.set_pressed(!b_labs.pressed);
     win_labs.reposition();
+    b_labs.set_pressed(!b_labs.pressed);
 }
 
 
@@ -247,6 +249,10 @@ void toggle_playlist_win() {
     }
     
     win_plist.reposition();
+    if (player != null) {
+        player.seq.setLoopCount(0);
+        player.disp.b_loop.set_pressed(false);
+    }
 }
 
 

@@ -373,7 +373,7 @@ class PlayerDisplay {
             if(b_loop.collided() && !dragged) {
                 if (parent.seq == null) return;
                 
-                int n = b_loop.pressed ? 0 : 64;
+                int n = b_loop.pressed ? 0 : -1;
                 parent.seq.setLoopCount(n);
                 b_loop.set_pressed(!b_loop.pressed);
             }
@@ -510,7 +510,6 @@ class PlayerDisplay {
         return (mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (mouseY > y + POS_Y_POSBAR && mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
     }
     
-    
     int collided_loopset_bar() {
         int which = 0;    // 0 is not pressed
         if (parent.seq.getLoopCount() == 0) return 0;
@@ -533,7 +532,6 @@ class PlayerDisplay {
     boolean collided_queue_rect() {
         return (mouseX > 48 && mouseX < 102) && (mouseY > 8 && mouseY < 56);
     }
-    
     
     boolean collided_metamsg_rect() {
         return (mouseX > x + POS_X_MESSAGEBAR && mouseX < width-50) && (mouseY > y + POS_Y_POSBAR && mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR);
@@ -571,13 +569,7 @@ class Knob {
     
     
     void redraw() {
-        fill(t.theme[0]);
-        textAlign(CENTER);
-        textFont(fonts[0], 12);
-        if (show_label) text(label, x / 2, y - 2);
-        
-        strokeWeight(4);
-        circle(x, y, 16);
+        redraw(PARENT);
     }
     
     
@@ -611,6 +603,11 @@ class Knob {
             win.fill(t.theme[0]);
             win.text(nf(value, 1, 1), x, y + 40);
         }
+    }
+    
+    
+    boolean collided() {
+        return collided(PARENT);
     }
     
     boolean collided(PApplet win) {
@@ -666,15 +663,7 @@ class Button {
     
     
     void redraw() {
-        image(texture, x, y);
-        fill(t.theme[0]);
-        textAlign(CENTER);
-        textFont(fonts[0], 12);
-        if (show_label) text(label, x + this.width / 2, y - 2);
-        if (show_key_hints) {
-            fill(t.theme[4]);
-            text(shortcut, x + this.width / 2 + 1, y + this.height + 4);
-        }
+        redraw(PARENT);
     }
     
     
@@ -692,9 +681,7 @@ class Button {
     
     
     void redraw_at_pos(int x, int y) {
-        this.x = x;
-        this.y = y;
-        redraw();
+        redraw_at_pos(x, y, PARENT);
     }
     
     
@@ -706,7 +693,7 @@ class Button {
 
 
     boolean collided() {
-        return (mouseX > this.x && mouseX < this.width + this.x) && (mouseY > this.y && mouseY < this.height + this.y);
+        return collided(PARENT);
     }
     
     boolean collided(PApplet win) {
@@ -743,7 +730,7 @@ class ButtonToolbar {
     
     
     void redraw() {
-        for (Button b : buttons.values()) b.redraw();
+        redraw(PARENT);
     }
     
     void redraw(PApplet win) {
@@ -752,9 +739,7 @@ class ButtonToolbar {
 
 
     boolean collided(String b_name) {
-        Button b = this.buttons.get(b_name);
-        if (b == null) return false;
-        return b.collided();
+        return collided(b_name, PARENT);
     }
     
     
