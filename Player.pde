@@ -3,39 +3,6 @@ import java.net.*;
 import java.util.LinkedHashMap;
 
 
-void readMIDIn() {
-    try {
-        while (player.midi_in_mode) {
-            String in = player.stdIn.readLine();
-            if (in != null) {
-                if (in.equals("goodbye")) break;
-                try {
-                    ArrayList<Integer> codes = new ArrayList<Integer>();
-                    for(String s : in.split(" ")) codes.add(Integer.valueOf(s));
-                    ShortMessage msg = new ShortMessage(
-                        codes.get(1),
-                        codes.get(0),
-                        codes.get(2),
-                        codes.get(3)
-                    );
-                    long t = 0;
-                    player.event_listener.send(msg, t);
-                }
-                catch (InvalidMidiDataException imde) {
-                    println(imde);
-                }
-            }
-        }
-        
-        player.stop_midi_in();
-    }
-    catch (IOException e) { 
-        println("no socket???");
-        player.stop_midi_in();
-    }
-}
-
-
 class Player {
     final int LENGTH_THRESHOLD = 90000000;
     final int TEMPO_LIMIT = 1000;
@@ -46,9 +13,6 @@ class Player {
     javax.sound.midi.Synthesizer alt_syn;
     MidiFileFormat metadata;
     KeyTransformer ktrans;
-    Thread sent;
-    Socket sock;
-    BufferedReader stdIn;
     PlayerDisplay disp;
     int midi_resolution;
     int meta_channel_prefix = 0;
@@ -63,7 +27,6 @@ class Player {
     int mid_rootnote = 0;      // C
     int mid_scale = 0;         // major
     int playing_state = -1;    // -1 no loaded, 0 paused, 1 playing
-    boolean midi_in_mode = false;
     boolean system_synth = false;
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
@@ -190,7 +153,6 @@ class Player {
             return "";
         }
         
-        if (midi_in_mode) stop_midi_in();
         File file = new File(filename);
         if (system_synth && prefs.getBoolean("autoload sf", true)) try_match_soundfont(filename);
         
@@ -358,51 +320,6 @@ class Player {
             setTicks(prev_ticks);
             if (playing_state_before == 0) set_playing_state(0); // keep paused if it was
         }
-    }
-    
-    
-    void start_midi_in() {
-        try { sock = new Socket("localhost",7723); }
-        catch (UnknownHostException uhe) { println("host???"); }
-        catch (IOException ioe) { 
-            ui.showErrorDialog("MIDIn Server not started!", "Can't switch modes");
-            return;
-        }
-
-        sent = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    stdIn = new BufferedReader(
-                        new InputStreamReader(
-                            sock.getInputStream()
-                        )
-                    );
-                    thread("readMIDIn");
-                }
-                catch (IOException e) { println("no socket???"); }
-            }
-        });
-
-        sent.start();
-        try { sent.join(); }
-        catch (InterruptedException e) { println("interrupted???"); }
-
-        set_playing_state(-1);
-        midi_in_mode = true;
-    }
-    
-    
-    void stop_midi_in() {
-        midi_in_mode = false;
-        sent.interrupt();
-        try {
-            sock.close();
-            stdIn.close();
-        }
-        catch (IOException ioe) { println("ioe on close???"); }
-        ui.showInfoDialog("MIDI In disconnected!", "Switching modes");
-        set_playing_state(-1);
     }
     
     

@@ -2,11 +2,9 @@ import javax.swing.JFrame;
 
 
 public class LabsModule extends PApplet {
+    final int KNOB_Y_POS = 50;
     Frame parentFrame;
     Frame selfFrame;
-    ButtonToolbar all_buttons;
-    String curr_transform = "None";
-    int voice_index = 0;
     
     Knob k_player_speed;
     Knob k_pitchbend;
@@ -50,11 +48,16 @@ public class LabsModule extends PApplet {
         
         if (t.is_extended_theme) gradientRect(0, 0, this.width, this.height, (int) t.theme[2], t.theme[5], 0, this);
         else this.background(t.theme[2]);
+        this.text("x", 250, KNOB_Y_POS + 10);
+        this.text("x", 320, KNOB_Y_POS + 10);
         
         for (Knob k : all_knobs) {
             if ((k == k_rt_adsr || k == k_rt_mod) && player.system_synth) continue;
             k.redraw(this);
         }
+        this.fill(t.theme[0]);
+        this.textFont(fonts[2]);
+        this.text("Experimental options! Use at your own risk.", 181, 10);
         
         /*if (curr_knob == null) {
             k_player_speed.value = player.seq.getTempoFactor();
@@ -64,11 +67,11 @@ public class LabsModule extends PApplet {
     
     
     void setup_buttons() {
-        k_player_speed = new Knob(110, 30, "Playback\nspeed", 0.0, 4.0, 1.0);
-        k_pitchbend = new Knob(180, 30, "Pitchbend\noverride", -1.0, 1.0, 0);
-        k_volume = new Knob(40, 30, "Master\nvolume", 0.0, 2.0, 1.0);
-        k_rt_adsr = new Knob(250, 30, "RT Env\nstrength", 0.0, 2.0, 0.0);
-        k_rt_mod = new Knob(320, 30, "RT Mod\nstrength", 0.0, 2.0, 0.0);
+        k_player_speed = new Knob(110, KNOB_Y_POS, "Playback\nspeed", 0.0, 4.0, 1.0);
+        k_pitchbend = new Knob(180, KNOB_Y_POS, "Pitchbend\noverride", -1.0, 1.0, 0);
+        k_volume = new Knob(40, KNOB_Y_POS, "Master\nvolume", 0.0, 2.0, 1.0);
+        k_rt_adsr = new Knob(250, KNOB_Y_POS, "RT Env\nstrength", 0.0, 2.0, 0.0);
+        k_rt_mod = new Knob(320, KNOB_Y_POS, "RT Mod\nstrength", 0.0, 2.0, 0.0);
         
         all_knobs = new Knob[] {k_player_speed, k_pitchbend, k_volume, k_rt_adsr, k_rt_mod};
     }

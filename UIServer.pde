@@ -788,3 +788,34 @@ void gradientRect(int x, int y, int w, int h, int c1, int c2, int axis, PApplet 
       }
     }
 }
+
+int marquee_timer = 0;
+int marquee_start = 0;
+int MARQUEE_MAX_LENGTH = 100;
+boolean marquee_awaiting_return = true;
+String last_txt = "";
+void marqueeText(String txt, int x, int y, PApplet win) {
+    if (!txt.equals(last_txt)) {
+        marquee_start = 0;
+        marquee_awaiting_return = true;
+        last_txt = txt;
+    }
+    if (MARQUEE_MAX_LENGTH > textWidth(txt)) {
+        win.text(txt, x, y);
+        return;        
+    }
+    win.text(txt, x - marquee_start, y);
+    
+    if (marquee_timer > (marquee_awaiting_return ? 60 : 1)) {
+        marquee_timer = 0;
+        marquee_start++;
+        if (marquee_start >= textWidth(txt) - MARQUEE_MAX_LENGTH || marquee_awaiting_return) {
+            if (!marquee_awaiting_return) marquee_awaiting_return = true;
+            else {
+                if (marquee_start <= 1) marquee_awaiting_return = false;
+                marquee_start = 0;
+            }
+        }
+    }
+    marquee_timer++;
+}

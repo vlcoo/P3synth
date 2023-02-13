@@ -107,7 +107,10 @@ public class PlaylistModule extends PApplet {
                 }
                 this.textAlign(LEFT, BOTTOM);
                 this.textFont(fonts[1]);
-                this.text(items.get(i).filename, 20, y + 21);
+                if (which_index_clicked() == i)
+                    marqueeText(items.get(i).filename, 20, (int)y + 21, this);
+                else 
+                    text(check_and_shrink_string(items.get(i).filename, 18), 20, y + 21);
                 if(i != items.size() - 1) this.line(14, y + ITEM_UI_HEIGHT, 194, y + ITEM_UI_HEIGHT);
                 items.get(i).button_delete.redraw_at_pos(170, (int) y + 6, this);
             }
@@ -116,6 +119,8 @@ public class PlaylistModule extends PApplet {
         noStroke();
         this.fill(t.theme[2]);
         this.rect(0, 0, 210, 46);
+        this.rect(0, 0, 13, 400);
+        this.rect(195, 0, 210, 400);
         if (t.is_extended_theme) this.fill(t.theme[5]);
         this.rect(0, 365, 210, 420);
         
@@ -537,7 +542,8 @@ class PlaylistItem implements Comparator<PlaylistItem> {
         if (f == null) return;
         
         file = f;
-        filename = check_and_shrink_string(f.getName().replaceFirst("[.][^.]+$", ""), 18);
+        //filename = check_and_shrink_string(f.getName().replaceFirst("[.][^.]+$", ""), 18);
+        filename = f.getName().replaceFirst("[.][^.]+$", "");
         button_delete = new Button("itemDelete", "");
     }
     
@@ -546,7 +552,8 @@ class PlaylistItem implements Comparator<PlaylistItem> {
         if (p == null) return;
         
         file = p.toFile();
-        filename = check_and_shrink_string(p.getFileName().toString().replaceFirst("[.][^.]+$", ""), 18);
+        //filename = check_and_shrink_string(p.getFileName().toString().replaceFirst("[.][^.]+$", ""), 18);
+        filename = p.getFileName().toString().replaceFirst("[.][^.]+$", "");
         button_delete = new Button("itemDelete", "");
     }
     
