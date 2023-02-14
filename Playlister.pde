@@ -119,8 +119,6 @@ public class PlaylistModule extends PApplet {
         noStroke();
         this.fill(t.theme[2]);
         this.rect(0, 0, 210, 46);
-        this.rect(0, 0, 13, 400);
-        this.rect(195, 0, 210, 400);
         if (t.is_extended_theme) this.fill(t.theme[5]);
         this.rect(0, 365, 210, 420);
         

@@ -24,6 +24,7 @@ void setup_config() {
 
 
 void store_control_memory() {
+    if (player == null) return;
     prefs.putBoolean("remember synth", player.system_synth);
     prefs.putBoolean("remember opened queue", win_plist != null && win_plist.isLooping());
 }
@@ -47,7 +48,7 @@ void open_config_dialog() {
         Arrays.asList("Slow", "Smooth", "Instant")
     )
     .addCheckbox("Reduce framerate *")
-    .addCheckbox("Remember state and windows when re-opening *")
+    .addCheckbox("Always remember mode and opened panes *")
     .addText("Default soundfont for system synth *")
     .addCheckbox("Autoload SF with same name as MIDI")
     .addSelection(

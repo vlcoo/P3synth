@@ -10,6 +10,7 @@ final float VERCODE = 23.32;
 final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
 
+String process_id = "p3synth2332";
 Frame frame;
 String osname;
 Player player;
@@ -42,6 +43,11 @@ String demo_description = "- no description -\n\nUnknown composer";
 
 
 void settings() {
+    if (setup_process_lock()) {
+        System.exit(0);
+        return;
+    }
+    
     size(724, 460);
 }
 
@@ -49,11 +55,10 @@ void settings() {
 void setup() {
     new Sound(PARENT).volume(1);    // fixes crackling? (sometimes??)
     
+    t = new ThemeEngine();
     surface.setTitle("vlco_o P3synth");
     frame = ( (PSurfaceAWT.SmoothCanvas)surface.getNative() ).getFrame();
     frame.setSize(new Dimension(724, 460));
-    
-    t = new ThemeEngine();
     
     setup_images();
     setup_buttons();
@@ -86,8 +91,7 @@ void setup() {
     
     if (args != null && args.length > 0) {
         player.vu_anim_val = -1.0;
-        if (args.length > 1) try_load_sf(new File(args[1]));
-        try_play_file(new File(args[0]));
+        try_play_from_args(args.length > 1 ? args[1] : "", args[0]);
     }
     
     beginDiscordActivity();
@@ -133,6 +137,31 @@ void redraw_all() {
         b_labs.redraw();
     }
     player.redraw();
+}
+
+
+boolean setup_process_lock() {
+    try {
+        JUnique.acquireLock(process_id, new MessageHandler() {
+            public String handle(String message) {
+                if (!message.equals("")) {
+                    String[] split_msg = message.split("\n");
+                    try_play_from_args(split_msg.length > 1 ? split_msg[1] : "", split_msg[0]);
+                }
+                return "gotcha";
+            }
+        });
+    }
+    catch (AlreadyLockedException ale) {
+        String msg_to_send = "";
+        if (args != null && args.length > 0) msg_to_send = args[0] + "\n" + (args.length > 1 ? args[1] : "");
+        if (JUnique.sendMessage(process_id, msg_to_send).equals("gotcha")) {
+            return true;
+        }
+        else JUnique.releaseLock(process_id);
+    }
+    
+    return false;
 }
 
 
@@ -436,7 +465,7 @@ void mouseReleased() {
             );*/
             boolean go = ui.showConfirmDialog(
                 "Thanks for using P3synth (v" + VERCODE + ")!\n"+
-                "Drag and drop a MIDI file in the main window or press 'o' to begin.\n"+
+                "Drag and drop a MIDI file in the main window or hold 'ALT' to see available key shortcuts.\n"+
                 "vlcoo.net  |  github.com/vlcoo/p3synth\n" +
                 "\nThe guide is available online. Open?",
                 "Help"
@@ -602,4 +631,10 @@ boolean try_load_sf(File selection) {
         return true;
     }
     return false;
+}
+
+
+void try_play_from_args(String sf, String mid) {
+    if (!sf.equals("")) try_load_sf(new File(sf));
+    try_play_file(new File(mid));
 }

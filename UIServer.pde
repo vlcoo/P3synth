@@ -789,6 +789,7 @@ void gradientRect(int x, int y, int w, int h, int c1, int c2, int axis, PApplet 
     }
 }
 
+// could be worse...
 int marquee_timer = 0;
 int marquee_start = 0;
 int MARQUEE_MAX_LENGTH = 100;
