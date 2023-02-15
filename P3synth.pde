@@ -148,6 +148,10 @@ boolean setup_process_lock() {
                     String[] split_msg = message.split("\n");
                     try_play_from_args(split_msg.length > 1 ? split_msg[1] : "", split_msg[0]);
                 }
+                else {
+                    frame.toFront();
+                    frame.setState(Frame.NORMAL);
+                }
                 return "gotcha";
             }
         });
