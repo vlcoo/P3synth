@@ -1,9 +1,5 @@
 import java.util.stream.Stream;
-import java.util.stream.Collectors;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.Path;
-import java.nio.file.InvalidPathException;
+import java.nio.file.*;
 import java.util.Comparator;
 import java.util.Collections;
 
@@ -34,7 +30,7 @@ public class PlaylistModule extends PApplet {
         this.parentFrame = f;
         this.parentPApplet = parent;
         
-        items = new ArrayList<PlaylistItem>();
+        items = new ArrayList<>();
     }
     
     
@@ -54,9 +50,6 @@ public class PlaylistModule extends PApplet {
         this.selfFrame = ( (PSurfaceAWT.SmoothCanvas)this.surface.getNative() ).getFrame();
         //this.selfFrame.setSize(new Dimension(210, 420));
         ((JFrame) this.selfFrame).setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        
-        player.seq.setLoopCount(0);
-        player.disp.b_loop.set_pressed(false);
         
         this.setup_buttons();
         
@@ -114,7 +107,10 @@ public class PlaylistModule extends PApplet {
                 }
                 this.textAlign(LEFT, BOTTOM);
                 this.textFont(fonts[1]);
-                this.text(items.get(i).filename, 20, y + 21);
+                if (which_index_clicked() == i)
+                    marqueeText(items.get(i).filename, 20, (int)y + 21, this);
+                else 
+                    text(check_and_shrink_string(items.get(i).filename, 18), 20, y + 21);
                 if(i != items.size() - 1) this.line(14, y + ITEM_UI_HEIGHT, 194, y + ITEM_UI_HEIGHT);
                 items.get(i).button_delete.redraw_at_pos(170, (int) y + 6, this);
             }
@@ -352,19 +348,13 @@ public class PlaylistModule extends PApplet {
     
     
     ArrayList<PlaylistItem> add_folder_to_list(boolean recursive, File folder) {
-        ArrayList<PlaylistItem> aux = new ArrayList<PlaylistItem>();
+        ArrayList<PlaylistItem> aux = new ArrayList<>();
         
-        try {
-            Stream<Path> stream = recursive ? Files.walk(folder.toPath(), 2) : Files.list(folder.toPath());
-            for (Object path : stream.collect(Collectors.toList())) {
-                PlaylistItem i = new PlaylistItem((Path) path);
-                if (i.file != null && is_valid_midi(i.file)) aux.add(i);
-            };
-            /*stream.filter(Files::isRegularFile).forEach( (k) -> {
+        try (Stream<Path> stream = recursive ? Files.walk(folder.toPath(), 2) : Files.list(folder.toPath())) {
+            stream.filter(Files::isRegularFile).forEach( (k) -> {
                 PlaylistItem i = new PlaylistItem(k);
                 if (i.file != null && is_valid_midi(i.file)) aux.add(i);
-            });*/
-            stream.close();
+            });
         }
         catch (IOException ioe) {
             println("ioe on recursive folder");
@@ -456,7 +446,7 @@ public class PlaylistModule extends PApplet {
     
     String load_m3u(File in) {
         if (in == null) return "";
-        ArrayList<PlaylistItem> aux = new ArrayList<PlaylistItem>();
+        ArrayList<PlaylistItem> aux = new ArrayList<>();
         
         try {
             BufferedReader reader = new BufferedReader(new FileReader(in.getAbsolutePath()));
@@ -464,8 +454,7 @@ public class PlaylistModule extends PApplet {
             
             while (l != null) {
                 try { Paths.get(l); }
-                catch (InvalidPathException ipe) { break; }
-                catch (NullPointerException npe) { break; }
+                catch (InvalidPathException | NullPointerException pex) { break; }
                 
                 File f = new File(l);
                 if (f.exists() && is_valid_midi(f)) {
@@ -548,19 +537,21 @@ class PlaylistItem implements Comparator<PlaylistItem> {
     
     
     PlaylistItem(File f) {
-        if (f == null || !f.isFile()) return;
+        if (f == null) return;
         
         file = f;
-        filename = check_and_shrink_string(f.getName().replaceFirst("[.][^.]+$", ""), 18);
+        //filename = check_and_shrink_string(f.getName().replaceFirst("[.][^.]+$", ""), 18);
+        filename = f.getName().replaceFirst("[.][^.]+$", "");
         button_delete = new Button("itemDelete", "");
     }
     
     
     PlaylistItem(Path p) {
-        if (p == null || !p.toFile().isFile()) return;
+        if (p == null) return;
         
         file = p.toFile();
-        filename = check_and_shrink_string(p.getFileName().toString().replaceFirst("[.][^.]+$", ""), 18);
+        //filename = check_and_shrink_string(p.getFileName().toString().replaceFirst("[.][^.]+$", ""), 18);
+        filename = p.getFileName().toString().replaceFirst("[.][^.]+$", "");
         button_delete = new Button("itemDelete", "");
     }
     

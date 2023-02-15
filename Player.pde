@@ -3,39 +3,6 @@ import java.net.*;
 import java.util.LinkedHashMap;
 
 
-void readMIDIn() {
-    try {
-        while (player.midi_in_mode) {
-            String in = player.stdIn.readLine();
-            if (in != null) {
-                if (in.equals("goodbye")) break;
-                try {
-                    ArrayList<Integer> codes = new ArrayList<Integer>();
-                    for(String s : in.split(" ")) codes.add(Integer.valueOf(s));
-                    ShortMessage msg = new ShortMessage(
-                        codes.get(1),
-                        codes.get(0),
-                        codes.get(2),
-                        codes.get(3)
-                    );
-                    long t = 0;
-                    player.event_listener.send(msg, t);
-                }
-                catch (InvalidMidiDataException imde) {
-                    println(imde);
-                }
-            }
-        }
-        
-        player.stop_midi_in();
-    }
-    catch (IOException e) { 
-        println("no socket???");
-        player.stop_midi_in();
-    }
-}
-
-
 class Player {
     final int LENGTH_THRESHOLD = 90000000;
     final int TEMPO_LIMIT = 1000;
@@ -46,9 +13,6 @@ class Player {
     javax.sound.midi.Synthesizer alt_syn;
     MidiFileFormat metadata;
     KeyTransformer ktrans;
-    Thread sent;
-    Socket sock;
-    BufferedReader stdIn;
     PlayerDisplay disp;
     int midi_resolution;
     int meta_channel_prefix = 0;
@@ -63,10 +27,10 @@ class Player {
     int mid_rootnote = 0;      // C
     int mid_scale = 0;         // major
     int playing_state = -1;    // -1 no loaded, 0 paused, 1 playing
-    boolean midi_in_mode = false;
     boolean system_synth = false;
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
+    float osc_synth_volume_mult = 1.0;
     
     // values to be read by the display...
     String history_text_messages = "";              // keeping track of every text (meta) msg gotten
@@ -79,6 +43,7 @@ class Player {
     boolean file_is_XG = false;
     boolean file_is_GS = false;
     HashMap<String, String> metadata_map;
+    long epoch_at_begin = 0;
     
     
     Player() {
@@ -96,14 +61,24 @@ class Player {
         }
         
         create_display(0, 318);
-        set_seq_synth(prefs.getBoolean("system synth", false));
+        
+        set_seq_synth(prefs.getBoolean("remember", true) ? prefs.getBoolean("remember synth", true) : true);
+        if (win_plist == null) {
+            seq.setLoopCount(-1);
+            disp.b_loop.set_pressed(true);
+        }
+        else {
+            seq.setLoopCount(0);
+            disp.b_loop.set_pressed(false);
+        }
         if (system_synth) load_soundfont(new File(prefs.get("sf path", "")), false);
     }
     
     
     void create_display(int x, int y) {
         PlayerDisplay d;
-        d = new PlayerDisplay(x, y, this);
+        if (demo_ui) d = new PlayerDisplayDemo(x, y, this);
+        else d = new PlayerDisplay(x, y, this);
         this.disp = d;
     }
     
@@ -173,7 +148,11 @@ class Player {
     
     
     String play_file(String filename, boolean keep_paused) {
-        if (midi_in_mode) stop_midi_in();
+        if (filename.toLowerCase().endsWith("wav")) {
+            play_wav(filename);
+            return "";
+        }
+        
         File file = new File(filename);
         if (system_synth && prefs.getBoolean("autoload sf", true)) try_match_soundfont(filename);
         
@@ -187,6 +166,7 @@ class Player {
             midi_resolution = mid.getResolution();
             curr_filename = filename;
             setTicks(0);
+            epoch_at_begin = java.time.Instant.now().getEpochSecond();
             set_playing_state(keep_paused ? 0 : 1);
         }
         catch(InvalidMidiDataException imde) {
@@ -197,6 +177,23 @@ class Player {
         }
         
         return "";
+    }
+    
+    
+    void play_wav(String filename) {
+        // no
+        set_playing_state(-1);
+        File file = new File(filename);
+        load_soundfont(file);
+        //prep_javax_midi();
+        try {
+            event_listener.send(new ShortMessage(128, 0, 48, 127), 0);
+            event_listener.send(new ShortMessage(192, 0, 0, 0), 0);
+            event_listener.send(new ShortMessage(144, 0, 48, 127), 0);
+        }
+        catch (InvalidMidiDataException imde) {
+            println("imde on wav");
+        }
     }
     
     
@@ -214,19 +211,20 @@ class Player {
     Sequence prep_javax_midi(Sequence mid, boolean right_now) {
         try {
             int n = mid == null ? 16 : mid.getTracks().length;
+            float vol = win_labs == null ? 0x2f : map(win_labs.k_volume.value, 0.0, 2.0, 0x00, 0x40);
             for (int i = 0; i < n; i++) {
                 // msgs: remove reverb, soften volume
                 if (mid != null) {
                     mid.getTracks()[i].add(new MidiEvent(new ShortMessage(176, i, 91, 0), 0));
                     mid.getTracks()[i].add(new MidiEvent(new SysexMessage(
-                        new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)0x2f, (byte)0xf7}, 8)
+                        new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)vol, (byte)0xf7}, 8)
                     , 0));
                 }
                 
                 if (right_now) {
                     event_listener.send(new ShortMessage(176, i, 91, 0), 0);
                     event_listener.send(new SysexMessage(
-                        new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)0x2f, (byte)0xf7}, 8)
+                        new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)vol, (byte)0xf7}, 8)
                     , 0);
                 }
             }
@@ -241,6 +239,7 @@ class Player {
     
     void reload_curr_file() {
         setTicks(0);
+        epoch_at_begin = java.time.Instant.now().getEpochSecond();
     }
     
     
@@ -324,51 +323,6 @@ class Player {
     }
     
     
-    void start_midi_in() {
-        try { sock = new Socket("localhost",7723); }
-        catch (UnknownHostException uhe) { println("host???"); }
-        catch (IOException ioe) { 
-            ui.showErrorDialog("MIDIn Server not started!", "Can't switch modes");
-            return;
-        }
-
-        sent = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    stdIn = new BufferedReader(
-                        new InputStreamReader(
-                            sock.getInputStream()
-                        )
-                    );
-                    thread("readMIDIn");
-                }
-                catch (IOException e) { println("no socket???"); }
-            }
-        });
-
-        sent.start();
-        try { sent.join(); }
-        catch (InterruptedException e) { println("interrupted???"); }
-
-        set_playing_state(-1);
-        midi_in_mode = true;
-    }
-    
-    
-    void stop_midi_in() {
-        midi_in_mode = false;
-        sent.interrupt();
-        try {
-            sock.close();
-            stdIn.close();
-        }
-        catch (IOException ioe) { println("ioe on close???"); }
-        ui.showInfoDialog("MIDI In disconnected!", "Switching modes");
-        set_playing_state(-1);
-    }
-    
-    
     void reset_looppoints() {
         seq.setLoopEndPoint(-1);
         seq.setLoopStartPoint(0);
@@ -416,6 +370,8 @@ class Player {
     
     void set_playing_state(int how) {
         if (seq == null) return;
+        if (win_labs != null)
+            win_labs.k_pitchbend.value = win_labs.k_pitchbend.neutral_value;
         
         how = constrain(how, -1, 1);
         switch (how) {
@@ -432,6 +388,7 @@ class Player {
             
             case 1:
             seq.start();
+            seq.setTempoFactor(win_labs == null ? 1 : win_labs.k_player_speed.value);
             break;
         }
         
@@ -458,6 +415,7 @@ class Player {
         mid_rootnote = 0;
         mid_scale = 0;
         curr_filename = DEFAULT_STOPPED_MSG;
+        epoch_at_begin = 0;
         
         reset_looppoints();
         

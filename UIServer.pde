@@ -32,7 +32,8 @@ class ChannelDisplay {
     boolean label_sostenuto_pedal = false;
     boolean label_soft_pedal = false;
     
-    float METER_LERP_QUICKNESS = 0.5;
+    float METER_LERP_QUICKNESS;
+    float METER_LERP_DECAYNESS;
     final int METER_VU_LENGTH = 30;
     final String[] NOTE_NAMES = new String[] {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
     
@@ -49,14 +50,19 @@ class ChannelDisplay {
             if (id == 9) hint = 0;
             button_mute.set_key_hint(Integer.toString(hint));
         }
+        
+        recalc_quickness_from_settings();
     }
     
     
     private void update_all_values() {
         meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_amp;
         
-        if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
-        if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/2 * abs(meter_vu_lerped - meter_vu_target);
+        if (METER_LERP_QUICKNESS > 0) {
+            if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
+            if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/METER_LERP_DECAYNESS * abs(meter_vu_lerped - meter_vu_target);
+        }
+        else meter_vu_lerped = meter_vu_target;
         //if (abs(meter_vu_lerped - meter_vu_target) < METER_LERP_QUICKNESS)
         //    meter_vu_lerped = meter_vu_target;
         
@@ -235,6 +241,16 @@ class ChannelDisplay {
         
         button_mute.redraw();
     }
+    
+    
+    void recalc_quickness_from_settings() {
+        String md = prefs.get("meter decay", "Smooth");
+        float value = md.equals("Instant") ? 0.5 : md.equals("Slow") ? 6 : 2;
+        
+        METER_LERP_DECAYNESS = value;
+        if (value < 1) METER_LERP_QUICKNESS = -1;
+        else METER_LERP_QUICKNESS = 0.5;
+    }
 }
 
 
@@ -248,9 +264,9 @@ class PlayerDisplay {
     
     final int POS_X_POSBAR = 50;
     final int POS_Y_POSBAR = 64;
-    final int POS_X_MESSAGEBAR = 366;
-    final int WIDTH_POSBAR = 308;
-    final int WIDTH_MESSAGEBAR = 308;
+    final int POS_X_MESSAGEBAR = 376;
+    final int WIDTH_POSBAR = 294;
+    final int WIDTH_MESSAGEBAR = 294;
     final int HEIGHT_POSBAR = 18;
     
     String label_filename = "";
@@ -357,7 +373,7 @@ class PlayerDisplay {
             if(b_loop.collided() && !dragged) {
                 if (parent.seq == null) return;
                 
-                int n = b_loop.pressed ? 0 : 64;
+                int n = b_loop.pressed ? 0 : -1;
                 parent.seq.setLoopCount(n);
                 b_loop.set_pressed(!b_loop.pressed);
             }
@@ -494,7 +510,6 @@ class PlayerDisplay {
         return (mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (mouseY > y + POS_Y_POSBAR && mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
     }
     
-    
     int collided_loopset_bar() {
         int which = 0;    // 0 is not pressed
         if (parent.seq.getLoopCount() == 0) return 0;
@@ -518,12 +533,87 @@ class PlayerDisplay {
         return (mouseX > 48 && mouseX < 102) && (mouseY > 8 && mouseY < 56);
     }
     
-    
     boolean collided_metamsg_rect() {
         return (mouseX > x + POS_X_MESSAGEBAR && mouseX < width-50) && (mouseY > y + POS_Y_POSBAR && mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR);
     }
 }
 
+
+class Knob {
+    int x, y;
+    boolean show_label = true;
+    boolean show_value_hint = false;
+    String label;
+    float value = 0;
+    float lower_bound, upper_bound, neutral_value;
+    
+    int METER_LENGTH = 12;
+    int METER_LENGTH_EXTRA = 16;
+    
+    
+    Knob(int x, int y, String label, float lower_bound, float upper_bound, float neutral_value) {
+        this.x = x;
+        this.y = y;
+        this.label = label;
+        
+        this.lower_bound = lower_bound;
+        this.upper_bound = upper_bound;
+        this.neutral_value = neutral_value;
+        this.value = neutral_value;
+    }
+    
+    
+    void set_value(int value) {
+        this.value = value;
+    }
+    
+    
+    void redraw() {
+        redraw(PARENT);
+    }
+    
+    
+    void redraw(PApplet win) {
+        win.fill(t.theme[0]);
+        win.textAlign(CENTER, BOTTOM);
+        win.textFont(fonts[0], 12);
+        if (show_label) win.text(label, x, y - 2);
+        
+        win.ellipseMode(CENTER);
+        win.fill(t.theme[1]);
+        win.stroke(t.theme[0]);
+        win.strokeWeight(2);
+        win.circle(x, y+16, 32);
+        win.strokeWeight(1);
+        win.line(x, y, x, y + 6);
+        win.stroke(t.theme[3]);
+        win.strokeWeight(3);
+        float angle = radians( map(value - neutral_value, -1.0, 1.0, -150, -30) );
+        win.line(x, y+16, x + METER_LENGTH*cos(angle), y+16 + METER_LENGTH*sin(angle));
+        
+        win.textAlign(CENTER, CENTER);
+        win.fill(#00ff00);
+        angle = radians( map(lower_bound - neutral_value, -1.0, 1.0, -150, -30) );
+        win.text("•", x + METER_LENGTH_EXTRA*cos(angle), y+16 + METER_LENGTH_EXTRA*sin(angle));
+        win.fill(#ff0000);
+        angle = radians( map(upper_bound - neutral_value, -1.0, 1.0, -150, -30) );
+        win.text("•", x + METER_LENGTH_EXTRA*cos(angle), y+16 + METER_LENGTH_EXTRA*sin(angle));
+        
+        if (show_value_hint) {
+            win.fill(t.theme[0]);
+            win.text(nf(value, 1, 1), x, y + 40);
+        }
+    }
+    
+    
+    boolean collided() {
+        return collided(PARENT);
+    }
+    
+    boolean collided(PApplet win) {
+        return (win.mouseX > this.x-16 && win.mouseX < + this.x+16) && (win.mouseY > this.y && win.mouseY < + this.y+32);
+    }
+}
 
 
 class Button {
@@ -573,22 +663,14 @@ class Button {
     
     
     void redraw() {
-        image(texture, x, y);
-        fill(t.theme[0]);
-        textAlign(CENTER);
-        textFont(fonts[0], 12);
-        if (show_label) text(label, x + this.width / 2, y - 2);
-        if (show_key_hints) {
-            fill(t.theme[4]);
-            text(shortcut, x + this.width / 2 + 1, y + this.height + 4);
-        }
+        redraw(PARENT);
     }
     
     
     void redraw(PApplet win) {
         win.image(texture, x, y);
         win.fill(t.theme[0]);
-        win.textAlign(CENTER);
+        win.textAlign(CENTER, BOTTOM);
         win.textFont(fonts[0], 12);
         if (show_label) win.text(label, x + this.width / 2, y - 2);
         if (show_key_hints) {
@@ -599,9 +681,7 @@ class Button {
     
     
     void redraw_at_pos(int x, int y) {
-        this.x = x;
-        this.y = y;
-        redraw();
+        redraw_at_pos(x, y, PARENT);
     }
     
     
@@ -613,14 +693,13 @@ class Button {
 
 
     boolean collided() {
-        return (mouseX > this.x && mouseX < this.width + this.x) && (mouseY > this.y && mouseY < this.height + this.y);
+        return collided(PARENT);
     }
     
     boolean collided(PApplet win) {
         return (win.mouseX > this.x && win.mouseX < this.width + this.x) && (win.mouseY > this.y && win.mouseY < this.height + this.y);
     }
 }
-
 
 
 class ButtonToolbar {
@@ -651,7 +730,7 @@ class ButtonToolbar {
     
     
     void redraw() {
-        for (Button b : buttons.values()) b.redraw();
+        redraw(PARENT);
     }
     
     void redraw(PApplet win) {
@@ -660,9 +739,7 @@ class ButtonToolbar {
 
 
     boolean collided(String b_name) {
-        Button b = this.buttons.get(b_name);
-        if (b == null) return false;
-        return b.collided();
+        return collided(b_name, PARENT);
     }
     
     
@@ -710,4 +787,36 @@ void gradientRect(int x, int y, int w, int h, int c1, int c2, int axis, PApplet 
         win.line(i, y, i, y+h);
       }
     }
+}
+
+// could be worse...
+int marquee_timer = 0;
+int marquee_start = 0;
+int MARQUEE_MAX_LENGTH = 100;
+boolean marquee_awaiting_return = true;
+String last_txt = "";
+void marqueeText(String txt, int x, int y, PApplet win) {
+    if (!txt.equals(last_txt)) {
+        marquee_start = 0;
+        marquee_awaiting_return = true;
+        last_txt = txt;
+    }
+    if (MARQUEE_MAX_LENGTH > textWidth(txt)) {
+        win.text(txt, x, y);
+        return;        
+    }
+    win.text(txt, x - marquee_start, y);
+    
+    if (marquee_timer > (marquee_awaiting_return ? 60 : 1)) {
+        marquee_timer = 0;
+        marquee_start++;
+        if (marquee_start >= textWidth(txt) - MARQUEE_MAX_LENGTH || marquee_awaiting_return) {
+            if (!marquee_awaiting_return) marquee_awaiting_return = true;
+            else {
+                if (marquee_start <= 1) marquee_awaiting_return = false;
+                marquee_start = 0;
+            }
+        }
+    }
+    marquee_timer++;
 }

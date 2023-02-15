@@ -6,11 +6,11 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 23.28;
+final float VERCODE = 23.32;
 final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
-boolean NO_REALTIME = true;
 
+String process_id = "p3synth2332";
 Frame frame;
 String osname;
 Player player;
@@ -43,6 +43,11 @@ String demo_description = "- no description -\n\nUnknown composer";
 
 
 void settings() {
+    if (setup_process_lock()) {
+        System.exit(0);
+        return;
+    }
+    
     size(724, 460);
 }
 
@@ -50,16 +55,15 @@ void settings() {
 void setup() {
     new Sound(PARENT).volume(1);    // fixes crackling? (sometimes??)
     
+    t = new ThemeEngine();
     surface.setTitle("vlco_o P3synth");
     frame = ( (PSurfaceAWT.SmoothCanvas)surface.getNative() ).getFrame();
     frame.setSize(new Dimension(724, 460));
     
-    t = new ThemeEngine();
-    
-    setup_config();
     setup_images();
-    setup_fonts();
     setup_buttons();
+    setup_config();
+    setup_fonts();
     setup_samples();
     
     player = new Player();
@@ -87,13 +91,23 @@ void setup() {
     
     if (args != null && args.length > 0) {
         player.vu_anim_val = -1.0;
-        if (args.length > 1) try_load_sf(new File(args[1]));
-        try_play_file(new File(args[0]));
+        try_play_from_args(args.length > 1 ? args[1] : "", args[0]);
     }
+    
+    beginDiscordActivity();
+}
+
+
+void exit() {
+    DiscordRPC.discordShutdown();
+    store_control_memory();
+    
+    super.exit();
 }
     
     
 void draw() {
+    updateDiscordActivity();
     redraw_all();
     
     if (player.playing_state == 1 && !demo_ui) {
@@ -120,9 +134,38 @@ void redraw_all() {
     if (!demo_ui) {
         media_buttons.redraw();
         setting_buttons.redraw();
-        //b_labs.redraw();
+        b_labs.redraw();
     }
     player.redraw();
+}
+
+
+boolean setup_process_lock() {
+    try {
+        JUnique.acquireLock(process_id, new MessageHandler() {
+            public String handle(String message) {
+                if (!message.equals("")) {
+                    String[] split_msg = message.split("\n");
+                    try_play_from_args(split_msg.length > 1 ? split_msg[1] : "", split_msg[0]);
+                }
+                else {
+                    frame.toFront();
+                    frame.setState(Frame.NORMAL);
+                }
+                return "gotcha";
+            }
+        });
+    }
+    catch (AlreadyLockedException ale) {
+        String msg_to_send = "";
+        if (args != null && args.length > 0) msg_to_send = args[0] + "\n" + (args.length > 1 ? args[1] : "");
+        if (JUnique.sendMessage(process_id, msg_to_send).equals("gotcha")) {
+            return true;
+        }
+        else JUnique.releaseLock(process_id);
+    }
+    
+    return false;
 }
 
 
@@ -182,7 +225,7 @@ void setup_buttons() {
     Button[] buttons_set = {b2, b1, b3};
     setting_buttons = new ButtonToolbar(456, 16, 1.3, 0, buttons_set);
     
-    b_labs = new Button(347, 16, "labs", "Labs");
+    b_labs = new Button(353, 390, "expand", "Labs");
     b_labs.set_key_hint("F3");
 }
 
@@ -196,13 +239,17 @@ void request_media_buttons_refresh() {
 
 
 void toggle_labs_win() {
-    if (!b_labs.pressed) {
-        if (win_labs == null) {
-            cursor(WAIT);
+    if (win_labs == null) {
+        cursor(WAIT);
             win_labs = new LabsModule(frame);
             String[] args = {""};
             runSketch(args, win_labs);
-            cursor(ARROW);
+        cursor(ARROW);
+    }
+    else {
+        if (win_labs.isLooping()) {
+            win_labs.selfFrame.setVisible(false);
+            win_labs.noLoop();
         }
         else {
             win_labs.selfFrame.setVisible(true);
@@ -210,12 +257,8 @@ void toggle_labs_win() {
         }
     }
     
-    else {
-        win_labs.selfFrame.setVisible(false);
-        win_labs.noLoop();
-    }
-    b_labs.set_pressed(!b_labs.pressed);
     win_labs.reposition();
+    b_labs.set_pressed(!b_labs.pressed);
 }
 
 
@@ -239,6 +282,10 @@ void toggle_playlist_win() {
     }
     
     win_plist.reposition();
+    if (player != null) {
+        player.seq.setLoopCount(0);
+        player.disp.b_loop.set_pressed(false);
+    }
 }
 
 
@@ -408,9 +455,21 @@ void mouseReleased() {
         }
         
         else if(setting_buttons.collided("Help")) {
+            /*ui.showList(
+                "Thanks for using P3synth (v" + VERCODE + ")!\nChoose a help topic:",
+                "Guide",
+                new SelectElementListener() {public void onSelected(ListElement e) {
+                    show_help_topic(e.getTitle().charAt(0));}},
+                new ListElement("1 • Basic usage", "Play MIDI files using the built-in synthesizer.\n​"),
+                new ListElement("2 • Visualization", "Overview of the different MIDI messages that are supported.\n​"),
+                new ListElement("3 • Advanced usage", "Use custom soundfonts and instrument banks.\n​"),
+                new ListElement("4 • Settings", "Description of the values in the settings dialog.\n​"),
+                new ListElement("5 • Labs dialog", "Other experimental options.\n​"),
+                new ListElement("6 • About the project", "What, how, who?\n​")
+            );*/
             boolean go = ui.showConfirmDialog(
                 "Thanks for using P3synth (v" + VERCODE + ")!\n"+
-                "Drag and drop a MIDI file in the main window or press 'o' to begin.\n"+
+                "Drag and drop a MIDI file in the main window or hold 'ALT' to see available key shortcuts.\n"+
                 "vlcoo.net  |  github.com/vlcoo/p3synth\n" +
                 "\nThe guide is available online. Open?",
                 "Help"
@@ -428,8 +487,10 @@ void mouseReleased() {
         
         else if(setting_buttons.collided("Update")) {
             cursor(WAIT);
+            //WaitingDialog wd = ui.showWaitingDialog("Checking for updates...", "Please wait");
             float v = check_if_newer_ver();
             cursor(ARROW);
+            //wd.close();
             
             if (v > 0) {
                 ui.showConfirmDialog(
@@ -574,4 +635,10 @@ boolean try_load_sf(File selection) {
         return true;
     }
     return false;
+}
+
+
+void try_play_from_args(String sf, String mid) {
+    if (!sf.equals("")) try_load_sf(new File(sf));
+    try_play_file(new File(mid));
 }
