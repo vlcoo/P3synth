@@ -36,11 +36,6 @@ boolean show_key_hints = false;
 boolean hi_res = false;
 boolean low_frate = false;
 
-boolean demo_ui = false;
-String demo_layout = "NES (NTSC)";
-String demo_title = "- No title -";
-String demo_description = "- no description -\n\nUnknown composer";
-
 
 void settings() {
     if (setup_process_lock()) {
@@ -110,7 +105,7 @@ void draw() {
     updateDiscordActivity();
     redraw_all();
     
-    if (player.playing_state == 1 && !demo_ui) {
+    if (player.playing_state == 1) {
         int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/4)) % 8;
         image(logo_anim[abs(n)], 311, 10);
     }
@@ -131,11 +126,9 @@ void redraw_all() {
     if (t.is_extended_theme) gradientRect(0, 0, width, height, (int) t.theme[2], t.theme[5], 0, this);
     else background(t.theme[2]);
     
-    if (!demo_ui) {
-        media_buttons.redraw();
-        setting_buttons.redraw();
-        b_labs.redraw();
-    }
+    media_buttons.redraw();
+    setting_buttons.redraw();
+    b_labs.redraw();
     player.redraw();
 }
 

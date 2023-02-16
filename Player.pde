@@ -77,8 +77,7 @@ class Player {
     
     void create_display(int x, int y) {
         PlayerDisplay d;
-        if (demo_ui) d = new PlayerDisplayDemo(x, y, this);
-        else d = new PlayerDisplay(x, y, this);
+        d = new PlayerDisplay(x, y, this);
         this.disp = d;
     }
     

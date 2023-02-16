@@ -49,8 +49,7 @@ public class ChannelOsc {
     
     void create_display(int x, int y, int id) {
         ChannelDisplay d;
-        if (demo_ui) d = new ChannelDisplayDemo(x, y, id, this);
-        else d = new ChannelDisplay(x, y, id, this);
+        d = new ChannelDisplay(x, y, id, this);
         this.disp = d;
         this.id = id;
     }
@@ -105,7 +104,7 @@ public class ChannelOsc {
         s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.08 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * player.osc_synth_volume_mult);    // give a volume boost to TRI and SIN
         if (osc_type == 0) ((Pulse) s.osc).width(pulse_width);
         
-        if (!demo_ui) s.play();
+        s.play();
         
         last_amp = amp;
         last_freq = freq;
@@ -123,7 +122,7 @@ public class ChannelOsc {
         
         s.pan(curr_global_pan);
         s.amp(amp * 0.2 * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * player.osc_synth_volume_mult);
-        if (!demo_ui) s.play();
+        s.play();
         
         last_amp = amp;
         last_freq = sample_code;
