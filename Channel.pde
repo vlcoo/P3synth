@@ -49,8 +49,7 @@ public class ChannelOsc {
     
     void create_display(int x, int y, int id) {
         ChannelDisplay d;
-        if (demo_ui) d = new ChannelDisplayDemo(x, y, id, this);
-        else d = new ChannelDisplay(x, y, id, this);
+        d = new ChannelDisplay(x, y, id, this);
         this.disp = d;
         this.id = id;
     }
