@@ -792,7 +792,7 @@ void gradientRect(int x, int y, int w, int h, int c1, int c2, int axis, PApplet 
 // could be worse...
 int marquee_timer = 0;
 int marquee_start = 0;
-int MARQUEE_MAX_LENGTH = 100;
+int MARQUEE_MAX_LENGTH = 148;
 boolean marquee_awaiting_return = true;
 String last_txt = "";
 void marqueeText(String txt, int x, int y, PApplet win) {
@@ -801,7 +801,7 @@ void marqueeText(String txt, int x, int y, PApplet win) {
         marquee_awaiting_return = true;
         last_txt = txt;
     }
-    if (MARQUEE_MAX_LENGTH > textWidth(txt)) {
+    if (MARQUEE_MAX_LENGTH > text_width(txt)) {
         win.text(txt, x, y);
         return;        
     }
@@ -810,7 +810,7 @@ void marqueeText(String txt, int x, int y, PApplet win) {
     if (marquee_timer > (marquee_awaiting_return ? 60 : 1)) {
         marquee_timer = 0;
         marquee_start++;
-        if (marquee_start >= textWidth(txt) - MARQUEE_MAX_LENGTH || marquee_awaiting_return) {
+        if (marquee_start >= text_width(txt) - MARQUEE_MAX_LENGTH || marquee_awaiting_return) {
             if (!marquee_awaiting_return) marquee_awaiting_return = true;
             else {
                 if (marquee_start <= 1) marquee_awaiting_return = false;
@@ -819,4 +819,9 @@ void marqueeText(String txt, int x, int y, PApplet win) {
         }
     }
     marquee_timer++;
+}
+
+
+int text_width(String txt) {
+    return txt.length() * 8;
 }
