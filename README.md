@@ -11,12 +11,14 @@ Upon opening, simply drag and drop a MIDI file onto the program to begin!
 ![Preview](https://raw.githubusercontent.com/vlcoo/vlcoo.github.io/main/assets/p3synth_pic_expand.png)
 
 ### Source code
-The source code under the nightly branch may include features sooner than the releases, but it might be less stable. 
-Keep in mind this is Processing code, not plain old Java. The following libraries are needed in the P4 sketch:
+The source code under the nightly branch may include features sooner than the releases, but it might be less stable.
+This stable branch is the one from which releases are based off, and unlike nightly, compatibility with P3 (Java 8) is preserved.
+Keep in mind this is Processing code, not plain old Java. The following libraries are needed in the P3 sketch:
 - Sound
 - HTTP Requests for Processing
-- UiBooster
 - Drop
+
+The `code` folder has some extra libraries that may not have been in Processing's library repo.
 
 ### MIDI message support
 The following MIDI features are currently implemented:
