@@ -15,8 +15,9 @@ The source code under the nightly branch may include features sooner than the re
 Keep in mind this is Processing code, not plain old Java. The following libraries are needed in the P4 sketch:
 - Sound
 - HTTP Requests for Processing
-- UiBooster
 - Drop
+
+The `code` folder has some extra libraries that may not have been in Processing's library repo.
 
 ### MIDI message support
 The following MIDI features are currently implemented:
