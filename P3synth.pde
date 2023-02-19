@@ -195,8 +195,8 @@ void setup_fonts() {
     fonts[1] = loadFont("TerminusTTF-14.vlw");
     fonts[2] = loadFont("TerminusTTF-Bold-14.vlw");
     fonts[3] = loadFont("TerminusTTF-Bold_Italic-14.vlw");
-    fonts[4] = loadFont("RobotoCondensed-BoldItalic-16.vlw");
-    fonts[5] = loadFont("TerminusTTF-Bold_Italic-18.vlw");
+    fonts[4] = loadFont("AtariST8x16SystemFont-16.vlw");
+    fonts[5] = fonts[4];
 }
 
 
@@ -369,21 +369,11 @@ void keyPressed() {
     
     if (player.playing_state != -1) {
         if (keyCode == LEFT) {
-            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() - 1000000);
+            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() - 1500000);
         }
         
         else if (keyCode == RIGHT) {
-            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() + 1000000);
-        }
-        
-        if (win_labs != null && win_labs.isLooping()) {
-            if (keyCode == UP) {
-                player.seq.setTempoFactor(constrain(player.seq.getTempoFactor() + 0.1, 0.1, 4));
-            }
-            
-            else if (keyCode == DOWN) {
-                player.seq.setTempoFactor(constrain(player.seq.getTempoFactor() - 0.1, 0.1, 4));
-            }
+            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() + 1500000);
         }
     }
     
@@ -538,7 +528,8 @@ void mouseDragged() {
 void mouseMoved() {
     if (player.disp.collided_sfload_rect() ||
         player.disp.collided_metamsg_rect() ||
-        player.disp.collided_queue_rect()
+        player.disp.collided_queue_rect() ||
+        player.disp.collided_posbar()
     ) cursor(HAND);
     else cursor(ARROW);
 }

@@ -319,23 +319,26 @@ class PlayerDisplay {
                 label_filename = java.nio.file.Paths.get(parent.curr_filename)
                     .getFileName().toString().replaceFirst("[.][^.]+$", "");
                     // what a mess... but it works
-                label_filename = check_and_shrink_string(label_filename, 56);
+                label_filename = check_and_shrink_string(label_filename, 70, true);
             }
             else label_filename = parent.custom_info_msg;
         }
         
         if (parent.seq.getTickLength() > 0) meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
         label_message = player.last_text_message;    
-        label_message = check_and_shrink_string(label_message, 36);    // we don't want it to get out of the rectangle...
+        label_message = check_and_shrink_string(label_message, 34);    // we don't want it to get out of the rectangle...
         
         if (parent.playing_state != -1) {
             meter_loop_begin = map(parent.seq.getLoopStartPoint(), 0, player.seq.getTickLength(), 0.0, 1.0);
             if (parent.seq.getLoopEndPoint() == -1) meter_loop_end = 1.0;
             else meter_loop_end = map(parent.seq.getLoopEndPoint(), 0, player.seq.getTickLength(), 0.0, 1.0);
             
-            long secPos = player.seq.getMicrosecondPosition() / 1000000;
             long secLen = player.seq.getMicrosecondLength() / 1000000;
-            this.label_timestamp = secPos / 60 + ":" + String.format("%02d", secPos % 60);
+            long secPos = player.seq.getMicrosecondPosition() / 1000000;
+            //this.label_timestamp = ((secPos < 0 && secPos > -60) ? "-" : "") + secPos / 60 + ":" + String.format("%02d", Math.abs(secPos % 60));
+            this.label_timestamp = remaining_instead_of_elapsed ? 
+                ("-" + (secPos - secLen) / -60 + ":" + String.format("%02d", -(secPos - secLen) % 60)) : 
+                (secPos / 60 + ":" + String.format("%02d", secPos % 60));
             this.label_timelength = secLen / 60 + ":" + String.format("%02d", secLen % 60);
         }
         else {
@@ -446,7 +449,7 @@ class PlayerDisplay {
         // Song pos and length labels
             textAlign(CENTER, CENTER);
             fill(t.theme[4]);
-            textFont(fonts[1]);
+            textFont(fonts[4]);
             int auxX = x + POS_X_POSBAR + WIDTH_POSBAR/2;
             int auxY = y + POS_Y_POSBAR + 9;
             outlinedText(label_timestamp + " / " + label_timelength, auxX, auxY, t.theme[4], t.theme[0] - color(0x40000000));

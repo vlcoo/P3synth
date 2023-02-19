@@ -12,7 +12,6 @@ class Player {
     Sequencer seq;
     javax.sound.midi.Synthesizer alt_syn;
     MidiFileFormat metadata;
-    KeyTransformer ktrans;
     PlayerDisplay disp;
     int midi_resolution;
     int meta_channel_prefix = 0;
@@ -47,7 +46,6 @@ class Player {
     
     
     Player() {
-        ktrans = new KeyTransformer();
         final int nChannels = 16;
         channels = new ChannelOsc[nChannels];
         metadata_map = new LinkedHashMap();
@@ -87,6 +85,7 @@ class Player {
         
         for (byte b : arr) {
             if (b >= 0) text += Character.toString((char) b);
+            else text += "×";
         }
         
         return text.trim().replace("\n", "");

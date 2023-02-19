@@ -10,9 +10,13 @@ float snap_number(float num, float mult) {
 }
 
 
+String check_and_shrink_string(String original, int max_len, boolean use_alt_ellipses) {
+    if (original.length() > max_len) original = original.substring(0, max_len - 1) + (use_alt_ellipses ? "..." : "…");
+    return original;
+}
+
 String check_and_shrink_string(String original, int max_len) {
-     if (original.length() > max_len) original = original.substring(0, max_len - 1) + "…";
-     return original;
+     return check_and_shrink_string(original, max_len, false);
 }
 
 
@@ -52,36 +56,6 @@ class ThemeEngine {
         available_themes.put("Metallic Grayscale", theme_05);
         int[] theme_07 = {#0a0c37, #375971, #ff9900, #5cecff, #f4ff61, #ff61c6};
         available_themes.put("Sick Gradient", theme_07);
-    }
-}
-
-
-
-class KeyTransformer {
-    HashMap<String, int[]> available_transforms = new HashMap<String, int[]>();
-    int[] transform;
-    
-    KeyTransformer() {
-        load_transforms();
-        set_transform("None");
-    }
-    
-    
-    void set_transform(String name) {
-        transform = available_transforms.get(name);
-        if (transform == null) {
-            transform = available_transforms.get("None");
-        }
-    }
-    
-    
-    private void load_transforms() {
-        int[] tr_01 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-        available_transforms.put("None", tr_01);
-        int[] tr_02 = {0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0};
-        available_transforms.put("Major", tr_02);
-        int[] tr_03 = {0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, -1};
-        available_transforms.put("Minor", tr_03);
     }
 }
 

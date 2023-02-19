@@ -101,7 +101,7 @@ public class ChannelOsc {
             current_notes.put(note_code, s);
         }
         s.pan(curr_global_pan);
-        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.08 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * player.osc_synth_volume_mult);    // give a volume boost to TRI and SIN
+        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * player.osc_synth_volume_mult);    // give a volume boost to TRI and SIN
         if (osc_type == 0) ((Pulse) s.osc).width(pulse_width);
         
         s.play();
