@@ -110,6 +110,11 @@ void open_config_dialog() {
                     ((ChannelDisplayOriginal)(c.disp)).recalc_quickness_from_settings();
                 } 
                 break;
+            case VERTICAL_BARS:
+                for (ChannelOsc c : player.channels) { 
+                    ((ChannelDisplayVBars)(c.disp)).recalc_quickness_from_settings();
+                } 
+                break;
             default:
                 break;
         }

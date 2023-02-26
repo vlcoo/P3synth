@@ -352,7 +352,11 @@ class Player {
     
     void vu_anim_step() {
         for (ChannelOsc c : channels) {
-            c.disp.meter_vu_lerped = vu_anim_val;
+            if (channel_disp_type == ChannelDisplayTypes.ORIGINAL)
+                ((ChannelDisplayOriginal)(c.disp)).meter_vu_lerped = vu_anim_val;
+            else if (channel_disp_type == ChannelDisplayTypes.VERTICAL_BARS)
+                ((ChannelDisplayVBars)(c.disp)).meter_vu_lerped = vu_anim_val;
+            else c.disp.meter_vu_target = vu_anim_val;
             c.disp.redraw(false);
         }
         if (!vu_anim_returning && vu_anim_val <= 1.0) vu_anim_val += 0.1;

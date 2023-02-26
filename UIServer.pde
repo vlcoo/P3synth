@@ -23,7 +23,6 @@ class ChannelDisplay {
     
     // meter values to be drawn...:
     float meter_vu_target = 0.0;
-    float meter_vu_lerped = 0.0;
     float meter_ch_volume = 1.0;    // aka channel's curr_global_amp
     float meter_velocity = 0.0;     // aka channel's last_amp
     String label_note = "";
@@ -99,6 +98,8 @@ class ChannelDisplay {
 
 
 class ChannelDisplayOriginal extends ChannelDisplay {
+    float meter_vu_lerped = 0.0;
+    
     float METER_LERP_QUICKNESS;
     float METER_LERP_DECAYNESS;
     final int METER_VU_LENGTH = 30;
@@ -139,7 +140,6 @@ class ChannelDisplayOriginal extends ChannelDisplay {
         /*fill(t.theme[2]);
         noStroke();
         rect(x+1, y+1, 160, 63);*/
-        
         // Lines
             strokeWeight(1);
             stroke(t.theme[0]);
@@ -277,31 +277,84 @@ class ChannelDisplayOriginal extends ChannelDisplay {
 
 
 class ChannelDisplayVBars extends ChannelDisplay {
+    float meter_vu_lerped = 0.0;
+    
     float METER_LERP_QUICKNESS;
     float METER_LERP_DECAYNESS;
-    final int METER_VU_LENGTH = 30;
     
     ChannelDisplayVBars(int id, ChannelOsc parent) {
         super(id, parent);
-        x = 100 + 60 * id;
-        y = 100;
+        x = 11 + 44 * id;
+        y = 66;
         
-        button_mute = new Button(x+4, y+37, "mute", "");
+        button_mute = new Button(x+20, y+5, "mute", "");
         if (id < 10) {
             int hint = id + 1;
             if (id == 9) hint = 0;
             button_mute.set_key_hint(Integer.toString(hint));
         }
+        recalc_quickness_from_settings();
     }
     
     
     private void update_all_values() {
+        meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_amp;
+        
+        if (METER_LERP_QUICKNESS > 0) {
+            if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
+            if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/METER_LERP_DECAYNESS * abs(meter_vu_lerped - meter_vu_target);
+        }
+        else meter_vu_lerped = meter_vu_target;
+        
         super.update_all_values();
     }
     
     
     void redraw(boolean renew_values) {
-        text("wow!", x, y);
+        if (renew_values) update_all_values();
+        
+        stroke(t.theme[0]);
+        fill(t.theme[1]);
+        rect(x, y, 44, 32);
+        fill(t.theme[4]);
+        textFont(fonts[4]);
+        textAlign(CENTER, CENTER);
+        text(id+1, x+11, y+16);
+        
+        fill(t.theme[1]);
+        rect(x+13, y+32, 18, 170);
+        noStroke();
+        fill(t.theme[3]);
+        rectMode(CORNERS);
+        rect(x+14, y+202, x+31, y+202 - 169*meter_vu_lerped);
+        rectMode(CORNER);
+        
+        noFill();
+        stroke(t.theme[0]);
+        rect(x, y+202, 44, 80);
+        for (int i = 0; i < 5; i++) 
+            line(x, y+202+i*16, x+44, y+202+i*16);
+        
+        fill(t.theme[0]);
+        textFont(fonts[0]);
+        text(label_note, x+24, y+202+8);
+        text("stuff", x+24, y+202+24);
+        text("cool!", x+24, y+202+40);
+        
+        /*fill(t.theme[0]);
+        text("" + id + " " + meter_vu_target, x, y);*/
+        
+        button_mute.redraw();
+    }
+    
+    
+    void recalc_quickness_from_settings() {
+        String md = prefs.get("meter decay", "Smooth");
+        float value = md.equals("Instant") ? 0.5 : md.equals("Slow") ? 6 : 2;
+        
+        METER_LERP_DECAYNESS = value;
+        if (value < 1) METER_LERP_QUICKNESS = -1;
+        else METER_LERP_QUICKNESS = 0.5;
     }
 }
 
