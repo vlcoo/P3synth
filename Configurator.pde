@@ -5,6 +5,7 @@ int snap_loop_mult = 0;
 int snap_pos_mult = 0;
 int knob_sensitivity = 40;
 boolean remaining_instead_of_elapsed = false;
+ChannelDisplayTypes channel_disp_type = ChannelDisplayTypes.ORIGINAL;
 
 
 void setup_config() {
@@ -103,9 +104,15 @@ void open_config_dialog() {
         prefs.put("discord rpc", da);
         
         t.set_theme(th);
-        for (ChannelOsc c : player.channels) { 
-            c.disp.recalc_quickness_from_settings();
-        } 
+        switch (channel_disp_type) {
+            case ORIGINAL:
+                for (ChannelOsc c : player.channels) { 
+                    ((ChannelDisplayOriginal)(c.disp)).recalc_quickness_from_settings();
+                } 
+                break;
+            default:
+                break;
+        }
         snap_loop_mult = snl.equals("No") ? 0 : snl.equals("Yes (coarse)") ? 8 : 2;
         snap_pos_mult = snp.equals("Yes (fine)") ? 2 : snp.equals("Yes (coarse)") ? 8 : 0;
         remaining_instead_of_elapsed = rt;

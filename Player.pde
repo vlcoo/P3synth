@@ -54,7 +54,7 @@ class Player {
             channels[i] = new ChannelOsc(-1);
             if (i == 9) channels[i] = new ChannelOsc(4);
             
-            channels[i].create_display(12 + 180 * (i / 4), 64 + 72 * (i % 4), i);
+            channels[i].create_display(i, channel_disp_type);
             channels[i].disp.redraw(false);    // draw meters at value 0
         }
         

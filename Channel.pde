@@ -47,9 +47,18 @@ public class ChannelOsc {
     }
     
     
-    void create_display(int x, int y, int id) {
+    void create_display(int id, ChannelDisplayTypes type) {
         ChannelDisplay d;
-        d = new ChannelDisplay(x, y, id, this);
+        switch (type) {
+            case ORIGINAL:
+                d = new ChannelDisplayOriginal(id, this);
+                break;
+            case VERTICAL_BARS:
+                d = new ChannelDisplayVBars(id, this);
+                break;
+            default:
+                return;
+        }
         this.disp = d;
         this.id = id;
     }

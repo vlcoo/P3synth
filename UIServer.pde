@@ -10,6 +10,10 @@ import java.util.Arrays;
 
 UiBooster ui = new UiBooster();
 
+enum ChannelDisplayTypes {
+    ORIGINAL, VERTICAL_BARS
+}
+
 
 class ChannelDisplay {
     int x, y;
@@ -32,37 +36,16 @@ class ChannelDisplay {
     boolean label_sostenuto_pedal = false;
     boolean label_soft_pedal = false;
     
-    float METER_LERP_QUICKNESS;
-    float METER_LERP_DECAYNESS;
-    final int METER_VU_LENGTH = 30;
     final String[] NOTE_NAMES = new String[] {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
     
     
-    ChannelDisplay(int x, int y, int id, ChannelOsc parent) {
-        this.x = x;
-        this.y = y;
+    ChannelDisplay(int id, ChannelOsc parent) {
         this.id = id;
         this.parent = parent;
-        
-        button_mute = new Button(x+4, y+37, "mute", "");
-        if (id < 10) {
-            int hint = id + 1;
-            if (id == 9) hint = 0;
-            button_mute.set_key_hint(Integer.toString(hint));
-        }
-        
-        recalc_quickness_from_settings();
     }
     
     
     private void update_all_values() {
-        meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_amp;
-        
-        if (METER_LERP_QUICKNESS > 0) {
-            if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
-            if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/METER_LERP_DECAYNESS * abs(meter_vu_lerped - meter_vu_target);
-        }
-        else meter_vu_lerped = meter_vu_target;
         //if (abs(meter_vu_lerped - meter_vu_target) < METER_LERP_QUICKNESS)
         //    meter_vu_lerped = meter_vu_target;
         
@@ -101,11 +84,50 @@ class ChannelDisplay {
     }
     
     
+    void redraw(boolean renew_values) {
+        
+    }
+    
+    
     void check_buttons(int mButton) {
         if (button_mute.collided()) {
             if (mButton == LEFT) player.set_channel_muted(!button_mute.pressed, parent.id);
             else if (mButton == RIGHT) player.set_channel_solo(!button_mute.pressed, parent.id);
         }
+    }
+}
+
+
+class ChannelDisplayOriginal extends ChannelDisplay {
+    float METER_LERP_QUICKNESS;
+    float METER_LERP_DECAYNESS;
+    final int METER_VU_LENGTH = 30;
+    
+    ChannelDisplayOriginal(int id, ChannelOsc parent) {
+        super(id, parent);
+        x = 12 + 180 * (id / 4);
+        y = 64 + 72 * (id % 4);
+        
+        button_mute = new Button(x+4, y+37, "mute", "");
+        if (id < 10) {
+            int hint = id + 1;
+            if (id == 9) hint = 0;
+            button_mute.set_key_hint(Integer.toString(hint));
+        }
+        recalc_quickness_from_settings();
+    }
+    
+    
+    private void update_all_values() {
+        meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_amp;
+        
+        if (METER_LERP_QUICKNESS > 0) {
+            if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
+            if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/METER_LERP_DECAYNESS * abs(meter_vu_lerped - meter_vu_target);
+        }
+        else meter_vu_lerped = meter_vu_target;
+        
+        super.update_all_values();
     }
     
     
@@ -250,6 +272,36 @@ class ChannelDisplay {
         METER_LERP_DECAYNESS = value;
         if (value < 1) METER_LERP_QUICKNESS = -1;
         else METER_LERP_QUICKNESS = 0.5;
+    }
+}
+
+
+class ChannelDisplayVBars extends ChannelDisplay {
+    float METER_LERP_QUICKNESS;
+    float METER_LERP_DECAYNESS;
+    final int METER_VU_LENGTH = 30;
+    
+    ChannelDisplayVBars(int id, ChannelOsc parent) {
+        super(id, parent);
+        x = 100 + 60 * id;
+        y = 100;
+        
+        button_mute = new Button(x+4, y+37, "mute", "");
+        if (id < 10) {
+            int hint = id + 1;
+            if (id == 9) hint = 0;
+            button_mute.set_key_hint(Integer.toString(hint));
+        }
+    }
+    
+    
+    private void update_all_values() {
+        super.update_all_values();
+    }
+    
+    
+    void redraw(boolean renew_values) {
+        text("wow!", x, y);
     }
 }
 
