@@ -174,6 +174,7 @@ class Player {
             return "I/O Error!";
         }
         
+        metadata_map.put("Song tempo", Integer.toString(floor(seq.getTempoInBPM())) + " BPM");
         return "";
     }
     
@@ -627,6 +628,7 @@ class Player {
                 mid_scale = data[data.length - 1];
                 if (mid_scale == 0) mid_rootnote = major_rootnotes[data[0] + 7];
                 else if (mid_scale == 1) mid_rootnote = minor_rootnotes[data[0] + 7];
+                //metadata_map.put("Key signature", mid_scale );
                 return;
             }
             

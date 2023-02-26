@@ -103,6 +103,8 @@ void exit() {
     
 void draw() {
     updateDiscordActivity();
+    if (!frame.isVisible()) return;
+    
     redraw_all();
     
     if (player.playing_state == 1) {
@@ -354,7 +356,7 @@ void keyPressed() {
     else if (keyCode == 35) {        // END
         if (player.playing_state == -1) return;
         player.set_playing_state(-1);
-        win_plist.set_current_item(-1);
+        if (win_plist != null) win_plist.set_current_item(-1);
     }
     
     if (win_plist != null) {
