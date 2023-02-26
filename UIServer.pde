@@ -56,7 +56,10 @@ class ChannelDisplay {
         }
         
         meter_ch_volume = parent.curr_global_amp * parent.amp_multiplier;
-        meter_velocity = parent.last_amp;
+        if (parent.last_note.isEmpty())
+            meter_velocity = 0;
+        else
+            meter_velocity = parent.last_note.get(parent.last_note.lastKey());
         
         label_osc_type = parent.osc_type;
         if (player.system_synth) label_midi_program = parent.midi_program;
@@ -66,7 +69,8 @@ class ChannelDisplay {
         label_sostenuto_pedal = parent.sostenuto_pedal;
         label_soft_pedal = parent.soft_pedal;
         
-        int notecode = parent.last_notecode - 21;
+        int notecode = -1;
+        if (!parent.last_note.isEmpty()) notecode = parent.last_note.lastKey() - 21;
         if (label_osc_type == 4) { if (notecode <= -1) label_note = "| |"; else label_note = "/\\"; }
         else {
             if (notecode < 0) label_note = "-";
@@ -120,7 +124,10 @@ class ChannelDisplayOriginal extends ChannelDisplay {
     
     
     private void update_all_values() {
-        meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_amp;
+        if (parent.last_note.isEmpty())
+            meter_vu_target = 0;
+        else
+            meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_note.get(parent.last_note.lastKey());
         
         if (METER_LERP_QUICKNESS > 0) {
             if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
@@ -298,7 +305,10 @@ class ChannelDisplayVBars extends ChannelDisplay {
     
     
     private void update_all_values() {
-        meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_amp;
+        if (parent.last_note.isEmpty())
+            meter_vu_target = 0;
+        else
+            meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_note.get(parent.last_note.lastKey());
         
         if (METER_LERP_QUICKNESS > 0) {
             if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
@@ -350,12 +360,12 @@ class ChannelDisplayVBars extends ChannelDisplay {
         stroke(t.theme[0]);
         rect(x+13, y+52, 18, 150);
         noStroke();
-        fill(#ff0000);
-        rect(x+14, y+53, 2, 150);
-        fill(#ffff00);
-        rect(x+14, y+63, 2, 140);
-        fill(#00ff00);
-        rect(x+14, y+93, 2, 110);
+        fill(#ff0000 - 0x64000000);
+        rect(x+14, y+53, 3, 150);
+        fill(#ffff00 - 0x64000000);
+        rect(x+14, y+63, 3, 140);
+        fill(#00ff00 - 0x64000000);
+        rect(x+14, y+93, 3, 110);
         fill(t.theme[1]);
         rectMode(CORNERS);
         rect(x+14, y+53, x+31, y+203 - 150*meter_vu_lerped);
