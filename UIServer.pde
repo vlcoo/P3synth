@@ -67,7 +67,7 @@ class ChannelDisplay {
         label_soft_pedal = parent.soft_pedal;
         
         int notecode = parent.last_notecode - 21;
-        if (label_osc_type == 4) { if (notecode <= -1) label_note = "|  |"; else label_note = "/  \\"; }
+        if (label_osc_type == 4) { if (notecode <= -1) label_note = "| |"; else label_note = "/\\"; }
         else {
             if (notecode < 0) label_note = "-";
             else {
@@ -321,28 +321,88 @@ class ChannelDisplayVBars extends ChannelDisplay {
         textAlign(CENTER, CENTER);
         text(id+1, x+11, y+16);
         
-        fill(t.theme[1]);
-        rect(x+13, y+32, 18, 170);
-        noStroke();
+        noFill();
+        rect(x, y+32, 44, 20);
+        
+        fill(t.theme[0]);
+        if (label_midi_program >= 0) {
+            if (label_osc_type == -1) image(osc_type_textures[0], x+11, y+31);
+            else {
+                textFont(fonts[0]);
+                text(label_midi_program, x+33, y+43);
+                image(label_osc_type == 4 ? osc_type_textures[5] : midi_program_icon, x+2, y+31);
+            }
+        }
+        else {
+            if (label_pulse_width != -1) {
+                image(osc_type_textures[label_osc_type+1], x+2, y+31);
+                stroke(t.theme[0]);
+                fill(t.theme[1]);
+                rect(x+24, y+39, 15, 6, 4);
+                fill(t.theme[3]);
+                noStroke();
+                rect(x+25, y+40, 14 * label_pulse_width, 5, 4);
+            }
+            else image(osc_type_textures[label_osc_type+1], x+11, y+31);
+        }
+        
         fill(t.theme[3]);
+        stroke(t.theme[0]);
+        rect(x+13, y+52, 18, 150);
+        noStroke();
+        fill(#ff0000);
+        rect(x+14, y+53, 2, 150);
+        fill(#ffff00);
+        rect(x+14, y+63, 2, 140);
+        fill(#00ff00);
+        rect(x+14, y+93, 2, 110);
+        fill(t.theme[1]);
         rectMode(CORNERS);
-        rect(x+14, y+202, x+31, y+202 - 169*meter_vu_lerped);
+        rect(x+14, y+53, x+31, y+203 - 150*meter_vu_lerped);
         rectMode(CORNER);
         
         noFill();
         stroke(t.theme[0]);
         rect(x, y+202, 44, 80);
-        for (int i = 0; i < 5; i++) 
-            line(x, y+202+i*16, x+44, y+202+i*16);
+        for (int i = 0; i < 4; i++) 
+            line(x, y+202+i*20, x+44, y+202+i*20);
+        
+        fill(t.theme[1]);
+        rect(x+4, y+208, 36, 8, 4);
+        fill(t.theme[3]);
+        noStroke();
+        rect(x+5, y+209, 35 * meter_ch_volume, 7, 4);
         
         fill(t.theme[0]);
         textFont(fonts[0]);
-        text(label_note, x+24, y+202+8);
-        text("stuff", x+24, y+202+24);
-        text("cool!", x+24, y+202+40);
+        text(label_note, x+23, y+202+27);
+        fill(t.theme[1]);
+        stroke(t.theme[0]);
+        rect(x+4, y+234, 36, 5, 2);
+        fill(t.theme[3]);
+        noStroke();
+        rect(x+5, y+235, 35 * meter_velocity, 4, 2);
         
-        /*fill(t.theme[0]);
-        text("" + id + " " + meter_vu_target, x, y);*/
+        fill(t.theme[0]);
+        stroke(t.theme[0]);
+        strokeWeight(2);
+        noFill();
+        if (label_osc_type != 4) bezier(x+8, y+202+50, x+10, y+202+50 - 10*meter_bend, x+34, y+202+50 - 10*meter_bend, x+36, y+202+50);
+        else text("x", x+23, y+202+50);    // no bend for drums...
+        
+        strokeWeight(1);
+        fill(t.theme[1]);
+        triangle(x+8, y+202+64, x+8, y+202+76, x+22, y+202+70);
+        triangle(x+22, y+202+70, x+36, y+202+76, x+36, y+202+64);
+        noStroke();
+        fill(t.theme[3]);
+        if (meter_pan != 0) triangle(x+22.5 + 14 * meter_pan, y+203+70 - 6 * abs(meter_pan), x+22.5 + 14 * meter_pan, y+202+70 + 6 * abs(meter_pan), x+22.5, y+202.5+70);
+        
+        if (button_mute.pressed) {
+            noStroke();
+            fill(t.theme[2] - 0x64000000);
+            rect(x+1, y, 44, 283);
+        }
         
         button_mute.redraw();
     }
