@@ -11,6 +11,7 @@ static class RTSoundObject {
     float freq = 0.0;
     float enved_amp = 0.0;
     float modded_freq = 0.0;
+    float midi_velocity = 0.0;
     
     static int amp_env_start_ticks = 1;    // attack duration
     static float amp_env_start_mod = 0.4;  // attack strength

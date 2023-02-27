@@ -371,11 +371,11 @@ void keyPressed() {
     
     if (player.playing_state != -1) {
         if (keyCode == LEFT) {
-            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() - 1500000);
+            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() - 2500000);
         }
         
         else if (keyCode == RIGHT) {
-            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() + 1500000);
+            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() + 2500000);
         }
     }
     
