@@ -30,6 +30,7 @@ class Player {
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
     float osc_synth_volume_mult = 1.0;
+    boolean locked_vis_redraw = false;
     
     // values to be read by the display...
     String history_text_messages = "";              // keeping track of every text (meta) msg gotten
@@ -46,18 +47,10 @@ class Player {
     
     
     Player() {
-        final int nChannels = 16;
-        channels = new ChannelOsc[nChannels];
+        channels = new ChannelOsc[16];
         metadata_map = new LinkedHashMap();
         
-        for (int i = 0; i < nChannels; i++) {
-            channels[i] = new ChannelOsc(-1);
-            if (i == 9) channels[i] = new ChannelOsc(4);
-            
-            channels[i].create_display(i, channel_disp_type);
-            channels[i].disp.redraw(false);    // draw meters at value 0
-        }
-        
+        create_visualizer(true);
         create_display(0, 318);
         
         set_seq_synth(prefs.getBoolean("remember", true) ? prefs.getBoolean("remember synth", true) : true);
@@ -77,6 +70,25 @@ class Player {
         PlayerDisplay d;
         d = new PlayerDisplay(x, y, this);
         this.disp = d;
+    }
+    
+    
+    void create_visualizer() {
+        create_visualizer(false);
+    }
+    
+    void create_visualizer(boolean also_osc_objects) {
+        locked_vis_redraw = true;
+        for (int i = 0; i < 16; i++) {
+            if (also_osc_objects) {
+                channels[i] = new ChannelOsc(-1);
+                if (i == 9) channels[i] = new ChannelOsc(4);
+            }
+            
+            channels[i].create_display(i, channel_disp_type);
+            if (also_osc_objects) channels[i].disp.redraw(false);    // draw meters at value 0
+        }
+        locked_vis_redraw = false;
     }
     
     
@@ -487,6 +499,7 @@ class Player {
     
     
     void redraw() {
+        if (locked_vis_redraw) return;
         for (ChannelOsc c : channels) {
             c.redraw_playing();
         }

@@ -35,6 +35,7 @@ Form dialog_settings;
 boolean show_key_hints = false;
 boolean hi_res = false;
 boolean low_frate = false;
+int frame_height;
 
 
 void settings() {
@@ -44,6 +45,14 @@ void settings() {
     }
     
     size(724, 460);
+    
+    // i don't think this ever works
+    Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            ui.showException("I'm sorry to announce that something has gone wrong and P3synth seems to have crashed. Please restart the program if necessary. Details:", "An error occured", new Exception(e));
+        }
+    });
 }
 
 
@@ -54,6 +63,7 @@ void setup() {
     surface.setTitle("vlco_o P3synth");
     frame = ( (PSurfaceAWT.SmoothCanvas)surface.getNative() ).getFrame();
     frame.setSize(new Dimension(724, 460));
+    frame_height = frame.getSize().height;
     
     setup_images();
     setup_buttons();
@@ -130,7 +140,7 @@ void redraw_all() {
     
     media_buttons.redraw();
     setting_buttons.redraw();
-    b_labs.redraw();
+    b_labs.redraw_at_pos(353, player.disp.POS_Y_POSBAR + 7);
     player.redraw();
 }
 
@@ -281,6 +291,12 @@ void toggle_playlist_win() {
         player.seq.setLoopCount(0);
         player.disp.b_loop.set_pressed(false);
     }
+}
+
+
+void set_small_height(boolean how) {
+    frame.setSize(new Dimension(724, how ? 180 : 460));
+    frame_height = frame.getSize().height;
 }
 
 

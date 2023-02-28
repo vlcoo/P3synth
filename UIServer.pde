@@ -11,7 +11,7 @@ import java.util.Arrays;
 UiBooster ui = new UiBooster();
 
 enum ChannelDisplayTypes {
-    ORIGINAL, VERTICAL_BARS
+    ORIGINAL, VERTICAL_BARS, NONE
 }
 
 
@@ -71,7 +71,7 @@ class ChannelDisplay {
         
         int notecode = -1;
         if (!parent.last_note.isEmpty()) notecode = parent.last_note.lastKey() - 21;
-        if (label_osc_type == 4) { if (notecode <= -1) label_note = "| |"; else label_note = "/\\"; }
+        if (label_osc_type == 4) { if (notecode <= -1) label_note = "|  |"; else label_note = "/ \\"; }
         else {
             if (notecode < 0) label_note = "-";
             else {
@@ -93,7 +93,7 @@ class ChannelDisplay {
     
     
     void check_buttons(int mButton) {
-        if (button_mute.collided()) {
+        if (button_mute != null && button_mute.collided()) {
             if (mButton == LEFT) player.set_channel_muted(!button_mute.pressed, parent.id);
             else if (mButton == RIGHT) player.set_channel_solo(!button_mute.pressed, parent.id);
         }
@@ -127,7 +127,12 @@ class ChannelDisplayOriginal extends ChannelDisplay {
         if (parent.last_note.isEmpty())
             meter_vu_target = 0;
         else
-            meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_note.get(parent.last_note.lastKey());
+            try {
+                meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_note.get(parent.last_note.lastKey());
+            }
+            catch (NullPointerException npe) {
+                println("npe at renew");
+            }
         
         if (METER_LERP_QUICKNESS > 0) {
             if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
@@ -308,7 +313,12 @@ class ChannelDisplayVBars extends ChannelDisplay {
         if (parent.last_note.isEmpty())
             meter_vu_target = 0;
         else
-            meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_note.get(parent.last_note.lastKey());
+            try {
+                meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_note.get(parent.last_note.lastKey());
+            }
+            catch (NullPointerException npe) {
+                println("npe at renew");
+            }
         
         if (METER_LERP_QUICKNESS > 0) {
             if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
@@ -430,7 +440,7 @@ class ChannelDisplayVBars extends ChannelDisplay {
 
 
 class PlayerDisplay {
-    int x, y;
+    int x;
     Player parent;
     Button b_metadata;
     Button b_loop;
@@ -438,7 +448,7 @@ class PlayerDisplay {
     Button b_prev;
     
     final int POS_X_POSBAR = 50;
-    final int POS_Y_POSBAR = 64;
+    int POS_Y_POSBAR = 64;
     final int POS_X_MESSAGEBAR = 376;
     final int WIDTH_POSBAR = 294;
     final int WIDTH_MESSAGEBAR = 294;
@@ -465,11 +475,7 @@ class PlayerDisplay {
     
     PlayerDisplay(int x, int y, Player parent) {
         this.x = x;
-        this.y = y;
         this.parent = parent;
-        
-        meter_loop_begin_Y = y + POS_Y_POSBAR;
-        meter_loop_end_Y = y + POS_Y_POSBAR + HEIGHT_POSBAR;
         
         b_metadata = new Button(682, 376, "metadata", "Metadata ");    // next to the player's message bar
         b_metadata.set_key_hint("m");
@@ -486,6 +492,8 @@ class PlayerDisplay {
     
     
     private void update_all_values() {
+        POS_Y_POSBAR = frame_height - 80;
+        
         if (show_key_hints) {
             label_filename = "Press 'o' to open a file to play...";
         }
@@ -525,6 +533,9 @@ class PlayerDisplay {
         }
         meter_loop_begin_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_begin);
         meter_loop_end_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_end);
+        
+        meter_loop_begin_Y = POS_Y_POSBAR;
+        meter_loop_end_Y = POS_Y_POSBAR + HEIGHT_POSBAR;
         
         /*label_GM = parent.file_is_GM;
         label_GM2 = parent.file_is_GM2;
@@ -616,17 +627,17 @@ class PlayerDisplay {
         // Pos meter
             stroke(t.theme[0]);
             fill(t.theme[1]);
-            rect(x + POS_X_POSBAR, y + POS_Y_POSBAR, WIDTH_POSBAR, HEIGHT_POSBAR, 6);
+            rect(x + POS_X_POSBAR, POS_Y_POSBAR, WIDTH_POSBAR, HEIGHT_POSBAR, 6);
             noStroke();
             fill(t.theme[3]);
-            rect(x+1 + POS_X_POSBAR, y+1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1, 6);
+            rect(x+1 + POS_X_POSBAR, 1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1, 6);
         
         // Song pos and length labels
             textAlign(CENTER, CENTER);
             fill(t.theme[4]);
             textFont(fonts[4]);
             int auxX = x + POS_X_POSBAR + WIDTH_POSBAR/2;
-            int auxY = y + POS_Y_POSBAR + 9;
+            int auxY = POS_Y_POSBAR + 9;
             outlinedText(label_timestamp + " / " + label_timelength, auxX, auxY, t.theme[4], t.theme[0] - color(0x40000000));
             if (show_key_hints) {
                 textFont(fonts[0]);
@@ -642,12 +653,12 @@ class PlayerDisplay {
         // File name label
             fill(t.theme[0]);
             textFont(fonts[5]);
-            text(label_filename, 362, y + POS_Y_POSBAR - 18);
+            text(label_filename, 362, POS_Y_POSBAR - 18);
         
         // Messages label
             stroke(t.theme[0]);
             fill(t.theme[1]);
-            rect(x + POS_X_MESSAGEBAR, y + POS_Y_POSBAR, WIDTH_MESSAGEBAR, HEIGHT_POSBAR, 6);    // reusing some dimensions...
+            rect(x + POS_X_MESSAGEBAR, POS_Y_POSBAR, WIDTH_MESSAGEBAR, HEIGHT_POSBAR, 6);    // reusing some dimensions...
             fill(t.theme[4]);
             textFont(fonts[1]);
             text(label_message, x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, auxY);
@@ -677,25 +688,25 @@ class PlayerDisplay {
             text("• Queue •\n\n" + queue_bottom_str, 75, 16);
             if (show_key_hints) text("F5", 75, 52);
         
-        b_metadata.redraw();
-        b_loop.redraw();
+        b_metadata.redraw_at_pos(682, POS_Y_POSBAR - 5);
+        b_loop.redraw_at_pos(12, POS_Y_POSBAR - 5);
         b_prev.redraw();
         b_next.redraw();
     }
     
     
     boolean collided_posbar() {
-        return (mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (mouseY > y + POS_Y_POSBAR && mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
+        return (mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (mouseY > POS_Y_POSBAR && mouseY < HEIGHT_POSBAR + POS_Y_POSBAR);
     }
     
     int collided_loopset_bar() {
         int which = 0;    // 0 is not pressed
         if (parent.seq.getLoopCount() == 0) return 0;
         
-        if ((mouseX > x + POS_X_POSBAR - 6 && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 6) && (mouseY > y + POS_Y_POSBAR - 16 && mouseY < y + POS_Y_POSBAR)) {
+        if ((mouseX > x + POS_X_POSBAR - 6 && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 6) && (mouseY > POS_Y_POSBAR - 16 && mouseY < POS_Y_POSBAR)) {
             which = -1;    // -1 is begin
         }
-        else if ((mouseX > x + POS_X_POSBAR - 6 && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 6) && (mouseY > y + POS_Y_POSBAR + HEIGHT_POSBAR && mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR + 16)) {
+        else if ((mouseX > x + POS_X_POSBAR - 6 && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 6) && (mouseY > POS_Y_POSBAR + HEIGHT_POSBAR && mouseY < POS_Y_POSBAR + HEIGHT_POSBAR + 16)) {
             which = 1;    // 1 is end
         }
         
@@ -712,7 +723,7 @@ class PlayerDisplay {
     }
     
     boolean collided_metamsg_rect() {
-        return (mouseX > x + POS_X_MESSAGEBAR && mouseX < width-50) && (mouseY > y + POS_Y_POSBAR && mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR);
+        return (mouseX > x + POS_X_MESSAGEBAR && mouseX < width-50) && (mouseY > POS_Y_POSBAR && mouseY < POS_Y_POSBAR + HEIGHT_POSBAR);
     }
 }
 

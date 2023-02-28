@@ -56,6 +56,9 @@ public class ChannelOsc {
             case VERTICAL_BARS:
                 d = new ChannelDisplayVBars(id, this);
                 break;
+            case NONE:
+                d = new ChannelDisplay(id, this);
+                break;
             default:
                 return;
         }
@@ -65,6 +68,7 @@ public class ChannelOsc {
     
     
     void redraw_playing() {
+        if (this.disp == null) return;
         this.disp.redraw(true);    // draw meters with updated values
         try {
             for (RTSoundObject s : current_notes.values()) {
@@ -237,7 +241,7 @@ public class ChannelOsc {
     
     void set_all_oscs_amp() {
         for (RTSoundObject s : current_notes.values()) {
-            s.amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1));
+            s.amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * player.osc_synth_volume_mult);
         }
     }
     
@@ -266,6 +270,7 @@ public class ChannelOsc {
     
     
     void set_muted(boolean how) {
+        if (disp.button_mute == null) return;
         if (how) shut_up();
         disp.button_mute.set_pressed(how);
         silenced = how;
