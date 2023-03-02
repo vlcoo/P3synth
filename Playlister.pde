@@ -194,9 +194,7 @@ public class PlaylistModule extends PApplet {
     public void keyPressed() {
         int prev_item_count = items.size();
         
-        if (keyCode == 18) show_key_hints = true;
-        
-        else if (key == 'a') {
+        if (key == 'a') {
             add_single_file(ui.showFileSelection("MIDI files", "mid", "midi"));
         }
         
@@ -225,16 +223,16 @@ public class PlaylistModule extends PApplet {
             set_current_item(-1);
         }
         
-        else if (keyCode == 116) {
-            toggle_playlist_win();
-        }
-        
         if (prev_item_count == 0 && items.size() > prev_item_count) set_current_item(0);
+        
+        PARENT.key = this.key;
+        PARENT.keyCode = this.keyCode;
+        PARENT.keyPressed();
     }
 
 
     void keyReleased() {
-        show_key_hints = false;
+        PARENT.keyReleased();
     }    
     
     

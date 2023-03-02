@@ -6,7 +6,7 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 23.32;
+final float VERCODE = 23.39;
 final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
 
@@ -135,7 +135,7 @@ void draw() {
 
 
 void redraw_all() {
-    if (t.is_extended_theme) gradientRect(0, 0, width, height, (int) t.theme[2], t.theme[5], 0, this);
+    if (t.is_extended_theme) gradientRect(0, 0, width, frame_height, (int) t.theme[2], t.theme[5], 0, this);
     else background(t.theme[2]);
     
     media_buttons.redraw();
@@ -287,7 +287,7 @@ void toggle_playlist_win() {
     }
     
     win_plist.reposition();
-    if (player != null) {
+    if (player != null && win_plist.isLooping()) {
         player.seq.setLoopCount(0);
         player.disp.b_loop.set_pressed(false);
     }

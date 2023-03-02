@@ -86,9 +86,14 @@ public class LabsModule extends PApplet {
     
     
     void keyPressed() {
-        if (keyCode == 114) {        // F3
-            toggle_labs_win();
-        }
+        PARENT.key = this.key;
+        PARENT.keyCode = this.keyCode;
+        PARENT.keyPressed();
+    }
+    
+    
+    void keyReleased() {
+        PARENT.keyReleased();
     }
     
     

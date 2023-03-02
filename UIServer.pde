@@ -59,7 +59,12 @@ class ChannelDisplay {
         if (parent.last_note.isEmpty())
             meter_velocity = 0;
         else
-            meter_velocity = parent.last_note.get(parent.last_note.lastKey());
+            try {
+                meter_velocity = parent.last_note.get(parent.last_note.lastKey());
+            }
+            catch (NullPointerException npe) {
+                println("npe at renew");
+            }
         
         label_osc_type = parent.osc_type;
         if (player.system_synth) label_midi_program = parent.midi_program;
@@ -335,14 +340,14 @@ class ChannelDisplayVBars extends ChannelDisplay {
         
         stroke(t.theme[0]);
         fill(t.theme[1]);
-        rect(x, y, 44, 32);
+        rect(x, y, 44, 32, 6, 6, 0, 0);
         fill(t.theme[4]);
         textFont(fonts[4]);
         textAlign(CENTER, CENTER);
         text(id+1, x+11, y+16);
         
         noFill();
-        rect(x, y+32, 44, 20);
+        rect(x, y+32, 44, 20, 0, 0, 6, 6);
         
         fill(t.theme[0]);
         if (label_midi_program >= 0) {
@@ -383,9 +388,9 @@ class ChannelDisplayVBars extends ChannelDisplay {
         
         noFill();
         stroke(t.theme[0]);
-        rect(x, y+202, 44, 80);
-        for (int i = 0; i < 4; i++) 
-            line(x, y+202+i*20, x+44, y+202+i*20);
+        rect(x, y+202, 44, 80, 6);
+        for (int i = 0; i < 3; i++) 
+            line(x, y+222+i*20, x+44, y+222+i*20);
         
         fill(t.theme[1]);
         rect(x+4, y+208, 36, 8, 4);
@@ -594,7 +599,7 @@ class PlayerDisplay {
             catch (IllegalArgumentException iae) { }
             
             if (b_metadata.collided() && !dragged) {
-                ui.showTableImmutable(parent.get_metadata_table(), Arrays.asList("Parameter", "Value"), "Files' metadata");
+                ui.showTableImmutable(parent.get_metadata_table(), Arrays.asList("Parameter", "Value"), "Metadata in file " + parent.curr_filename);
             }
             
             if (win_plist != null && !dragged) {
