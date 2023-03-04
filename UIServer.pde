@@ -282,13 +282,17 @@ class ChannelDisplayOriginal extends ChannelDisplay {
     }
     
     
-    void recalc_quickness_from_settings() {
-        String md = prefs.get("meter decay", "Smooth");
+    void recalc_quickness(String md) {
         float value = md.equals("Instant") ? 0.5 : md.equals("Slow") ? 6 : 2;
         
         METER_LERP_DECAYNESS = value;
         if (value < 1) METER_LERP_QUICKNESS = -1;
         else METER_LERP_QUICKNESS = 0.5;
+    }
+    
+    
+    void recalc_quickness_from_settings() {
+        recalc_quickness(prefs.get("meter decay", "Smooth"));
     }
 }
 
@@ -433,13 +437,17 @@ class ChannelDisplayVBars extends ChannelDisplay {
     }
     
     
-    void recalc_quickness_from_settings() {
-        String md = prefs.get("meter decay", "Smooth");
+    void recalc_quickness(String md) {
         float value = md.equals("Instant") ? 0.5 : md.equals("Slow") ? 6 : 2;
         
         METER_LERP_DECAYNESS = value;
         if (value < 1) METER_LERP_QUICKNESS = -1;
         else METER_LERP_QUICKNESS = 0.5;
+    }
+    
+    
+    void recalc_quickness_from_settings() {
+        recalc_quickness(prefs.get("meter decay", "Smooth"));
     }
 }
 

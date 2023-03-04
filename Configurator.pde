@@ -110,7 +110,6 @@ void open_config_dialog() {
         String da = form.getByIndex(13).asString();
         
         prefs.put("theme", th);
-        prefs.put("meter decay", md);
         prefs.putBoolean("low framerate", lf);
         prefs.putBoolean("remember", re);
         prefs.put("sf path", sf);
@@ -124,13 +123,13 @@ void open_config_dialog() {
         prefs.put("discord rpc", da);
         
         t.set_theme(th);
-        if (!vs.equals(prefs.get("visualization style", "VU windows"))) {
+        if (!vs.equals(prefs.get("visualization style", "VU windows")) || !md.equals(prefs.get("meter decay", "Smooth"))) {
             switch (vs) {
                 case "VU windows":
                     channel_disp_type = ChannelDisplayTypes.ORIGINAL;
                     player.create_visualizer();
                     for (ChannelOsc c : player.channels) { 
-                        ((ChannelDisplayOriginal)(c.disp)).recalc_quickness_from_settings();
+                        ((ChannelDisplayOriginal)(c.disp)).recalc_quickness(md);
                     } 
                     set_small_height(false);
                     break;
@@ -138,7 +137,7 @@ void open_config_dialog() {
                     channel_disp_type = ChannelDisplayTypes.VERTICAL_BARS;
                     player.create_visualizer();
                     for (ChannelOsc c : player.channels) { 
-                        ((ChannelDisplayVBars)(c.disp)).recalc_quickness_from_settings();
+                        ((ChannelDisplayVBars)(c.disp)).recalc_quickness(md);
                     } 
                     set_small_height(false);
                     break;
@@ -150,6 +149,7 @@ void open_config_dialog() {
             }
         }
         prefs.put("visualization style", vs);
+        prefs.put("meter decay", md);
         
         snap_loop_mult = snl.equals("No") ? 0 : snl.equals("Yes (coarse)") ? 8 : 2;
         snap_pos_mult = snp.equals("Yes (fine)") ? 2 : snp.equals("Yes (coarse)") ? 8 : 0;
