@@ -572,11 +572,8 @@ class DnDMidListener extends DropListener {
     
     void dropEvent(DropEvent e) {
         cursor(WAIT);
-        if (try_play_file(e.file())) 
+        if (try_play_file(e.file())) {
             media_buttons.get_button("Pause").set_pressed(false);
-        else {
-            if (try_play_file(new File(e.text().split("file:")[1])))
-                media_buttons.get_button("Pause").set_pressed(false);
         }
         cursor(ARROW);
     }
@@ -601,8 +598,7 @@ class DnDSfListener extends DropListener {
     
     void dropEvent(DropEvent e) {
         cursor(WAIT);
-        if (!try_load_sf(e.file()))
-            try_load_sf(new File(e.text().split("file:")[1]));
+        try_load_sf(e.file());
         cursor(ARROW);
     }
 }
