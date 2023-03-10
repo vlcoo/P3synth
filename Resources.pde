@@ -1,3 +1,9 @@
+import com.github.kwhat.jnativehook.GlobalScreen;
+import com.github.kwhat.jnativehook.NativeHookException;
+import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
+import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
+
+
 int snap_number(int num, int mult) {
     if (mult == 0) return num;
     return ((num + mult - 1) / mult) * mult;
@@ -56,6 +62,53 @@ class ThemeEngine {
         available_themes.put("Metallic Grayscale", theme_05);
         int[] theme_07 = {#0a0c37, #375971, #ff9900, #5cecff, #f4ff61, #ff61c6};
         available_themes.put("Sick Gradient", theme_07);
+    }
+}
+
+
+class MediaKeysListener implements NativeKeyListener {
+    public void nativeKeyPressed(NativeKeyEvent e) {
+        if (!mk_setup.equals("")) {
+            prefs.put("media " + mk_setup, String.valueOf(e.getRawCode()));
+            return;
+        }
+        
+        if (player.playing_state == -1) return;
+        
+        if (media_keys.get("play").equals(media_keys.get("pause"))) {
+            if (e.getRawCode() == media_keys.get("play")) {
+                Button b = media_buttons.get_button("Pause");
+                player.set_playing_state( b.pressed ? 1 : 0 );
+                return;
+            }
+        }
+        else {
+            if (e.getRawCode() == media_keys.get("play")) {
+                player.set_playing_state(1);
+                return;
+            }
+            if (e.getRawCode() == media_keys.get("pause")) {
+                player.set_playing_state(0);
+                return;
+            }
+        }
+        
+        if (win_plist != null) {
+            if (e.getRawCode() == media_keys.get("back")) {
+                win_plist.previous();
+                return;
+            }
+            if (e.getRawCode() == media_keys.get("forward")) {
+                win_plist.next();
+                return;
+            }
+        }
+        
+        if (e.getRawCode() == media_keys.get("stop")) {
+            player.set_playing_state(-1);
+            if (win_plist != null) win_plist.set_current_item(-1);
+            return;
+        }
     }
 }
 

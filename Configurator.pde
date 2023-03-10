@@ -6,6 +6,8 @@ int snap_pos_mult = 0;
 int knob_sensitivity = 40;
 boolean remaining_instead_of_elapsed = false;
 ChannelDisplayTypes channel_disp_type;
+HashMap<String, Integer> media_keys = new HashMap<>();
+String mk_setup = "";
 
 
 void setup_config() {
@@ -38,6 +40,16 @@ void setup_config() {
     snap_pos_mult = p.equals("Yes (fine)") ? 2 : p.equals("Yes (coarse)") ? 4 : 0;
     
     if (prefs.getBoolean("remember", true)) retrieve_control_memory();
+    load_media_keys();
+}
+
+
+void load_media_keys() {
+    media_keys.put("play", Integer.parseInt(prefs.get("media play", "0")));
+    media_keys.put("pause", Integer.parseInt(prefs.get("media pause", "0")));
+    media_keys.put("back", Integer.parseInt(prefs.get("media back", "0")));
+    media_keys.put("forward", Integer.parseInt(prefs.get("media forward", "0")));
+    media_keys.put("stop", Integer.parseInt(prefs.get("media stop", "0")));
 }
 
 
@@ -84,6 +96,7 @@ void open_config_dialog() {
     .addCheckbox("Show remaining time instead of elapsed")
     .addCheckbox("Adding folder to playlist is recursive")
     .addCheckbox("Adding folder to playlist clears it first")
+    .addCheckbox("Listen to media keys globally *")
     .addSelection(
         "Knob control sensitivity",
         Arrays.asList("Low", "Medium", "High")
@@ -106,8 +119,9 @@ void open_config_dialog() {
         boolean rt = (boolean) form.getByIndex(9).getValue();
         boolean rf = (boolean) form.getByIndex(10).getValue();
         boolean cf = (boolean) form.getByIndex(11).getValue();
-        String ks = form.getByIndex(12).asString();
-        String da = form.getByIndex(13).asString();
+        boolean mk = (boolean) form.getByIndex(12).getValue();
+        String ks = form.getByIndex(13).asString();
+        String da = form.getByIndex(14).asString();
         
         prefs.put("theme", th);
         prefs.putBoolean("low framerate", lf);
@@ -157,6 +171,9 @@ void open_config_dialog() {
         knob_sensitivity = ks.equals("High") ? 20 : ks.equals("Low") ? 80 : 40;
         if (da.equals("No")) DiscordRPC.discordShutdown();
         else beginDiscordActivity();
+        
+        if (prefs.getBoolean("media keys", false) != mk && mk) setup_media_keys();
+        prefs.putBoolean("media keys", mk);
     }})
     .run();
     
@@ -172,8 +189,9 @@ void open_config_dialog() {
     dialog_settings.getByIndex(9).setValue(prefs.getBoolean("remaining timer", false));
     dialog_settings.getByIndex(10).setValue(prefs.getBoolean("recursive folder", false));
     dialog_settings.getByIndex(11).setValue(prefs.getBoolean("replace playlist", true));
-    dialog_settings.getByIndex(12).setValue(prefs.get("knob sensitivity", "Medium"));
-    dialog_settings.getByIndex(13).setValue(prefs.get("discord rpc", "No"));
+    dialog_settings.getByIndex(12).setValue(prefs.getBoolean("media keys", false));
+    dialog_settings.getByIndex(13).setValue(prefs.get("knob sensitivity", "Medium"));
+    dialog_settings.getByIndex(14).setValue(prefs.get("discord rpc", "No"));
     
-    dialog_settings.getWindow().setSize(300, 820);
+    dialog_settings.getWindow().setSize(300, 880);
 }

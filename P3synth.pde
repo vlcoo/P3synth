@@ -78,6 +78,16 @@ void setup() {
     drop.addDropListener(dnd_mid);
     drop.addDropListener(dnd_sf);
     
+    if (prefs.getBoolean("media keys", false)) {
+        try {
+            GlobalScreen.registerNativeHook();
+            GlobalScreen.addNativeKeyListener(new MediaKeysListener());
+        }
+        catch (NativeHookException nhe) {
+            println("nhe on media keys");
+        }
+    }
+    
     if (is_newbie) {
         ui.showInfoDialog(
             "Welcome! Please check your audio levels.\n\n" +
@@ -232,6 +242,24 @@ void setup_buttons() {
     
     b_labs = new Button(353, 390, "expand", "Labs");
     b_labs.set_key_hint("F3");
+}
+
+
+void setup_media_keys() {
+    ui.showInfoDialog("Global media keys have been enabled.\nPlease follow this wizard to assign the correct keys.", "Setting up media keys");
+    mk_setup = "play";
+    ui.showInfoDialog("PRESS PLAY KEY NOW, then click OK.\nDon't worry if the PLAY and PAUSE is the same key for you.", "Setting up media keys");
+    mk_setup = "pause";
+    ui.showInfoDialog("PRESS PAUSE KEY NOW, then click OK.\nDon't worry if the PLAY and PAUSE is the same key for you.", "Setting up media keys");
+    mk_setup = "back";
+    ui.showInfoDialog("PRESS BACK/PREVIOUS SONG KEY NOW, then click OK.", "Setting up media keys");
+    mk_setup = "forward";
+    ui.showInfoDialog("PRESS FORWARD/NEXT SONG KEY NOW, then click OK.", "Setting up media keys");
+    mk_setup = "stop";
+    ui.showInfoDialog("PRESS STOP KEY NOW, then click OK.", "Setting up media keys");
+    
+    ui.showInfoDialog("Done. This will apply after a program restart.", "Finished setting");
+    mk_setup = "";
 }
 
 

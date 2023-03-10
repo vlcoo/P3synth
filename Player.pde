@@ -393,7 +393,7 @@ class Player {
     
     
     void set_playing_state(int how) {
-        if (seq == null) return;
+        if (seq == null || how == playing_state) return;
         if (win_labs != null)
             win_labs.k_pitchbend.value = win_labs.k_pitchbend.neutral_value;
         
