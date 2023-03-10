@@ -7,6 +7,7 @@ class Player {
     final int LENGTH_THRESHOLD = 90000000;
     final int TEMPO_LIMIT = 1000;
     final String DEFAULT_STOPPED_MSG = "Drag and drop a file to play...";
+    final String DEFAULT_EMPTY_MSGS = "• no messages •";
     
     boolean new_engine = false;
     Sequencer seq;
@@ -34,7 +35,7 @@ class Player {
     
     // values to be read by the display...
     String history_text_messages = "";              // keeping track of every text (meta) msg gotten
-    String last_text_message = "- no message -";    // default text if nothing received
+    String last_text_message = DEFAULT_EMPTY_MSGS;
     float last_freqDetune = 0.0;
     float last_noteDetune = 0.0;
     String custom_info_msg = "";
@@ -255,6 +256,7 @@ class Player {
     void reload_curr_file() {
         setTicks(0);
         epoch_at_begin = java.time.Instant.now().getEpochSecond();
+        clear_meta_msgs();
     }
     
     
@@ -428,10 +430,8 @@ class Player {
         for (ChannelOsc c : channels) c.reset_params();
         setTicks(0);
         
-        last_text_message = "- no message -";
-        history_text_messages = "";
+        clear_meta_msgs();
         clear_metadata_map_keep_sf();
-        if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
         curr_rpn = 0;
         curr_bank = 0;
         mid_rootnote = 0;
@@ -445,6 +445,13 @@ class Player {
         file_is_GM2 = false;
         file_is_XG = false;
         file_is_GS = false;
+    }
+    
+    
+    void clear_meta_msgs() {
+        last_text_message = DEFAULT_EMPTY_MSGS;
+        history_text_messages = "";
+        if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
     }
     
     

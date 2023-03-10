@@ -470,7 +470,7 @@ class PlayerDisplay {
     String label_filename = "";
     String label_dnd_msg = "";
     float meter_midi_pos = 0.0;
-    String label_message = "- no message -";
+    String label_message = "";
     float meter_loop_begin = 0.0;
     float meter_loop_end = 1.0;
     float meter_loop_begin_X = 0.0;
