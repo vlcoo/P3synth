@@ -267,7 +267,7 @@ class ChannelDisplayOriginal extends ChannelDisplay {
             triangle(x+154, y+38, x+154, y+58, x+144, y+48);
             noStroke();
             fill(t.theme[3]);
-            if (meter_pan != 0) triangle(x+144 + 9 * meter_pan, y+48 - 9 * abs(meter_pan), x+144 + 9 * meter_pan, y+48 + 9 * abs(meter_pan), x+144, y+48);
+            if (meter_pan != 0) triangle(x+144.5 + 9 * meter_pan, y+48 - 8.5 * abs(meter_pan), x+144.5 + 9 * meter_pan, y+48 + 8.5 * abs(meter_pan), x+144.5, y+48.5);
             //text(meter_pan, x+145, y+48);
         
         // Mute dim
@@ -411,6 +411,14 @@ class ChannelDisplayVBars extends ChannelDisplay {
         fill(t.theme[3]);
         noStroke();
         rect(x+5, y+235, 35 * meter_velocity, 4, 2);
+        
+        fill(t.theme[0]);
+        textFont(fonts[0]);
+        if (label_osc_type != 4) {
+            if (label_hold_pedal) text("•", x+27, y+57);
+            if (label_sostenuto_pedal) text("*", x+27, y+64);
+            if (label_soft_pedal) text("~", x+27, y+76);
+        }
         
         fill(t.theme[0]);
         stroke(t.theme[0]);

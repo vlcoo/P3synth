@@ -6,7 +6,7 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 23.39;
+final float VERCODE = 23.35;
 final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
 
@@ -50,7 +50,7 @@ void settings() {
     Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
         @Override
         public void uncaughtException(Thread t, Throwable e) {
-            ui.showException("I'm sorry to announce that something has gone wrong and P3synth seems to have crashed. Please restart the program if necessary. Details:", "An error occured", new Exception(e));
+            ui.showException("I'm sorry to announce that something has gone wrong and P3synth seems to have crashed. Please restart the program if frozen. Details:", "An error occured", new Exception(e));
         }
     });
 }
