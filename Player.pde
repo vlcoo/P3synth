@@ -7,12 +7,12 @@ class Player {
     final int LENGTH_THRESHOLD = 90000000;
     final int TEMPO_LIMIT = 1000;
     final String DEFAULT_STOPPED_MSG = "Drag and drop a file to play...";
+    final String DEFAULT_EMPTY_MSGS = "• no messages •";
     
     boolean new_engine = false;
     Sequencer seq;
     javax.sound.midi.Synthesizer alt_syn;
     MidiFileFormat metadata;
-    KeyTransformer ktrans;
     PlayerDisplay disp;
     int midi_resolution;
     int meta_channel_prefix = 0;
@@ -31,10 +31,11 @@ class Player {
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
     float osc_synth_volume_mult = 1.0;
+    boolean locked_vis_redraw = false;
     
     // values to be read by the display...
     String history_text_messages = "";              // keeping track of every text (meta) msg gotten
-    String last_text_message = "- no message -";    // default text if nothing received
+    String last_text_message = DEFAULT_EMPTY_MSGS;
     float last_freqDetune = 0.0;
     float last_noteDetune = 0.0;
     String custom_info_msg = "";
@@ -47,19 +48,10 @@ class Player {
     
     
     Player() {
-        ktrans = new KeyTransformer();
-        final int nChannels = 16;
-        channels = new ChannelOsc[nChannels];
+        channels = new ChannelOsc[16];
         metadata_map = new LinkedHashMap();
         
-        for (int i = 0; i < nChannels; i++) {
-            channels[i] = new ChannelOsc(-1);
-            if (i == 9) channels[i] = new ChannelOsc(4);
-            
-            channels[i].create_display(12 + 180 * (i / 4), 64 + 72 * (i % 4), i);
-            channels[i].disp.redraw(false);    // draw meters at value 0
-        }
-        
+        create_visualizer(true);
         create_display(0, 318);
         
         set_seq_synth(prefs.getBoolean("remember", true) ? prefs.getBoolean("remember synth", true) : true);
@@ -82,11 +74,35 @@ class Player {
     }
     
     
+    void create_visualizer() {
+        create_visualizer(false);
+    }
+    
+    void create_visualizer(boolean also_osc_objects) {
+        locked_vis_redraw = true;
+        for (int i = 0; i < 16; i++) {
+            if (also_osc_objects) {
+                channels[i] = new ChannelOsc(-1);
+                if (i == 9) channels[i] = new ChannelOsc(4);
+            }
+            
+            channels[i].create_display(i, channel_disp_type);
+            if (also_osc_objects) channels[i].disp.redraw(false);    // draw meters at value 0
+            else if (playing_state == -1) {
+                vu_anim_val = 0.0;
+                vu_anim_returning = false;
+            }
+        }
+        locked_vis_redraw = false;
+    }
+    
+    
     protected String bytes_to_text(byte[] arr) {
         String text = "";
         
         for (byte b : arr) {
             if (b >= 0) text += Character.toString((char) b);
+            else text += "×";
         }
         
         return text.trim().replace("\n", "");
@@ -175,6 +191,7 @@ class Player {
             return "I/O Error!";
         }
         
+        metadata_map.put("Song tempo", Integer.toString(floor(seq.getTempoInBPM())) + " BPM");
         return "";
     }
     
@@ -210,7 +227,7 @@ class Player {
     Sequence prep_javax_midi(Sequence mid, boolean right_now) {
         try {
             int n = mid == null ? 16 : mid.getTracks().length;
-            float vol = win_labs == null ? 0x2f : map(win_labs.k_volume.value, 0.0, 2.0, 0x00, 0x40);
+            float vol = win_labs == null ? 0x2f : map(win_labs.k_volume.value, 0.0, 2.0, 0x00, 0x4f);
             for (int i = 0; i < n; i++) {
                 // msgs: remove reverb, soften volume
                 if (mid != null) {
@@ -239,6 +256,7 @@ class Player {
     void reload_curr_file() {
         setTicks(0);
         epoch_at_begin = java.time.Instant.now().getEpochSecond();
+        clear_meta_msgs();
     }
     
     
@@ -351,10 +369,17 @@ class Player {
     
     
     void vu_anim_step() {
+        if (locked_vis_redraw) return;
+        
         for (ChannelOsc c : channels) {
-            c.disp.meter_vu_lerped = vu_anim_val;
+            if (channel_disp_type == ChannelDisplayTypes.ORIGINAL)
+                ((ChannelDisplayOriginal)(c.disp)).meter_vu_lerped = vu_anim_val;
+            else if (channel_disp_type == ChannelDisplayTypes.VERTICAL_BARS)
+                ((ChannelDisplayVBars)(c.disp)).meter_vu_lerped = vu_anim_val;
+            else c.disp.meter_vu_target = vu_anim_val;
             c.disp.redraw(false);
         }
+        
         if (!vu_anim_returning && vu_anim_val <= 1.0) vu_anim_val += 0.1;
         else vu_anim_returning = true;
         if (vu_anim_returning) vu_anim_val -= 0.05;
@@ -368,7 +393,7 @@ class Player {
     
     
     void set_playing_state(int how) {
-        if (seq == null) return;
+        if (seq == null || how == playing_state) return;
         if (win_labs != null)
             win_labs.k_pitchbend.value = win_labs.k_pitchbend.neutral_value;
         
@@ -405,10 +430,8 @@ class Player {
         for (ChannelOsc c : channels) c.reset_params();
         setTicks(0);
         
-        last_text_message = "- no message -";
-        history_text_messages = "";
+        clear_meta_msgs();
         clear_metadata_map_keep_sf();
-        if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
         curr_rpn = 0;
         curr_bank = 0;
         mid_rootnote = 0;
@@ -422,6 +445,13 @@ class Player {
         file_is_GM2 = false;
         file_is_XG = false;
         file_is_GS = false;
+    }
+    
+    
+    void clear_meta_msgs() {
+        last_text_message = DEFAULT_EMPTY_MSGS;
+        history_text_messages = "";
+        if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
     }
     
     
@@ -483,6 +513,7 @@ class Player {
     
     
     void redraw() {
+        if (locked_vis_redraw) return;
         for (ChannelOsc c : channels) {
             c.redraw_playing();
         }
@@ -520,7 +551,7 @@ class Player {
                         channels[chan].set_osc_type(4);
                     }
                     else {
-                        channels[chan].set_osc_type(program_to_osc(data1));
+                        channels[chan].set_osc_type(prog_osc_relationship[data1]);
                     }
                     channels[chan].midi_program = data1;
                 }
@@ -628,6 +659,7 @@ class Player {
                 mid_scale = data[data.length - 1];
                 if (mid_scale == 0) mid_rootnote = major_rootnotes[data[0] + 7];
                 else if (mid_scale == 1) mid_rootnote = minor_rootnotes[data[0] + 7];
+                //metadata_map.put("Key signature", mid_scale );
                 return;
             }
             

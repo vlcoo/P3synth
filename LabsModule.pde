@@ -11,6 +11,8 @@ public class LabsModule extends PApplet {
     Knob k_volume;
     Knob k_rt_adsr;
     Knob k_rt_mod;
+    Button b_set;
+    Button b_save;
     
     Knob[] all_knobs;
     Knob curr_knob = null;
@@ -24,7 +26,7 @@ public class LabsModule extends PApplet {
     
     
     public void settings() {
-        this.size(362, 100);
+        this.size(412, 100);
     }
     
     
@@ -48,16 +50,19 @@ public class LabsModule extends PApplet {
         
         if (t.is_extended_theme) gradientRect(0, 0, this.width, this.height, (int) t.theme[2], t.theme[5], 0, this);
         else this.background(t.theme[2]);
+        this.fill(t.theme[0]);
+        this.textFont(fonts[2]);
         this.text("x", 250, KNOB_Y_POS + 10);
         this.text("x", 320, KNOB_Y_POS + 10);
+        this.text("Experimental options! Use at your own risk.", 201, 17);
         
         for (Knob k : all_knobs) {
             if ((k == k_rt_adsr || k == k_rt_mod) && player.system_synth) continue;
             k.redraw(this);
         }
-        this.fill(t.theme[0]);
-        this.textFont(fonts[2]);
-        this.text("Experimental options! Use at your own risk.", 181, 10);
+        
+        b_set.redraw(this);
+        b_save.redraw(this);
         
         /*if (curr_knob == null) {
             k_player_speed.value = player.seq.getTempoFactor();
@@ -74,21 +79,29 @@ public class LabsModule extends PApplet {
         k_rt_mod = new Knob(320, KNOB_Y_POS, "RT Mod\nstrength", 0.0, 2.0, 0.0);
         
         all_knobs = new Knob[] {k_player_speed, k_pitchbend, k_volume, k_rt_adsr, k_rt_mod};
+        
+        b_set = new Button(360, KNOB_Y_POS, "set", "Key\ntransform");
+        b_save = new Button(360, KNOB_Y_POS + 24, "save", "");
     }
     
     
     void reposition() {
         int x = this.parentFrame.getX();
         int y = this.parentFrame.getY();
-        this.getSurface().setLocation((x + 181), (y > parentFrame.getHeight() + this.height ? y - this.height - 30 : y + parentFrame.getHeight() - 18));
+        this.getSurface().setLocation((x + 170), (y > parentFrame.getHeight() + this.height ? y - this.height - 30 : y + parentFrame.getHeight() - 18));
         this.getSurface().setIcon(logo_icon);
     }
     
     
     void keyPressed() {
-        if (keyCode == 114) {        // F3
-            toggle_labs_win();
-        }
+        PARENT.key = this.key;
+        PARENT.keyCode = this.keyCode;
+        PARENT.keyPressed();
+    }
+    
+    
+    void keyReleased() {
+        PARENT.keyReleased();
     }
     
     
@@ -103,9 +116,11 @@ public class LabsModule extends PApplet {
             }
         }
         
-        if (curr_knob != null) {
-            starting_knob_value = curr_knob.value;
-        }
+        if (b_set.collided(this)) curr_mid_pressed = b_set;
+        else if (b_save.collided(this)) curr_mid_pressed = b_save;
+        
+        if (curr_knob != null) starting_knob_value = curr_knob.value;
+        if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
     }
     
     
@@ -131,7 +146,21 @@ public class LabsModule extends PApplet {
             curr_knob.show_value_hint = false;
             curr_knob = null;
         }
-        //this.cursor(ARROW);
+        
+        if (mouseButton == LEFT) {
+            if (curr_mid_pressed != null) {
+                curr_mid_pressed.set_pressed(false);
+                curr_mid_pressed = null;
+            }
+            
+            if (b_set.collided(this)) {
+                transform_sequence(player.seq.getSequence(), key_transforms.get(
+                    ui.showSelectionDialog("WHAT DO YOU WANT", "Key transform", 
+                        Arrays.asList("Major", "Minor", "None")
+                    )
+                ));
+            }
+        }
     }
     
     

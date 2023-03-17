@@ -10,6 +10,10 @@ import java.util.Arrays;
 
 UiBooster ui = new UiBooster();
 
+enum ChannelDisplayTypes {
+    ORIGINAL, VERTICAL_BARS, NONE
+}
+
 
 class ChannelDisplay {
     int x, y;
@@ -19,7 +23,6 @@ class ChannelDisplay {
     
     // meter values to be drawn...:
     float meter_vu_target = 0.0;
-    float meter_vu_lerped = 0.0;
     float meter_ch_volume = 1.0;    // aka channel's curr_global_amp
     float meter_velocity = 0.0;     // aka channel's last_amp
     String label_note = "";
@@ -32,37 +35,16 @@ class ChannelDisplay {
     boolean label_sostenuto_pedal = false;
     boolean label_soft_pedal = false;
     
-    float METER_LERP_QUICKNESS;
-    float METER_LERP_DECAYNESS;
-    final int METER_VU_LENGTH = 30;
     final String[] NOTE_NAMES = new String[] {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
     
     
-    ChannelDisplay(int x, int y, int id, ChannelOsc parent) {
-        this.x = x;
-        this.y = y;
+    ChannelDisplay(int id, ChannelOsc parent) {
         this.id = id;
         this.parent = parent;
-        
-        button_mute = new Button(x+4, y+37, "mute", "");
-        if (id < 10) {
-            int hint = id + 1;
-            if (id == 9) hint = 0;
-            button_mute.set_key_hint(Integer.toString(hint));
-        }
-        
-        recalc_quickness_from_settings();
     }
     
     
     private void update_all_values() {
-        meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_amp;
-        
-        if (METER_LERP_QUICKNESS > 0) {
-            if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
-            if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/METER_LERP_DECAYNESS * abs(meter_vu_lerped - meter_vu_target);
-        }
-        else meter_vu_lerped = meter_vu_target;
         //if (abs(meter_vu_lerped - meter_vu_target) < METER_LERP_QUICKNESS)
         //    meter_vu_lerped = meter_vu_target;
         
@@ -74,7 +56,15 @@ class ChannelDisplay {
         }
         
         meter_ch_volume = parent.curr_global_amp * parent.amp_multiplier;
-        meter_velocity = parent.last_amp;
+        if (parent.last_note.isEmpty())
+            meter_velocity = 0;
+        else
+            try {
+                meter_velocity = parent.last_note.get(parent.last_note.lastKey());
+            }
+            catch (NullPointerException npe) {
+                println("npe at renew");
+            }
         
         label_osc_type = parent.osc_type;
         if (player.system_synth) label_midi_program = parent.midi_program;
@@ -84,8 +74,9 @@ class ChannelDisplay {
         label_sostenuto_pedal = parent.sostenuto_pedal;
         label_soft_pedal = parent.soft_pedal;
         
-        int notecode = parent.last_notecode - 21;
-        if (label_osc_type == 4) { if (notecode <= -1) label_note = "|  |"; else label_note = "/  \\"; }
+        int notecode = -1;
+        if (!parent.last_note.isEmpty()) notecode = parent.last_note.lastKey() - 21;
+        if (label_osc_type == 4) { if (notecode <= -1) label_note = "|  |"; else label_note = "/ \\"; }
         else {
             if (notecode < 0) label_note = "-";
             else {
@@ -101,11 +92,60 @@ class ChannelDisplay {
     }
     
     
+    void redraw(boolean renew_values) {
+        
+    }
+    
+    
     void check_buttons(int mButton) {
-        if (button_mute.collided()) {
+        if (button_mute != null && button_mute.collided()) {
             if (mButton == LEFT) player.set_channel_muted(!button_mute.pressed, parent.id);
             else if (mButton == RIGHT) player.set_channel_solo(!button_mute.pressed, parent.id);
         }
+    }
+}
+
+
+class ChannelDisplayOriginal extends ChannelDisplay {
+    float meter_vu_lerped = 0.0;
+    
+    float METER_LERP_QUICKNESS;
+    float METER_LERP_DECAYNESS;
+    final int METER_VU_LENGTH = 30;
+    
+    ChannelDisplayOriginal(int id, ChannelOsc parent) {
+        super(id, parent);
+        x = 12 + 180 * (id / 4);
+        y = 64 + 72 * (id % 4);
+        
+        button_mute = new Button(x+4, y+37, "mute", "");
+        if (id < 10) {
+            int hint = id + 1;
+            if (id == 9) hint = 0;
+            button_mute.set_key_hint(Integer.toString(hint));
+        }
+        recalc_quickness_from_settings();
+    }
+    
+    
+    private void update_all_values() {
+        if (parent.last_note.isEmpty())
+            meter_vu_target = 0;
+        else
+            try {
+                meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_note.get(parent.last_note.lastKey());
+            }
+            catch (NullPointerException npe) {
+                println("npe at renew");
+            }
+        
+        if (METER_LERP_QUICKNESS > 0) {
+            if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
+            if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/METER_LERP_DECAYNESS * abs(meter_vu_lerped - meter_vu_target);
+        }
+        else meter_vu_lerped = meter_vu_target;
+        
+        super.update_all_values();
     }
     
     
@@ -117,7 +157,6 @@ class ChannelDisplay {
         /*fill(t.theme[2]);
         noStroke();
         rect(x+1, y+1, 160, 63);*/
-        
         // Lines
             strokeWeight(1);
             stroke(t.theme[0]);
@@ -228,7 +267,7 @@ class ChannelDisplay {
             triangle(x+154, y+38, x+154, y+58, x+144, y+48);
             noStroke();
             fill(t.theme[3]);
-            if (meter_pan != 0) triangle(x+144 + 9 * meter_pan, y+48 - 9 * abs(meter_pan), x+144 + 9 * meter_pan, y+48 + 9 * abs(meter_pan), x+144, y+48);
+            if (meter_pan != 0) triangle(x+144.5 + 9 * meter_pan, y+48 - 8.5 * abs(meter_pan), x+144.5 + 9 * meter_pan, y+48 + 8.5 * abs(meter_pan), x+144.5, y+48.5);
             //text(meter_pan, x+145, y+48);
         
         // Mute dim
@@ -243,19 +282,186 @@ class ChannelDisplay {
     }
     
     
-    void recalc_quickness_from_settings() {
-        String md = prefs.get("meter decay", "Smooth");
+    void recalc_quickness(String md) {
         float value = md.equals("Instant") ? 0.5 : md.equals("Slow") ? 6 : 2;
         
         METER_LERP_DECAYNESS = value;
         if (value < 1) METER_LERP_QUICKNESS = -1;
         else METER_LERP_QUICKNESS = 0.5;
     }
+    
+    
+    void recalc_quickness_from_settings() {
+        recalc_quickness(prefs.get("meter decay", "Smooth"));
+    }
+}
+
+
+class ChannelDisplayVBars extends ChannelDisplay {
+    float meter_vu_lerped = 0.0;
+    
+    float METER_LERP_QUICKNESS;
+    float METER_LERP_DECAYNESS;
+    
+    ChannelDisplayVBars(int id, ChannelOsc parent) {
+        super(id, parent);
+        x = 11 + 44 * id;
+        y = 66;
+        
+        button_mute = new Button(x+20, y+5, "mute", "");
+        if (id < 10) {
+            int hint = id + 1;
+            if (id == 9) hint = 0;
+            button_mute.set_key_hint(Integer.toString(hint));
+        }
+        recalc_quickness_from_settings();
+    }
+    
+    
+    private void update_all_values() {
+        if (parent.last_note.isEmpty())
+            meter_vu_target = 0;
+        else
+            try {
+                meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_note.get(parent.last_note.lastKey());
+            }
+            catch (NullPointerException npe) {
+                println("npe at renew");
+            }
+        
+        if (METER_LERP_QUICKNESS > 0) {
+            if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
+            if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/METER_LERP_DECAYNESS * abs(meter_vu_lerped - meter_vu_target);
+        }
+        else meter_vu_lerped = meter_vu_target;
+        
+        super.update_all_values();
+    }
+    
+    
+    void redraw(boolean renew_values) {
+        if (renew_values) update_all_values();
+        
+        stroke(t.theme[0]);
+        fill(t.theme[1]);
+        rect(x, y, 44, 32, 6, 6, 0, 0);
+        fill(t.theme[4]);
+        textFont(fonts[4]);
+        textAlign(CENTER, CENTER);
+        text(id+1, x+11, y+16);
+        
+        noFill();
+        rect(x, y+32, 44, 20, 0, 0, 6, 6);
+        
+        fill(t.theme[0]);
+        if (label_midi_program >= 0) {
+            if (label_osc_type == -1) image(osc_type_textures[0], x+11, y+31);
+            else {
+                textFont(fonts[0]);
+                text(label_midi_program, x+33, y+43);
+                image(label_osc_type == 4 ? osc_type_textures[5] : midi_program_icon, x+2, y+31);
+            }
+        }
+        else {
+            if (label_pulse_width != -1) {
+                image(osc_type_textures[label_osc_type+1], x+2, y+31);
+                stroke(t.theme[0]);
+                fill(t.theme[1]);
+                rect(x+24, y+39, 15, 6, 4);
+                fill(t.theme[3]);
+                noStroke();
+                rect(x+25, y+40, 14 * label_pulse_width, 5, 4);
+            }
+            else image(osc_type_textures[label_osc_type+1], x+11, y+31);
+        }
+        
+        fill(t.theme[3]);
+        stroke(t.theme[0]);
+        rect(x+13, y+52, 18, 150);
+        noStroke();
+        fill(#ff0000 - 0x64000000);
+        rect(x+14, y+53, 3, 150);
+        fill(#ffff00 - 0x64000000);
+        rect(x+14, y+63, 3, 140);
+        fill(#00ff00 - 0x64000000);
+        rect(x+14, y+93, 3, 110);
+        fill(t.theme[1]);
+        rectMode(CORNERS);
+        rect(x+14, y+53, x+31, y+203 - 150*meter_vu_lerped);
+        rectMode(CORNER);
+        
+        noFill();
+        stroke(t.theme[0]);
+        rect(x, y+202, 44, 80, 6);
+        for (int i = 0; i < 3; i++) 
+            line(x, y+222+i*20, x+44, y+222+i*20);
+        
+        fill(t.theme[1]);
+        rect(x+4, y+208, 36, 8, 4);
+        fill(t.theme[3]);
+        noStroke();
+        rect(x+5, y+209, 35 * meter_ch_volume, 7, 4);
+        
+        fill(t.theme[0]);
+        textFont(fonts[0]);
+        text(label_note, x+23, y+202+27);
+        fill(t.theme[1]);
+        stroke(t.theme[0]);
+        rect(x+4, y+234, 36, 5, 2);
+        fill(t.theme[3]);
+        noStroke();
+        rect(x+5, y+235, 35 * meter_velocity, 4, 2);
+        
+        fill(t.theme[0]);
+        textFont(fonts[0]);
+        if (label_osc_type != 4) {
+            if (label_hold_pedal) text("•", x+27, y+57);
+            if (label_sostenuto_pedal) text("*", x+27, y+64);
+            if (label_soft_pedal) text("~", x+27, y+76);
+        }
+        
+        fill(t.theme[0]);
+        stroke(t.theme[0]);
+        strokeWeight(2);
+        noFill();
+        if (label_osc_type != 4) bezier(x+8, y+202+50, x+10, y+202+50 - 10*meter_bend, x+34, y+202+50 - 10*meter_bend, x+36, y+202+50);
+        else text("x", x+23, y+202+50);    // no bend for drums...
+        
+        strokeWeight(1);
+        fill(t.theme[1]);
+        triangle(x+8, y+202+64, x+8, y+202+76, x+22, y+202+70);
+        triangle(x+22, y+202+70, x+36, y+202+76, x+36, y+202+64);
+        noStroke();
+        fill(t.theme[3]);
+        if (meter_pan != 0) triangle(x+22.5 + 14 * meter_pan, y+203+70 - 6 * abs(meter_pan), x+22.5 + 14 * meter_pan, y+202+70 + 6 * abs(meter_pan), x+22.5, y+202.5+70);
+        
+        if (button_mute.pressed) {
+            noStroke();
+            fill(t.theme[2] - 0x64000000);
+            rect(x+1, y, 44, 283);
+        }
+        
+        button_mute.redraw();
+    }
+    
+    
+    void recalc_quickness(String md) {
+        float value = md.equals("Instant") ? 0.5 : md.equals("Slow") ? 6 : 2;
+        
+        METER_LERP_DECAYNESS = value;
+        if (value < 1) METER_LERP_QUICKNESS = -1;
+        else METER_LERP_QUICKNESS = 0.5;
+    }
+    
+    
+    void recalc_quickness_from_settings() {
+        recalc_quickness(prefs.get("meter decay", "Smooth"));
+    }
 }
 
 
 class PlayerDisplay {
-    int x, y;
+    int x;
     Player parent;
     Button b_metadata;
     Button b_loop;
@@ -263,7 +469,7 @@ class PlayerDisplay {
     Button b_prev;
     
     final int POS_X_POSBAR = 50;
-    final int POS_Y_POSBAR = 64;
+    int POS_Y_POSBAR = 64;
     final int POS_X_MESSAGEBAR = 376;
     final int WIDTH_POSBAR = 294;
     final int WIDTH_MESSAGEBAR = 294;
@@ -272,7 +478,7 @@ class PlayerDisplay {
     String label_filename = "";
     String label_dnd_msg = "";
     float meter_midi_pos = 0.0;
-    String label_message = "- no message -";
+    String label_message = "";
     float meter_loop_begin = 0.0;
     float meter_loop_end = 1.0;
     float meter_loop_begin_X = 0.0;
@@ -290,11 +496,7 @@ class PlayerDisplay {
     
     PlayerDisplay(int x, int y, Player parent) {
         this.x = x;
-        this.y = y;
         this.parent = parent;
-        
-        meter_loop_begin_Y = y + POS_Y_POSBAR;
-        meter_loop_end_Y = y + POS_Y_POSBAR + HEIGHT_POSBAR;
         
         b_metadata = new Button(682, 376, "metadata", "Metadata ");    // next to the player's message bar
         b_metadata.set_key_hint("m");
@@ -311,6 +513,8 @@ class PlayerDisplay {
     
     
     private void update_all_values() {
+        POS_Y_POSBAR = frame_height - 80;
+        
         if (show_key_hints) {
             label_filename = "Press 'o' to open a file to play...";
         }
@@ -319,23 +523,26 @@ class PlayerDisplay {
                 label_filename = java.nio.file.Paths.get(parent.curr_filename)
                     .getFileName().toString().replaceFirst("[.][^.]+$", "");
                     // what a mess... but it works
-                label_filename = check_and_shrink_string(label_filename, 56);
+                label_filename = check_and_shrink_string(label_filename, 70, true);
             }
             else label_filename = parent.custom_info_msg;
         }
         
         if (parent.seq.getTickLength() > 0) meter_midi_pos = map(parent.seq.getTickPosition(), 0, parent.seq.getTickLength(), 0.0, 1.0);
         label_message = player.last_text_message;    
-        label_message = check_and_shrink_string(label_message, 36);    // we don't want it to get out of the rectangle...
+        label_message = check_and_shrink_string(label_message, 34);    // we don't want it to get out of the rectangle...
         
         if (parent.playing_state != -1) {
             meter_loop_begin = map(parent.seq.getLoopStartPoint(), 0, player.seq.getTickLength(), 0.0, 1.0);
             if (parent.seq.getLoopEndPoint() == -1) meter_loop_end = 1.0;
             else meter_loop_end = map(parent.seq.getLoopEndPoint(), 0, player.seq.getTickLength(), 0.0, 1.0);
             
-            long secPos = player.seq.getMicrosecondPosition() / 1000000;
             long secLen = player.seq.getMicrosecondLength() / 1000000;
-            this.label_timestamp = secPos / 60 + ":" + String.format("%02d", secPos % 60);
+            long secPos = player.seq.getMicrosecondPosition() / 1000000;
+            //this.label_timestamp = ((secPos < 0 && secPos > -60) ? "-" : "") + secPos / 60 + ":" + String.format("%02d", Math.abs(secPos % 60));
+            this.label_timestamp = remaining_instead_of_elapsed ? 
+                ("-" + (secPos - secLen) / -60 + ":" + String.format("%02d", -(secPos - secLen) % 60)) : 
+                (secPos / 60 + ":" + String.format("%02d", secPos % 60));
             this.label_timelength = secLen / 60 + ":" + String.format("%02d", secLen % 60);
         }
         else {
@@ -347,6 +554,9 @@ class PlayerDisplay {
         }
         meter_loop_begin_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_begin);
         meter_loop_end_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_end);
+        
+        meter_loop_begin_Y = POS_Y_POSBAR;
+        meter_loop_end_Y = POS_Y_POSBAR + HEIGHT_POSBAR;
         
         /*label_GM = parent.file_is_GM;
         label_GM2 = parent.file_is_GM2;
@@ -405,7 +615,7 @@ class PlayerDisplay {
             catch (IllegalArgumentException iae) { }
             
             if (b_metadata.collided() && !dragged) {
-                ui.showTableImmutable(parent.get_metadata_table(), Arrays.asList("Parameter", "Value"), "Files' metadata");
+                ui.showTableImmutable(parent.get_metadata_table(), Arrays.asList("Parameter", "Value"), "Metadata in file " + parent.curr_filename);
             }
             
             if (win_plist != null && !dragged) {
@@ -438,17 +648,17 @@ class PlayerDisplay {
         // Pos meter
             stroke(t.theme[0]);
             fill(t.theme[1]);
-            rect(x + POS_X_POSBAR, y + POS_Y_POSBAR, WIDTH_POSBAR, HEIGHT_POSBAR, 6);
+            rect(x + POS_X_POSBAR, POS_Y_POSBAR, WIDTH_POSBAR, HEIGHT_POSBAR, 6);
             noStroke();
             fill(t.theme[3]);
-            rect(x+1 + POS_X_POSBAR, y+1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1, 6);
+            rect(x+1 + POS_X_POSBAR, 1 + POS_Y_POSBAR, (WIDTH_POSBAR-1) * meter_midi_pos, HEIGHT_POSBAR-1, 6);
         
         // Song pos and length labels
             textAlign(CENTER, CENTER);
             fill(t.theme[4]);
-            textFont(fonts[1]);
+            textFont(fonts[4]);
             int auxX = x + POS_X_POSBAR + WIDTH_POSBAR/2;
-            int auxY = y + POS_Y_POSBAR + 9;
+            int auxY = POS_Y_POSBAR + 9;
             outlinedText(label_timestamp + " / " + label_timelength, auxX, auxY, t.theme[4], t.theme[0] - color(0x40000000));
             if (show_key_hints) {
                 textFont(fonts[0]);
@@ -464,12 +674,12 @@ class PlayerDisplay {
         // File name label
             fill(t.theme[0]);
             textFont(fonts[5]);
-            text(label_filename, 362, y + POS_Y_POSBAR - 18);
+            text(label_filename, 362, POS_Y_POSBAR - 18);
         
         // Messages label
             stroke(t.theme[0]);
             fill(t.theme[1]);
-            rect(x + POS_X_MESSAGEBAR, y + POS_Y_POSBAR, WIDTH_MESSAGEBAR, HEIGHT_POSBAR, 6);    // reusing some dimensions...
+            rect(x + POS_X_MESSAGEBAR, POS_Y_POSBAR, WIDTH_MESSAGEBAR, HEIGHT_POSBAR, 6);    // reusing some dimensions...
             fill(t.theme[4]);
             textFont(fonts[1]);
             text(label_message, x + POS_X_MESSAGEBAR + WIDTH_MESSAGEBAR/2, auxY);
@@ -499,25 +709,25 @@ class PlayerDisplay {
             text("• Queue •\n\n" + queue_bottom_str, 75, 16);
             if (show_key_hints) text("F5", 75, 52);
         
-        b_metadata.redraw();
-        b_loop.redraw();
+        b_metadata.redraw_at_pos(682, POS_Y_POSBAR - 5);
+        b_loop.redraw_at_pos(12, POS_Y_POSBAR - 5);
         b_prev.redraw();
         b_next.redraw();
     }
     
     
     boolean collided_posbar() {
-        return (mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (mouseY > y + POS_Y_POSBAR && mouseY < HEIGHT_POSBAR + y + POS_Y_POSBAR);
+        return (mouseX > x + POS_X_POSBAR && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR) && (mouseY > POS_Y_POSBAR && mouseY < HEIGHT_POSBAR + POS_Y_POSBAR);
     }
     
     int collided_loopset_bar() {
         int which = 0;    // 0 is not pressed
         if (parent.seq.getLoopCount() == 0) return 0;
         
-        if ((mouseX > x + POS_X_POSBAR - 6 && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 6) && (mouseY > y + POS_Y_POSBAR - 16 && mouseY < y + POS_Y_POSBAR)) {
+        if ((mouseX > x + POS_X_POSBAR - 6 && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 6) && (mouseY > POS_Y_POSBAR - 16 && mouseY < POS_Y_POSBAR)) {
             which = -1;    // -1 is begin
         }
-        else if ((mouseX > x + POS_X_POSBAR - 6 && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 6) && (mouseY > y + POS_Y_POSBAR + HEIGHT_POSBAR && mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR + 16)) {
+        else if ((mouseX > x + POS_X_POSBAR - 6 && mouseX < WIDTH_POSBAR + x + POS_X_POSBAR + 6) && (mouseY > POS_Y_POSBAR + HEIGHT_POSBAR && mouseY < POS_Y_POSBAR + HEIGHT_POSBAR + 16)) {
             which = 1;    // 1 is end
         }
         
@@ -534,7 +744,7 @@ class PlayerDisplay {
     }
     
     boolean collided_metamsg_rect() {
-        return (mouseX > x + POS_X_MESSAGEBAR && mouseX < width-50) && (mouseY > y + POS_Y_POSBAR && mouseY < y + POS_Y_POSBAR + HEIGHT_POSBAR);
+        return (mouseX > x + POS_X_MESSAGEBAR && mouseX < width-50) && (mouseY > POS_Y_POSBAR && mouseY < POS_Y_POSBAR + HEIGHT_POSBAR);
     }
 }
 
@@ -792,7 +1002,7 @@ void gradientRect(int x, int y, int w, int h, int c1, int c2, int axis, PApplet 
 // could be worse...
 int marquee_timer = 0;
 int marquee_start = 0;
-int MARQUEE_MAX_LENGTH = 100;
+int MARQUEE_MAX_LENGTH = 148;
 boolean marquee_awaiting_return = true;
 String last_txt = "";
 void marqueeText(String txt, int x, int y, PApplet win) {
@@ -801,7 +1011,7 @@ void marqueeText(String txt, int x, int y, PApplet win) {
         marquee_awaiting_return = true;
         last_txt = txt;
     }
-    if (MARQUEE_MAX_LENGTH > textWidth(txt)) {
+    if (MARQUEE_MAX_LENGTH > text_width(txt)) {
         win.text(txt, x, y);
         return;        
     }
@@ -810,7 +1020,7 @@ void marqueeText(String txt, int x, int y, PApplet win) {
     if (marquee_timer > (marquee_awaiting_return ? 60 : 1)) {
         marquee_timer = 0;
         marquee_start++;
-        if (marquee_start >= textWidth(txt) - MARQUEE_MAX_LENGTH || marquee_awaiting_return) {
+        if (marquee_start >= text_width(txt) - MARQUEE_MAX_LENGTH || marquee_awaiting_return) {
             if (!marquee_awaiting_return) marquee_awaiting_return = true;
             else {
                 if (marquee_start <= 1) marquee_awaiting_return = false;
@@ -819,4 +1029,9 @@ void marqueeText(String txt, int x, int y, PApplet win) {
         }
     }
     marquee_timer++;
+}
+
+
+int text_width(String txt) {
+    return txt.length() * 8;
 }
