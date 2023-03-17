@@ -227,7 +227,7 @@ class Player {
     Sequence prep_javax_midi(Sequence mid, boolean right_now) {
         try {
             int n = mid == null ? 16 : mid.getTracks().length;
-            float vol = win_labs == null ? 0x2f : map(win_labs.k_volume.value, 0.0, 2.0, 0x00, 0x40);
+            float vol = win_labs == null ? 0x2f : map(win_labs.k_volume.value, 0.0, 2.0, 0x00, 0x4f);
             for (int i = 0; i < n; i++) {
                 // msgs: remove reverb, soften volume
                 if (mid != null) {
@@ -551,7 +551,7 @@ class Player {
                         channels[chan].set_osc_type(4);
                     }
                     else {
-                        channels[chan].set_osc_type(program_to_osc(data1));
+                        channels[chan].set_osc_type(prog_osc_relationship[data1]);
                     }
                     channels[chan].midi_program = data1;
                 }

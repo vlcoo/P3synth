@@ -69,7 +69,7 @@ void setup() {
     setup_buttons();
     setup_config();
     setup_fonts();
-    setup_samples();
+    setup_alt_resources();
     
     player = new Player();
     SDrop drop = new SDrop(PARENT);
@@ -184,11 +184,14 @@ boolean setup_process_lock() {
 }
 
 
-void setup_samples() {
+void setup_alt_resources() {
     samples = new SoundFile[4];
     for (int i = 1; i <= samples.length; i++) {
         samples[i-1] = new SoundFile(PARENT, "samples/" + i + ".wav");
     }
+    
+    key_transforms.put("Major", new int[] {0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0});
+    key_transforms.put("Minor", new int[] {0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, -1});
 }
 
 

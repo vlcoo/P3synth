@@ -135,19 +135,6 @@ float[] prog_osc_relationship = {
     4, 4, 4, 4, 4, 4, 4, 4
 };
 
-float program_to_osc(int prog) {
-    return prog_osc_relationship[prog];
-}
-
-
-float[][] prog_env_relationship = {
-    {1.2, 3}, {3, 9.1}
-};
-
-float[] program_to_env(int prog) {
-    return prog_env_relationship[prog];
-}
-
 
 // 1 → closed hihat, 2 → open hihat, 3 → snare, 4 → tom
 int[] notecode_perc_relationship = {
@@ -159,4 +146,28 @@ int[] notecode_perc_relationship = {
 
 int note_code_to_percussion(int note_code) {
     return notecode_perc_relationship[constrain(note_code, 35, 81) - 35];
+}
+
+
+HashMap<String, int[]> key_transforms = new HashMap<String, int[]>();
+
+Sequence transform_sequence(Sequence og_seq, int[] new_key) {
+    for (Track track : og_seq.getTracks()) {
+        for (int i = 0; i < track.size(); i++) {
+            MidiMessage msg = track.get(i).getMessage();
+            if (!(msg instanceof ShortMessage)) continue;
+            
+            ShortMessage event = (ShortMessage)msg;
+            if (event.getCommand() == ShortMessage.NOTE_ON || event.getCommand() == ShortMessage.NOTE_OFF) { 
+                try {
+                    int new_note = event.getData1() + new_key[(event.getData1() - 2 + player.mid_rootnote) % 12];
+                    event.setMessage(event.getCommand(), event.getChannel(), new_note, event.getData2());
+                }
+                catch (InvalidMidiDataException imde) {
+                    println("imde on transform");
+                }
+            }
+        }
+    }
+    return og_seq;
 }
