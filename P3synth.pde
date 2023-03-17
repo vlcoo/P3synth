@@ -6,7 +6,7 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 23.35;
+final float VERCODE = 23.32;
 final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
 
@@ -35,7 +35,11 @@ Form dialog_settings;
 boolean show_key_hints = false;
 boolean hi_res = false;
 boolean low_frate = false;
-int frame_height;
+
+boolean demo_ui = false;
+String demo_layout = "NES (NTSC)";
+String demo_title = "- No title -";
+String demo_description = "- no description -\n\nUnknown composer";
 
 
 void settings() {
@@ -45,14 +49,6 @@ void settings() {
     }
     
     size(724, 460);
-    
-    // i don't think this ever works
-    Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-        @Override
-        public void uncaughtException(Thread t, Throwable e) {
-            ui.showException("I'm sorry to announce that something has gone wrong and P3synth seems to have crashed. Please restart the program if frozen. Details:", "An error occured", new Exception(e));
-        }
-    });
 }
 
 
@@ -63,13 +59,12 @@ void setup() {
     surface.setTitle("vlco_o P3synth");
     frame = ( (PSurfaceAWT.SmoothCanvas)surface.getNative() ).getFrame();
     frame.setSize(new Dimension(724, 460));
-    frame_height = frame.getSize().height;
     
     setup_images();
     setup_buttons();
     setup_config();
     setup_fonts();
-    setup_alt_resources();
+    setup_samples();
     
     player = new Player();
     SDrop drop = new SDrop(PARENT);
@@ -77,16 +72,6 @@ void setup() {
     dnd_sf = new DnDSfListener();
     drop.addDropListener(dnd_mid);
     drop.addDropListener(dnd_sf);
-    
-    if (prefs.getBoolean("media keys", false)) {
-        try {
-            GlobalScreen.registerNativeHook();
-            GlobalScreen.addNativeKeyListener(new MediaKeysListener());
-        }
-        catch (NativeHookException nhe) {
-            println("nhe on media keys");
-        }
-    }
     
     if (is_newbie) {
         ui.showInfoDialog(
@@ -123,11 +108,9 @@ void exit() {
     
 void draw() {
     updateDiscordActivity();
-    if (!frame.isVisible()) return;
-    
     redraw_all();
     
-    if (player.playing_state == 1) {
+    if (player.playing_state == 1 && !demo_ui) {
         int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/4)) % 8;
         image(logo_anim[abs(n)], 311, 10);
     }
@@ -145,12 +128,14 @@ void draw() {
 
 
 void redraw_all() {
-    if (t.is_extended_theme) gradientRect(0, 0, width, frame_height, (int) t.theme[2], t.theme[5], 0, this);
+    if (t.is_extended_theme) gradientRect(0, 0, width, height, (int) t.theme[2], t.theme[5], 0, this);
     else background(t.theme[2]);
     
-    media_buttons.redraw();
-    setting_buttons.redraw();
-    b_labs.redraw_at_pos(353, player.disp.POS_Y_POSBAR + 7);
+    if (!demo_ui) {
+        media_buttons.redraw();
+        setting_buttons.redraw();
+        b_labs.redraw();
+    }
     player.redraw();
 }
 
@@ -184,14 +169,11 @@ boolean setup_process_lock() {
 }
 
 
-void setup_alt_resources() {
+void setup_samples() {
     samples = new SoundFile[4];
     for (int i = 1; i <= samples.length; i++) {
         samples[i-1] = new SoundFile(PARENT, "samples/" + i + ".wav");
     }
-    
-    key_transforms.put("Major", new int[] {0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0});
-    key_transforms.put("Minor", new int[] {0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, -1});
 }
 
 
@@ -220,8 +202,8 @@ void setup_fonts() {
     fonts[1] = loadFont("TerminusTTF-14.vlw");
     fonts[2] = loadFont("TerminusTTF-Bold-14.vlw");
     fonts[3] = loadFont("TerminusTTF-Bold_Italic-14.vlw");
-    fonts[4] = loadFont("AtariST8x16SystemFont-16.vlw");
-    fonts[5] = fonts[4];
+    fonts[4] = loadFont("RobotoCondensed-BoldItalic-16.vlw");
+    fonts[5] = loadFont("TerminusTTF-Bold_Italic-18.vlw");
 }
 
 
@@ -245,24 +227,6 @@ void setup_buttons() {
     
     b_labs = new Button(353, 390, "expand", "Labs");
     b_labs.set_key_hint("F3");
-}
-
-
-void setup_media_keys() {
-    ui.showInfoDialog("Global media keys have been enabled.\nPlease follow this wizard to assign the correct keys.", "Setting up media keys");
-    mk_setup = "play";
-    ui.showInfoDialog("PRESS PLAY KEY NOW, then click OK.\nDon't worry if the PLAY and PAUSE is the same key for you.", "Setting up media keys");
-    mk_setup = "pause";
-    ui.showInfoDialog("PRESS PAUSE KEY NOW, then click OK.\nDon't worry if the PLAY and PAUSE is the same key for you.", "Setting up media keys");
-    mk_setup = "back";
-    ui.showInfoDialog("PRESS BACK/PREVIOUS SONG KEY NOW, then click OK.", "Setting up media keys");
-    mk_setup = "forward";
-    ui.showInfoDialog("PRESS FORWARD/NEXT SONG KEY NOW, then click OK.", "Setting up media keys");
-    mk_setup = "stop";
-    ui.showInfoDialog("PRESS STOP KEY NOW, then click OK.", "Setting up media keys");
-    
-    ui.showInfoDialog("Done. This will apply after a program restart.", "Finished setting");
-    mk_setup = "";
 }
 
 
@@ -318,16 +282,10 @@ void toggle_playlist_win() {
     }
     
     win_plist.reposition();
-    if (player != null && win_plist.isLooping()) {
+    if (player != null) {
         player.seq.setLoopCount(0);
         player.disp.b_loop.set_pressed(false);
     }
-}
-
-
-void set_small_height(boolean how) {
-    frame.setSize(new Dimension(724, how ? 180 : 460));
-    frame_height = frame.getSize().height;
 }
 
 
@@ -403,7 +361,7 @@ void keyPressed() {
     else if (keyCode == 35) {        // END
         if (player.playing_state == -1) return;
         player.set_playing_state(-1);
-        if (win_plist != null) win_plist.set_current_item(-1);
+        win_plist.set_current_item(-1);
     }
     
     if (win_plist != null) {
@@ -418,11 +376,21 @@ void keyPressed() {
     
     if (player.playing_state != -1) {
         if (keyCode == LEFT) {
-            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() - 2500000);
+            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() - 1000000);
         }
         
         else if (keyCode == RIGHT) {
-            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() + 2500000);
+            player.seq.setMicrosecondPosition(player.seq.getMicrosecondPosition() + 1000000);
+        }
+        
+        if (win_labs != null && win_labs.isLooping()) {
+            if (keyCode == UP) {
+                player.seq.setTempoFactor(constrain(player.seq.getTempoFactor() + 0.1, 0.1, 4));
+            }
+            
+            else if (keyCode == DOWN) {
+                player.seq.setTempoFactor(constrain(player.seq.getTempoFactor() - 0.1, 0.1, 4));
+            }
         }
     }
     
@@ -577,8 +545,7 @@ void mouseDragged() {
 void mouseMoved() {
     if (player.disp.collided_sfload_rect() ||
         player.disp.collided_metamsg_rect() ||
-        player.disp.collided_queue_rect() ||
-        player.disp.collided_posbar()
+        player.disp.collided_queue_rect()
     ) cursor(HAND);
     else cursor(ARROW);
 }
