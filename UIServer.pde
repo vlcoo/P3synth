@@ -157,19 +157,14 @@ class ChannelDisplayOriginal extends ChannelDisplay {
         /*fill(t.theme[2]);
         noStroke();
         rect(x+1, y+1, 160, 63);*/
-        // Lines
+        // Borders
             strokeWeight(1);
             stroke(t.theme[0]);
             noFill();
-            // top, bottom, col1, mid1-2, col2, col3, col4, col5, mid3-4-5
-            line(x, y, x+160, y);
-            line(x+32, y+64, x+160, y+64);
-            line(x, y, x, y+32);
-            line(x, y+32, x+32, y+32);
-            line(x+32, y+32, x+32, y+64);
-            line(x+96, y, x+96, y+64);
-            line(x+128, y+1, x+128, y+64);
-            line(x+160, y, x+160, y+64);
+            rect(x, y, 32, 32);
+            rect(x+32, y, 64, 64);
+            rect(x+96, y, 32, 64);
+            rect(x+128, y, 32, 64);
             line(x+96, y+32, x+160, y+32);
             
         
