@@ -46,7 +46,7 @@ void settings() {
     
     size(724, 460);
     
-    // i don't think this ever works
+    // i think this only works on windows lol
     Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
         @Override
         public void uncaughtException(Thread t, Throwable e) {

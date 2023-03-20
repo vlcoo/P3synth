@@ -8,7 +8,10 @@ import uibooster.utils.*;
 import java.util.Arrays;
 
 
-UiBooster ui = new UiBooster();
+UiBooster ui = new UiBooster(
+    UiBoosterOptions.Theme.OS_NATIVE,
+    "data/graphics/icon_warn.png"
+);
 
 enum ChannelDisplayTypes {
     ORIGINAL, VERTICAL_BARS, NONE
