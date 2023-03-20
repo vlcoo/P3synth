@@ -152,13 +152,16 @@ int note_code_to_percussion(int note_code) {
 HashMap<String, int[]> key_transforms = new HashMap<String, int[]>();
 
 Sequence transform_sequence(Sequence og_seq, int[] new_key) {
+    if (player.seq == null || player.playing_state == -1) return null;
+    
+    player.set_playing_state(0);
     for (Track track : og_seq.getTracks()) {
         for (int i = 0; i < track.size(); i++) {
             MidiMessage msg = track.get(i).getMessage();
             if (!(msg instanceof ShortMessage)) continue;
             
             ShortMessage event = (ShortMessage)msg;
-            if (event.getCommand() == ShortMessage.NOTE_ON || event.getCommand() == ShortMessage.NOTE_OFF) { 
+            if (event.getChannel() != 9 && (event.getCommand() == ShortMessage.NOTE_ON || event.getCommand() == ShortMessage.NOTE_OFF)) { 
                 try {
                     int new_note = event.getData1() + new_key[(event.getData1() - 2 + player.mid_rootnote) % 12];
                     event.setMessage(event.getCommand(), event.getChannel(), new_note, event.getData2());
@@ -169,5 +172,7 @@ Sequence transform_sequence(Sequence og_seq, int[] new_key) {
             }
         }
     }
+    
+    player.set_playing_state(1);
     return og_seq;
 }

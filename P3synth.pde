@@ -192,6 +192,9 @@ void setup_alt_resources() {
     
     key_transforms.put("Major", new int[] {0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0});
     key_transforms.put("Minor", new int[] {0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, -1});
+    key_transforms.put("I don't know", new int[] {6, 5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5});
+    key_transforms.put("I do know", new int[] {12, 10, 8, 6, 4, 2, 0, -2, -4, -6, -8, -10});
+    key_transforms.put("None", new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
 }
 
 
@@ -397,7 +400,7 @@ void keyPressed() {
     }
     
     else if (keyCode == 36) {        // HOME
-        player.reload_curr_file();
+        player.reload_curr_file(false);
     }
     
     else if (keyCode == 35) {        // END
@@ -440,32 +443,29 @@ void keyReleased() {
 
 
 void mousePressed() {
-    if (mouseButton == LEFT) {
-        for (Button b : media_buttons.buttons.values()) {
-            if (b.icon_filename.equals("pause") || b.icon_filename.equals("stop")) continue;
-            if (b.collided()) curr_mid_pressed = b;
-        }
-        for (Button b : setting_buttons.buttons.values()) {
-            if (b.collided()) curr_mid_pressed = b;
-        }
-        if (player.disp.b_metadata.collided()) curr_mid_pressed = player.disp.b_metadata;
-        else if (player.disp.b_prev.collided()) curr_mid_pressed = player.disp.b_prev;
-        else if (player.disp.b_next.collided()) curr_mid_pressed = player.disp.b_next;
-        
-        if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
+    for (Button b : media_buttons.buttons.values()) {
+        if (b.icon_filename.equals("pause") || b.icon_filename.equals("stop")) continue;
+        if (b.collided()) curr_mid_pressed = b;
     }
+    for (Button b : setting_buttons.buttons.values()) {
+        if (b.collided()) curr_mid_pressed = b;
+    }
+    if (player.disp.b_metadata.collided()) curr_mid_pressed = player.disp.b_metadata;
+    else if (player.disp.b_prev.collided()) curr_mid_pressed = player.disp.b_prev;
+    else if (player.disp.b_next.collided()) curr_mid_pressed = player.disp.b_next;
+    
+    if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
 }
 
 
 void mouseReleased() {
     show_key_hints = false;
+    if (curr_mid_pressed != null) {
+        curr_mid_pressed.set_pressed(false);
+        curr_mid_pressed = null;
+    }
     
     if (mouseButton == LEFT) {
-        if (curr_mid_pressed != null) {
-            curr_mid_pressed.set_pressed(false);
-            curr_mid_pressed = null;
-        }
-        
         if(media_buttons.collided("Stop")) {
             if (player.playing_state == -1) return;
             player.set_playing_state(-1);
@@ -479,7 +479,7 @@ void mouseReleased() {
         }
         
         else if(media_buttons.collided("Replay")) {
-            player.reload_curr_file();
+            player.reload_curr_file(false);
         }
         
         else if(setting_buttons.collided("Config")) {
@@ -559,6 +559,12 @@ void mouseReleased() {
         
         else if (player.disp.collided_queue_rect()) {
             toggle_playlist_win();
+        }
+    }
+    
+    else if (mouseButton == RIGHT) {
+        if(media_buttons.collided("Replay")) {
+            player.reload_curr_file(true);
         }
     }
     

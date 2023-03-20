@@ -11,6 +11,7 @@ class Player {
     
     boolean new_engine = false;
     Sequencer seq;
+    Sequence mid;
     javax.sound.midi.Synthesizer alt_syn;
     MidiFileFormat metadata;
     PlayerDisplay disp;
@@ -172,7 +173,8 @@ class Player {
         if (system_synth && prefs.getBoolean("autoload sf", true)) try_match_soundfont(filename);
         
         try {
-            Sequence mid = prep_javax_midi(MidiSystem.getSequence(file), false);
+            mid = MidiSystem.getSequence(file);
+            prep_javax_midi(false);
             num_tracks = mid.getTracks().length;
             set_playing_state(-1);
             seq.setSequence(mid);
@@ -188,7 +190,7 @@ class Player {
             return "Invalid MIDI data!";
         }
         catch(IOException ioe) {
-            return "I/O Error!";
+            return "I/O Exception!";
         }
         
         metadata_map.put("Song tempo", Integer.toString(floor(seq.getTempoInBPM())) + " BPM");
@@ -218,13 +220,7 @@ class Player {
     }
     
     
-    Sequence prep_javax_midi() {
-        // bruteforce my way in
-        return prep_javax_midi(null, true);   
-    }
-    
-    
-    Sequence prep_javax_midi(Sequence mid, boolean right_now) {
+    Sequence prep_javax_midi(boolean right_now) {
         try {
             int n = mid == null ? 16 : mid.getTracks().length;
             float vol = win_labs == null ? 0x2f : map(win_labs.k_volume.value, 0.0, 2.0, 0x00, 0x4f);
@@ -253,10 +249,14 @@ class Player {
     }
     
     
-    void reload_curr_file() {
-        setTicks(0);
-        epoch_at_begin = java.time.Instant.now().getEpochSecond();
-        clear_meta_msgs();
+    void reload_curr_file(boolean from_looppoint) {
+        if (from_looppoint)
+            setTicks(seq.getLoopStartPoint());
+        else {
+            setTicks(0);
+            epoch_at_begin = java.time.Instant.now().getEpochSecond();
+            clear_meta_msgs();
+        }
     }
     
     
@@ -330,7 +330,7 @@ class Player {
         }
         
         if (playing_state_before >= 0) {
-            prep_javax_midi();
+            prep_javax_midi(true);
             play_file(prev_filename, playing_state_before == 0);
             seq.setLoopStartPoint(prev_looppoints[0]);
             seq.setLoopEndPoint(prev_looppoints[1]);

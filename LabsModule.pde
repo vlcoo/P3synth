@@ -26,7 +26,7 @@ public class LabsModule extends PApplet {
     
     
     public void settings() {
-        this.size(412, 100);
+        this.size(422, 100);
     }
     
     
@@ -80,8 +80,8 @@ public class LabsModule extends PApplet {
         
         all_knobs = new Knob[] {k_player_speed, k_pitchbend, k_volume, k_rt_adsr, k_rt_mod};
         
-        b_set = new Button(360, KNOB_Y_POS, "set", "Key\ntransform");
-        b_save = new Button(360, KNOB_Y_POS + 24, "save", "");
+        b_set = new Button(360, KNOB_Y_POS - 12, "set", "Transform");
+        b_save = new Button(360, KNOB_Y_POS + 12, "save", "");
     }
     
     
@@ -154,11 +154,12 @@ public class LabsModule extends PApplet {
             }
             
             if (b_set.collided(this)) {
-                transform_sequence(player.seq.getSequence(), key_transforms.get(
-                    ui.showSelectionDialog("WHAT DO YOU WANT", "Key transform", 
-                        Arrays.asList("Major", "Minor", "None")
+                int[] new_key = key_transforms.get(
+                    ui.showSelectionDialog("WHAT DO YOU WANT", "Scale transform", 
+                        new ArrayList<String>(key_transforms.keySet())
                     )
-                ));
+                );
+                if (new_key != null) transform_sequence(player.mid, new_key);
             }
         }
     }
