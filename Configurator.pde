@@ -6,7 +6,7 @@ int snap_pos_mult = 0;
 int knob_sensitivity = 40;
 boolean remaining_instead_of_elapsed = false;
 ChannelDisplayTypes channel_disp_type;
-HashMap<String, Integer> media_keys = new HashMap<>();
+HashMap<String, Integer> media_keys = new HashMap<String, Integer>();
 String mk_setup = "";
 
 

@@ -163,11 +163,6 @@ class Player {
     
     
     String play_file(String filename, boolean keep_paused) {
-        if (filename.toLowerCase().endsWith("wav")) {
-            play_wav(filename);
-            return "";
-        }
-        
         File file = new File(filename);
         if (system_synth && prefs.getBoolean("autoload sf", true)) try_match_soundfont(filename);
         
@@ -194,23 +189,6 @@ class Player {
         
         metadata_map.put("Song tempo", Integer.toString(floor(seq.getTempoInBPM())) + " BPM");
         return "";
-    }
-    
-    
-    void play_wav(String filename) {
-        // no
-        set_playing_state(-1);
-        File file = new File(filename);
-        load_soundfont(file);
-        //prep_javax_midi();
-        try {
-            event_listener.send(new ShortMessage(128, 0, 48, 127), 0);
-            event_listener.send(new ShortMessage(192, 0, 0, 0), 0);
-            event_listener.send(new ShortMessage(144, 0, 48, 127), 0);
-        }
-        catch (InvalidMidiDataException imde) {
-            println("imde on wav");
-        }
     }
     
     

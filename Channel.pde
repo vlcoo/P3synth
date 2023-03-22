@@ -34,7 +34,7 @@ public class ChannelOsc {
         current_notes = new HashMap<Integer, RTSoundObject>();
         curr_holding = new ArrayList();
         curr_sostenuting = new ArrayList();
-        last_note = new LinkedMap<>();
+        last_note = new LinkedMap<Integer, Float>();
     }
     
     
@@ -42,7 +42,7 @@ public class ChannelOsc {
         current_notes = new HashMap<Integer, RTSoundObject>();
         curr_holding = new ArrayList();
         curr_sostenuting = new ArrayList();
-        last_note = new LinkedMap<>();
+        last_note = new LinkedMap<Integer, Float>();
         set_osc_type(osc_type);
     }
     
