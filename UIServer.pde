@@ -38,8 +38,6 @@ class ChannelDisplay {
     boolean label_sostenuto_pedal = false;
     boolean label_soft_pedal = false;
     
-    final String[] NOTE_NAMES = new String[] {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
-    
     
     ChannelDisplay(int id, ChannelOsc parent) {
         this.id = id;

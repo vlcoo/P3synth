@@ -112,13 +112,14 @@ class MediaKeysListener implements NativeKeyListener {
     }
 }
 
+final String[] NOTE_NAMES = new String[] {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
 
 int[] major_rootnotes = {
-    12, 5, 1, 8, 3, 10, 5, 0, 7, 2, 9, 4, 11, 6, 1
+    2, 9, 4, 11, 6, 1, 8, 3, 10, 5, 0, 7, 2, 9, 4
 };
 
 int[] minor_rootnotes = {
-    8, 3, 10, 5, 0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10
+    11, 6, 1, 8, 3, 10, 5, 0, 7, 2, 9, 4, 11, 6, 1
 };
 
 

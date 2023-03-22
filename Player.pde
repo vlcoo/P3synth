@@ -643,11 +643,12 @@ class Player {
             }
             
             else if (type == 4) {        // Instrument name
-                metadata_map.put("Instrument " + meta_channel_prefix + " name", bytes_to_text(data));
+                metadata_map.put("Channel's " + meta_channel_prefix + " instrument", bytes_to_text(data));
             }
             
-            else if (type == 1 || type == 5 || type == 6) {        // Lyrics or text
+            else if (type == 1 || type == 5 || type == 6 || type == 7) {        // Lyrics or text
                 String text = bytes_to_text(data);
+                if (type == 6 || type == 7) text = "• " + text + " •";
                 if (!text.equals("")) {
                     last_text_message = text;
                     history_text_messages += text + "\n";
@@ -655,11 +656,16 @@ class Player {
                 }
             }
             
+            else if (type == 88) {        // Time signature
+                metadata_map.put("Time signature", data[0] + "/" + (int)pow(2, data[1]));
+            } 
+            
             else if (type == 89) {        // Key signature
                 mid_scale = data[data.length - 1];
                 if (mid_scale == 0) mid_rootnote = major_rootnotes[data[0] + 7];
                 else if (mid_scale == 1) mid_rootnote = minor_rootnotes[data[0] + 7];
-                //metadata_map.put("Key signature", mid_scale );
+                println(data[0]);
+                metadata_map.put("Key signature", NOTE_NAMES[mid_rootnote] + " " + (mid_scale == 0 ? "major" : "minor"));
                 return;
             }
             
