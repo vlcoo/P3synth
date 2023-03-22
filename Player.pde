@@ -107,23 +107,22 @@ class Player {
     
     
     protected void set_params_from_sysex(byte[] arr) {
-        print("syse...");
         int man_id = arr[0];
-        println(man_id);
+        
         switch(man_id) {
             case 67:        // Yamh, XG
-            metadata_map.put("Manufacturer ID", metadata_map.getOrDefault("Manufacturer ID", "") + " XG");
+            metadata_map.put("Manufacturer ID", metadata_map.getOrDefault("Manufacturer ID", "") + "XG ");
             break;
             
             case 65:        // Rold, GS
-            metadata_map.put("Manufacturer ID", metadata_map.getOrDefault("Manufacturer ID", "") + " GS");
+            metadata_map.put("Manufacturer ID", metadata_map.getOrDefault("Manufacturer ID", "") + "GS ");
             break;
             
             default:        // check if GM or GM2
             if (arr[2] == 9) 
                 metadata_map.put("Manufacturer ID", 
                     metadata_map.getOrDefault("Manufacturer ID", "") +
-                    (arr[3] == 1 ? " GM" : arr[3] == 3 ? " GM2" : ""));
+                    (arr[3] == 1 ? "GM " : arr[3] == 3 ? "GM2 " : ""));
             break;
         }
     }

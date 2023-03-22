@@ -12,7 +12,6 @@ public class LabsModule extends PApplet {
     Knob k_rt_adsr;
     Knob k_rt_mod;
     Button b_set;
-    Button b_save;
     
     Knob[] all_knobs;
     Knob curr_knob = null;
@@ -54,7 +53,7 @@ public class LabsModule extends PApplet {
         this.textFont(fonts[2]);
         this.text("x", 250, KNOB_Y_POS + 10);
         this.text("x", 320, KNOB_Y_POS + 10);
-        this.text("Experimental options! Use at your own risk.", 201, 17);
+        this.text("Experimental options! Use at your own risk.", 210, 17);
         
         for (Knob k : all_knobs) {
             if ((k == k_rt_adsr || k == k_rt_mod) && player.system_synth) continue;
@@ -62,7 +61,6 @@ public class LabsModule extends PApplet {
         }
         
         b_set.redraw(this);
-        b_save.redraw(this);
         
         /*if (curr_knob == null) {
             k_player_speed.value = player.seq.getTempoFactor();
@@ -80,15 +78,14 @@ public class LabsModule extends PApplet {
         
         all_knobs = new Knob[] {k_player_speed, k_pitchbend, k_volume, k_rt_adsr, k_rt_mod};
         
-        b_set = new Button(360, KNOB_Y_POS - 12, "set", "Transform");
-        b_save = new Button(360, KNOB_Y_POS + 12, "save", "");
+        b_set = new Button(372, KNOB_Y_POS + 6, "blank", "T.form\n");
     }
     
     
     void reposition() {
         int x = this.parentFrame.getX();
         int y = this.parentFrame.getY();
-        this.getSurface().setLocation((x + 170), (y > parentFrame.getHeight() + this.height ? y - this.height - 30 : y + parentFrame.getHeight() - 18));
+        this.getSurface().setLocation((x + 156), (y > parentFrame.getHeight() + this.height ? y - this.height - 30 : y + parentFrame.getHeight() - 18));
         this.getSurface().setIcon(logo_icon);
     }
     
@@ -117,7 +114,6 @@ public class LabsModule extends PApplet {
         }
         
         if (b_set.collided(this)) curr_mid_pressed = b_set;
-        else if (b_save.collided(this)) curr_mid_pressed = b_save;
         
         if (curr_knob != null) starting_knob_value = curr_knob.value;
         if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
@@ -154,12 +150,17 @@ public class LabsModule extends PApplet {
             }
             
             if (b_set.collided(this)) {
+                if (player.playing_state == -1) return;
                 int[] new_key = key_transforms.get(
-                    ui.showSelectionDialog("WHAT DO YOU WANT", "Scale transform", 
+                    ui.showSelectionDialog("Applies to all song, not fully accurate.", "Scale transform", 
                         new ArrayList<String>(key_transforms.keySet())
                     )
                 );
-                if (new_key != null) transform_sequence(player.mid, new_key);
+                
+                if (new_key != null) {
+                    transform_sequence(player.mid, new_key);
+                    player.set_seq_synth(player.system_synth);    // a bit ugly but this is the labs module after all...
+                }
             }
         }
     }
