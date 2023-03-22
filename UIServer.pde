@@ -911,7 +911,7 @@ class Button {
 class ButtonToolbar {
     int x, y;
     float x_sep, y_sep = 1;
-    HashMap<String, Button> buttons = new HashMap<String, Button>();
+    HashMap<String, Button> buttons = new LinkedHashMap<String, Button>();
 
     ButtonToolbar(int x, int y, float x_sep, float y_sep, Button[] buttons) {
         this.x_sep = x_sep;
@@ -941,6 +941,17 @@ class ButtonToolbar {
     
     void redraw(PApplet win) {
         for (Button b : buttons.values()) b.redraw(win);
+    }
+    
+    void set_pos(int x, int y) {
+        this.x = x;
+        this.y = y;
+        int i = 0;
+        for (Button b : buttons.values()) {
+            b.x = int(i * (b.width * this.x_sep) + x);
+            b.y = int(i * (b.height * this.y_sep) + y);
+            i++;
+        }
     }
 
 
@@ -993,41 +1004,4 @@ void gradientRect(int x, int y, int w, int h, int c1, int c2, int axis, PApplet 
         win.line(i, y, i, y+h);
       }
     }
-}
-
-// could be worse...
-int marquee_timer = 0;
-int marquee_start = 0;
-int MARQUEE_MAX_LENGTH = 148;
-boolean marquee_awaiting_return = true;
-String last_txt = "";
-void marqueeText(String txt, int x, int y, PApplet win) {
-    if (!txt.equals(last_txt)) {
-        marquee_start = 0;
-        marquee_awaiting_return = true;
-        last_txt = txt;
-    }
-    if (MARQUEE_MAX_LENGTH > text_width(txt)) {
-        win.text(txt, x, y);
-        return;        
-    }
-    win.text(txt, x - marquee_start, y);
-    
-    if (marquee_timer > (marquee_awaiting_return ? 60 : 1)) {
-        marquee_timer = 0;
-        marquee_start++;
-        if (marquee_start >= text_width(txt) - MARQUEE_MAX_LENGTH || marquee_awaiting_return) {
-            if (!marquee_awaiting_return) marquee_awaiting_return = true;
-            else {
-                if (marquee_start <= 1) marquee_awaiting_return = false;
-                marquee_start = 0;
-            }
-        }
-    }
-    marquee_timer++;
-}
-
-
-int text_width(String txt) {
-    return txt.length() * 8;
 }

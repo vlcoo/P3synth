@@ -57,6 +57,7 @@ void store_control_memory() {
     if (player == null) return;
     prefs.putBoolean("remember synth", player.system_synth);
     prefs.putBoolean("remember opened queue", win_plist != null && win_plist.isLooping());
+    if (win_plist != null) prefs.put("remember queue winsize", win_plist.size_to_string());
 }
 
 

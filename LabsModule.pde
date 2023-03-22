@@ -36,6 +36,7 @@ public class LabsModule extends PApplet {
     
     public void setup() {
         this.surface.setTitle("Labs module");
+        this.getSurface().setIcon(logo_icon);
         this.selfFrame = ( (PSurfaceAWT.SmoothCanvas)this.surface.getNative() ).getFrame();
         ((JFrame) this.selfFrame).setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         
@@ -86,7 +87,6 @@ public class LabsModule extends PApplet {
         int x = this.parentFrame.getX();
         int y = this.parentFrame.getY();
         this.getSurface().setLocation((x + 156), (y > parentFrame.getHeight() + this.height ? y - this.height - 30 : y + parentFrame.getHeight() - 18));
-        this.getSurface().setIcon(logo_icon);
     }
     
     
@@ -113,7 +113,7 @@ public class LabsModule extends PApplet {
             }
         }
         
-        if (b_set.collided(this)) curr_mid_pressed = b_set;
+        if (mouseButton == LEFT && b_set.collided(this)) curr_mid_pressed = b_set;
         
         if (curr_knob != null) starting_knob_value = curr_knob.value;
         if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
@@ -158,8 +158,8 @@ public class LabsModule extends PApplet {
                 );
                 
                 if (new_key != null) {
-                    transform_sequence(player.mid, new_key);
                     player.set_seq_synth(player.system_synth);    // a bit ugly but this is the labs module after all...
+                    transform_sequence(player.mid, new_key);
                 }
             }
         }
