@@ -7,12 +7,13 @@ class Player {
     final int LENGTH_THRESHOLD = 90000000;
     final int TEMPO_LIMIT = 1000;
     final String DEFAULT_STOPPED_MSG = "Drag and drop a file to play...";
+    final String DEFAULT_EMPTY_MSGS = "• no messages •";
     
     boolean new_engine = false;
     Sequencer seq;
+    Sequence mid;
     javax.sound.midi.Synthesizer alt_syn;
     MidiFileFormat metadata;
-    KeyTransformer ktrans;
     PlayerDisplay disp;
     int midi_resolution;
     int meta_channel_prefix = 0;
@@ -31,35 +32,23 @@ class Player {
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
     float osc_synth_volume_mult = 1.0;
+    boolean locked_vis_redraw = false;
     
     // values to be read by the display...
     String history_text_messages = "";              // keeping track of every text (meta) msg gotten
-    String last_text_message = "- no message -";    // default text if nothing received
+    String last_text_message = DEFAULT_EMPTY_MSGS;
     float last_freqDetune = 0.0;
     float last_noteDetune = 0.0;
     String custom_info_msg = "";
-    boolean file_is_GM = false;
-    boolean file_is_GM2 = false;
-    boolean file_is_XG = false;
-    boolean file_is_GS = false;
     HashMap<String, String> metadata_map;
     long epoch_at_begin = 0;
     
     
     Player() {
-        ktrans = new KeyTransformer();
-        final int nChannels = 16;
-        channels = new ChannelOsc[nChannels];
+        channels = new ChannelOsc[16];
         metadata_map = new LinkedHashMap();
         
-        for (int i = 0; i < nChannels; i++) {
-            channels[i] = new ChannelOsc(-1);
-            if (i == 9) channels[i] = new ChannelOsc(4);
-            
-            channels[i].create_display(12 + 180 * (i / 4), 64 + 72 * (i % 4), i);
-            channels[i].disp.redraw(false);    // draw meters at value 0
-        }
-        
+        create_visualizer(true);
         create_display(0, 318);
         
         set_seq_synth(prefs.getBoolean("remember", true) ? prefs.getBoolean("remember synth", true) : true);
@@ -82,11 +71,35 @@ class Player {
     }
     
     
+    void create_visualizer() {
+        create_visualizer(false);
+    }
+    
+    void create_visualizer(boolean also_osc_objects) {
+        locked_vis_redraw = true;
+        for (int i = 0; i < 16; i++) {
+            if (also_osc_objects) {
+                channels[i] = new ChannelOsc(-1);
+                if (i == 9) channels[i] = new ChannelOsc(4);
+            }
+            
+            channels[i].create_display(i, channel_disp_type);
+            if (also_osc_objects) channels[i].disp.redraw(false);    // draw meters at value 0
+            else if (playing_state == -1) {
+                vu_anim_val = 0.0;
+                vu_anim_returning = false;
+            }
+        }
+        locked_vis_redraw = false;
+    }
+    
+    
     protected String bytes_to_text(byte[] arr) {
         String text = "";
         
         for (byte b : arr) {
             if (b >= 0) text += Character.toString((char) b);
+            else text += "×";
         }
         
         return text.trim().replace("\n", "");
@@ -94,22 +107,25 @@ class Player {
     
     
     protected void set_params_from_sysex(byte[] arr) {
-        print("syse...");
         int man_id = arr[0];
+        String s = metadata_map.getOrDefault("Manufacturer ID", "");
+        
         switch(man_id) {
             case 67:        // Yamh, XG
-            file_is_XG = true;
+            if (s.contains("XG")) break;
+            metadata_map.put("Manufacturer ID", s + "XG ");
             break;
             
             case 65:        // Rold, GS
-            file_is_GS = true;
+            if (s.contains("GS")) break;
+            metadata_map.put("Manufacturer ID", metadata_map.getOrDefault("Manufacturer ID", "") + "GS ");
             break;
             
             default:        // check if GM or GM2
-            if (arr[2] == 9) {
-                file_is_GM = arr[3] == 1 ? true : false;
-                file_is_GM2 = arr[3] == 3 ? true : false;
-            }
+            if (arr[2] == 9 && !s.contains("GM")) 
+                metadata_map.put("Manufacturer ID", 
+                    metadata_map.getOrDefault("Manufacturer ID", "") +
+                    (arr[3] == 1 ? "GM " : arr[3] == 3 ? "GM2 " : ""));
             break;
         }
     }
@@ -156,7 +172,8 @@ class Player {
         if (system_synth && prefs.getBoolean("autoload sf", true)) try_match_soundfont(filename);
         
         try {
-            Sequence mid = prep_javax_midi(MidiSystem.getSequence(file), false);
+            mid = MidiSystem.getSequence(file);
+            prep_javax_midi(false);
             num_tracks = mid.getTracks().length;
             set_playing_state(-1);
             seq.setSequence(mid);
@@ -172,9 +189,10 @@ class Player {
             return "Invalid MIDI data!";
         }
         catch(IOException ioe) {
-            return "I/O Error!";
+            return "I/O Exception!";
         }
         
+        metadata_map.put("Song tempo", Integer.toString(floor(seq.getTempoInBPM())) + " BPM");
         return "";
     }
     
@@ -201,16 +219,10 @@ class Player {
     }
     
     
-    Sequence prep_javax_midi() {
-        // bruteforce my way in
-        return prep_javax_midi(null, true);   
-    }
-    
-    
-    Sequence prep_javax_midi(Sequence mid, boolean right_now) {
+    Sequence prep_javax_midi(boolean right_now) {
         try {
             int n = mid == null ? 16 : mid.getTracks().length;
-            float vol = win_labs == null ? 0x2f : map(win_labs.k_volume.value, 0.0, 2.0, 0x00, 0x40);
+            float vol = win_labs == null ? 0x2f : map(win_labs.k_volume.value, 0.0, 2.0, 0x00, 0x4f);
             for (int i = 0; i < n; i++) {
                 // msgs: remove reverb, soften volume
                 if (mid != null) {
@@ -236,9 +248,14 @@ class Player {
     }
     
     
-    void reload_curr_file() {
-        setTicks(0);
-        epoch_at_begin = java.time.Instant.now().getEpochSecond();
+    void reload_curr_file(boolean from_looppoint) {
+        if (from_looppoint)
+            setTicks(seq.getLoopStartPoint());
+        else {
+            setTicks(0);
+            epoch_at_begin = java.time.Instant.now().getEpochSecond();
+            clear_meta_msgs();
+        }
     }
     
     
@@ -312,7 +329,7 @@ class Player {
         }
         
         if (playing_state_before >= 0) {
-            prep_javax_midi();
+            prep_javax_midi(true);
             play_file(prev_filename, playing_state_before == 0);
             seq.setLoopStartPoint(prev_looppoints[0]);
             seq.setLoopEndPoint(prev_looppoints[1]);
@@ -351,10 +368,17 @@ class Player {
     
     
     void vu_anim_step() {
+        if (locked_vis_redraw) return;
+        
         for (ChannelOsc c : channels) {
-            c.disp.meter_vu_lerped = vu_anim_val;
+            if (channel_disp_type == ChannelDisplayTypes.ORIGINAL)
+                ((ChannelDisplayOriginal)(c.disp)).meter_vu_lerped = vu_anim_val;
+            else if (channel_disp_type == ChannelDisplayTypes.VERTICAL_BARS)
+                ((ChannelDisplayVBars)(c.disp)).meter_vu_lerped = vu_anim_val;
+            else c.disp.meter_vu_target = vu_anim_val;
             c.disp.redraw(false);
         }
+        
         if (!vu_anim_returning && vu_anim_val <= 1.0) vu_anim_val += 0.1;
         else vu_anim_returning = true;
         if (vu_anim_returning) vu_anim_val -= 0.05;
@@ -368,7 +392,7 @@ class Player {
     
     
     void set_playing_state(int how) {
-        if (seq == null) return;
+        if (seq == null || how == playing_state) return;
         if (win_labs != null)
             win_labs.k_pitchbend.value = win_labs.k_pitchbend.neutral_value;
         
@@ -405,10 +429,8 @@ class Player {
         for (ChannelOsc c : channels) c.reset_params();
         setTicks(0);
         
-        last_text_message = "- no message -";
-        history_text_messages = "";
+        clear_meta_msgs();
         clear_metadata_map_keep_sf();
-        if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
         curr_rpn = 0;
         curr_bank = 0;
         mid_rootnote = 0;
@@ -417,11 +439,13 @@ class Player {
         epoch_at_begin = 0;
         
         reset_looppoints();
-        
-        file_is_GM = false;
-        file_is_GM2 = false;
-        file_is_XG = false;
-        file_is_GS = false;
+    }
+    
+    
+    void clear_meta_msgs() {
+        last_text_message = DEFAULT_EMPTY_MSGS;
+        history_text_messages = "";
+        if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
     }
     
     
@@ -461,7 +485,7 @@ class Player {
     
     String[][] get_metadata_table() {
         if (metadata_map == null) return null;
-        int size = metadata_map.size();
+        int size = metadata_map.size() - (system_synth ? 0 : 3);
         String[][] t = new String[size][2];
         
         int i = 0;
@@ -483,6 +507,7 @@ class Player {
     
     
     void redraw() {
+        if (locked_vis_redraw) return;
         for (ChannelOsc c : channels) {
             c.redraw_playing();
         }
@@ -520,7 +545,7 @@ class Player {
                         channels[chan].set_osc_type(4);
                     }
                     else {
-                        channels[chan].set_osc_type(program_to_osc(data1));
+                        channels[chan].set_osc_type(prog_osc_relationship[data1]);
                     }
                     channels[chan].midi_program = data1;
                 }
@@ -584,6 +609,10 @@ class Player {
                     }
                 }
             }
+            
+            else if (msg instanceof SysexMessage) {
+                set_params_from_sysex(((SysexMessage)msg).getData());
+            }
         }
         
         void close() {}
@@ -612,11 +641,12 @@ class Player {
             }
             
             else if (type == 4) {        // Instrument name
-                metadata_map.put("Instrument " + meta_channel_prefix + " name", bytes_to_text(data));
+                metadata_map.put("Channel's " + meta_channel_prefix + " instrument", bytes_to_text(data));
             }
             
-            else if (type == 1 || type == 5 || type == 6) {        // Lyrics or text
+            else if (type == 1 || type == 5 || type == 6 || type == 7) {        // Lyrics or text
                 String text = bytes_to_text(data);
+                if (type == 6 || type == 7) text = "• " + text + " •";
                 if (!text.equals("")) {
                     last_text_message = text;
                     history_text_messages += text + "\n";
@@ -624,10 +654,15 @@ class Player {
                 }
             }
             
+            else if (type == 88) {        // Time signature
+                metadata_map.put("Time signature", data[0] + "/" + (int)pow(2, data[1]));
+            } 
+            
             else if (type == 89) {        // Key signature
                 mid_scale = data[data.length - 1];
                 if (mid_scale == 0) mid_rootnote = major_rootnotes[data[0] + 7];
                 else if (mid_scale == 1) mid_rootnote = minor_rootnotes[data[0] + 7];
+                metadata_map.put("Key signature", NOTE_NAMES[mid_rootnote] + " " + (mid_scale == 0 ? "major" : "minor"));
                 return;
             }
             

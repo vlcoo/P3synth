@@ -1,6 +1,6 @@
 import processing.sound.*;
-import java.util.Stack;
 import java.util.ConcurrentModificationException;
+import org.apache.commons.collections4.map.LinkedMap;
 
 
 public class ChannelOsc {
@@ -26,16 +26,15 @@ public class ChannelOsc {
     ChannelDisplay disp;
     
     // values to be read by the display...:
-    float last_amp = 0.0;
-    float last_freq = 0;
-    int last_notecode = -1;
     int midi_program = 0;
+    LinkedMap<Integer, Float> last_note;
     
     
     ChannelOsc() {
         current_notes = new HashMap<Integer, RTSoundObject>();
         curr_holding = new ArrayList();
         curr_sostenuting = new ArrayList();
+        last_note = new LinkedMap<>();
     }
     
     
@@ -43,19 +42,33 @@ public class ChannelOsc {
         current_notes = new HashMap<Integer, RTSoundObject>();
         curr_holding = new ArrayList();
         curr_sostenuting = new ArrayList();
+        last_note = new LinkedMap<>();
         set_osc_type(osc_type);
     }
     
     
-    void create_display(int x, int y, int id) {
+    void create_display(int id, ChannelDisplayTypes type) {
         ChannelDisplay d;
-        d = new ChannelDisplay(x, y, id, this);
+        switch (type) {
+            case ORIGINAL:
+                d = new ChannelDisplayOriginal(id, this);
+                break;
+            case VERTICAL_BARS:
+                d = new ChannelDisplayVBars(id, this);
+                break;
+            case NONE:
+                d = new ChannelDisplay(id, this);
+                break;
+            default:
+                return;
+        }
         this.disp = d;
         this.id = id;
     }
     
     
     void redraw_playing() {
+        if (this.disp == null) return;
         this.disp.redraw(true);    // draw meters with updated values
         try {
             for (RTSoundObject s : current_notes.values()) {
@@ -90,8 +103,7 @@ public class ChannelOsc {
         }
         stop_note(note_code);
         
-        float mod_note_code = note_code + curr_noteDetune;
-        float freq = midi_to_freq(mod_note_code);
+        float freq = midi_to_freq(note_code);
         float amp = map(velocity, 0, 127, 0.0, 1.0);
         
         RTSoundObject s = current_notes.get(note_code);
@@ -101,14 +113,12 @@ public class ChannelOsc {
             current_notes.put(note_code, s);
         }
         s.pan(curr_global_pan);
-        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.08 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * player.osc_synth_volume_mult);    // give a volume boost to TRI and SIN
+        s.amp(amp * (osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * player.osc_synth_volume_mult);    // give a volume boost to TRI and SIN
         if (osc_type == 0) ((Pulse) s.osc).width(pulse_width);
         
-        if (!demo_ui) s.play();
+        s.play();
         
-        last_amp = amp;
-        last_freq = freq;
-        last_notecode = floor(mod_note_code);
+        last_note.put(note_code, amp);
     }
     
     
@@ -122,11 +132,9 @@ public class ChannelOsc {
         
         s.pan(curr_global_pan);
         s.amp(amp * 0.2 * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * player.osc_synth_volume_mult);
-        if (!demo_ui) s.play();
+        s.play();
         
-        last_amp = amp;
-        last_freq = sample_code;
-        last_notecode = note_code;
+        last_note.put(note_code, amp);
     }
     
     
@@ -150,9 +158,8 @@ public class ChannelOsc {
             s.stop(force);
         }
         
-        last_amp = 0.0;
-        last_freq = 0.0;
-        last_notecode = -1;
+        int index = last_note.indexOf(note_code);
+        if (index >= 0) last_note.remove(last_note.indexOf(note_code));
     }
     
     
@@ -234,7 +241,7 @@ public class ChannelOsc {
     
     void set_all_oscs_amp() {
         for (RTSoundObject s : current_notes.values()) {
-            s.amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * last_amp);
+            s.amp((osc_type == 1 || osc_type == 2 ? 0.12 : 0.05) * curr_global_amp * amp_multiplier * (soft_pedal ? 0.5 : 1) * player.osc_synth_volume_mult);
         }
     }
     
@@ -249,7 +256,6 @@ public class ChannelOsc {
         for (Entry<Integer, RTSoundObject> s_pair : current_notes.entrySet()) {
             float new_freq = midi_to_freq(s_pair.getKey() + curr_noteDetune) * bend_freq_ratio;
             s_pair.getValue().freq(new_freq + curr_freqDetune);
-            last_freq = new_freq;
         }
     }
     
@@ -264,6 +270,7 @@ public class ChannelOsc {
     
     
     void set_muted(boolean how) {
+        if (disp.button_mute == null) return;
         if (how) shut_up();
         disp.button_mute.set_pressed(how);
         silenced = how;
@@ -283,9 +290,7 @@ public class ChannelOsc {
         current_notes.clear();
         curr_holding.clear();
         curr_sostenuting.clear();
-        last_amp = 0.0;
-        last_freq = 0;
-        last_notecode = -1;
+        last_note.clear();
         if (id == 9) osc_type = 4;
         else osc_type = -1; 
         pulse_width = 0.5;

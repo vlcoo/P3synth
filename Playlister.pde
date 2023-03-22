@@ -39,7 +39,8 @@ public class PlaylistModule extends PApplet {
     
     
     public void settings() {
-        this.size(210, 420);
+        String s = prefs.get("remember queue winsize", "210 420");
+        this.size(Integer.parseInt(s.split(" ")[0]), Integer.parseInt(s.split(" ")[1]));
     }
     
     
@@ -50,6 +51,8 @@ public class PlaylistModule extends PApplet {
     
     public void setup() {
         this.surface.setTitle("Playlist");
+        this.getSurface().setIcon(logo_icon);
+        this.surface.setResizable(true);
         
         this.selfFrame = ( (PSurfaceAWT.SmoothCanvas)this.surface.getNative() ).getFrame();
         //this.selfFrame.setSize(new Dimension(210, 420));
@@ -61,7 +64,14 @@ public class PlaylistModule extends PApplet {
         dnd_playlist = new DnDPlistListener(this);
         drop.addDropListener(dnd_playlist);
         
+        this.selfFrame.addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                refresh_positions_after_resize();
+            }
+        });
+        
         this.reposition();
+        this.refresh_positions_after_resize();
         this.set_shuffle(true);
     }
     
@@ -88,12 +98,12 @@ public class PlaylistModule extends PApplet {
             if (dnd_playlist.draggedOnto) custom_msg = "OK! (Add to queue)";
             else custom_msg = (show_key_hints ? "Press\n'a' or 'f' to open" : "Drag and drop") +
                 "\na file or folder\nto add...";
-            text(custom_msg, 105, 210);
+            text(custom_msg, this.width/2, this.height/2);
         }
         else {
             this.stroke(t.theme[0]);
             this.fill(t.theme[1]);
-            this.rect(14, ITEM_UI_HEIGHT * (1.8 - scroll_offset), 180, ITEM_UI_HEIGHT * items.size(), 6, 6, 6, 6);
+            this.rect(14, ITEM_UI_HEIGHT * (1.8 - scroll_offset), this.width - 28, ITEM_UI_HEIGHT * items.size(), 6, 6, 6, 6);
             
             for (int i = 0; i < items.size(); i++) {
                 float y = ITEM_UI_HEIGHT * (1.8 + i - scroll_offset);
@@ -102,7 +112,7 @@ public class PlaylistModule extends PApplet {
                     this.noStroke();
                     int rUp = i == 0 ? 6 : 0;
                     int rDown = i == items.size()-1 ? 6 : 0;
-                    this.rect(15, y + 0.5, 179, ITEM_UI_HEIGHT - 0.5, rUp, rUp, rDown, rDown);
+                    this.rect(15, y + 0.5, this.width - 29, ITEM_UI_HEIGHT - 0.5, rUp, rUp, rDown, rDown);
                     this.fill(t.theme[0]);
                     this.stroke(t.theme[0]);
                 }
@@ -111,20 +121,17 @@ public class PlaylistModule extends PApplet {
                 }
                 this.textAlign(LEFT, BOTTOM);
                 this.textFont(fonts[1]);
-                if (which_index_clicked() == i)
-                    marqueeText(items.get(i).filename, 20, (int)y + 21, this);
-                else 
-                    text(check_and_shrink_string(items.get(i).filename, 18), 20, y + 21);
-                if(i != items.size() - 1) this.line(14, y + ITEM_UI_HEIGHT, 194, y + ITEM_UI_HEIGHT);
-                items.get(i).button_delete.redraw_at_pos(170, (int) y + 6, this);
+                text(check_and_shrink_string(items.get(i).filename, (this.width-60)/8), 20, y + 21);
+                if(i != items.size() - 1) this.line(14, y + ITEM_UI_HEIGHT, this.width - 15, y + ITEM_UI_HEIGHT);
+                items.get(i).button_delete.redraw_at_pos(this.width - 40, (int) y + 6, this);
             }
         }
         
         noStroke();
         this.fill(t.theme[2]);
-        this.rect(0, 0, 210, 46);
+        this.rect(0, 0, this.width, 47);
         if (t.is_extended_theme) this.fill(t.theme[5]);
-        this.rect(0, 365, 210, 420);
+        this.rect(0, this.height-57, this.width, 420);
         
         buttons_top.redraw(this);
         buttons_bottom.redraw(this);
@@ -185,22 +192,30 @@ public class PlaylistModule extends PApplet {
         int x = this.parentFrame.getX();
         int y = this.parentFrame.getY();
         this.getSurface().setLocation((x < this.width ? x + parentFrame.getWidth() + 2 : x - this.width - 2), (y));
-        this.getSurface().setIcon(logo_icon);
+    }
+    
+    
+    public void refresh_positions_after_resize() {
+        buttons_top.set_pos(this.width/2 - 40, 16);
+        buttons_bottom.set_pos(this.width/2 - 60, this.height - 44);
+    }
+    
+    
+    public String size_to_string() {
+        return this.width + " " + this.height;
     }
     
     
     public void mouseWheel(MouseEvent e) {
         if (items.isEmpty()) return;
-        scroll_offset_target = constrain(scroll_offset_target + e.getCount() * 2, -9, items.size() - 1);
+        scroll_offset_target = constrain(scroll_offset_target + e.getCount() * 2, (this.height-120) / -ITEM_UI_HEIGHT, items.size() - 1);
     }
     
     
     public void keyPressed() {
         int prev_item_count = items.size();
         
-        if (keyCode == 18) show_key_hints = true;
-        
-        else if (key == 'a') {
+        if (key == 'a') {
             add_single_file(ui.showFileSelection("MIDI files", "mid", "midi"));
         }
         
@@ -229,16 +244,16 @@ public class PlaylistModule extends PApplet {
             set_current_item(-1);
         }
         
-        else if (keyCode == 116) {
-            toggle_playlist_win();
-        }
-        
         if (prev_item_count == 0 && items.size() > prev_item_count) set_current_item(0);
+        
+        PARENT.key = this.key;
+        PARENT.keyCode = this.keyCode;
+        PARENT.keyPressed();
     }
 
 
     void keyReleased() {
-        show_key_hints = false;
+        PARENT.keyReleased();
     }    
     
     
@@ -318,7 +333,7 @@ public class PlaylistModule extends PApplet {
     
     
     boolean collided_plist() {
-        return mouseX > 14 && mouseX < 168 &&
+        return mouseX > 14 && mouseX < this.width - 42 &&
         mouseY > max(46, ITEM_UI_HEIGHT * (1.8 - scroll_offset)) &&
         mouseY < min(365, ITEM_UI_HEIGHT * (1.8 - scroll_offset + items.size()));
     }
