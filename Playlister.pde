@@ -204,7 +204,7 @@ public class PlaylistModule extends PApplet {
     
     public void mouseWheel(MouseEvent e) {
         if (items.isEmpty()) return;
-        scroll_offset_target = constrain(scroll_offset_target + e.getCount() * 2, -9, items.size() - 1);
+        scroll_offset_target = constrain(scroll_offset_target + e.getCount() * 2, (this.height-120) / -ITEM_UI_HEIGHT, items.size() - 1);
     }
     
     

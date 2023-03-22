@@ -17,6 +17,7 @@ float snap_number(float num, float mult) {
 
 
 String check_and_shrink_string(String original, int max_len, boolean use_alt_ellipses) {
+    if (max_len < 1) return (use_alt_ellipses ? "..." : "…");
     if (original.length() > max_len) original = original.substring(0, max_len - 1) + (use_alt_ellipses ? "..." : "…");
     return original;
 }

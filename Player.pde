@@ -108,18 +108,21 @@ class Player {
     
     protected void set_params_from_sysex(byte[] arr) {
         int man_id = arr[0];
+        String s = metadata_map.getOrDefault("Manufacturer ID", "");
         
         switch(man_id) {
             case 67:        // Yamh, XG
-            metadata_map.put("Manufacturer ID", metadata_map.getOrDefault("Manufacturer ID", "") + "XG ");
+            if (s.contains("XG")) break;
+            metadata_map.put("Manufacturer ID", s + "XG ");
             break;
             
             case 65:        // Rold, GS
+            if (s.contains("GS")) break;
             metadata_map.put("Manufacturer ID", metadata_map.getOrDefault("Manufacturer ID", "") + "GS ");
             break;
             
             default:        // check if GM or GM2
-            if (arr[2] == 9) 
+            if (arr[2] == 9 && !s.contains("GM")) 
                 metadata_map.put("Manufacturer ID", 
                     metadata_map.getOrDefault("Manufacturer ID", "") +
                     (arr[3] == 1 ? "GM " : arr[3] == 3 ? "GM2 " : ""));
@@ -482,7 +485,7 @@ class Player {
     
     String[][] get_metadata_table() {
         if (metadata_map == null) return null;
-        int size = metadata_map.size();
+        int size = metadata_map.size() - (system_synth ? 0 : 3);
         String[][] t = new String[size][2];
         
         int i = 0;

@@ -152,7 +152,7 @@ public class LabsModule extends PApplet {
             if (b_set.collided(this)) {
                 if (player.playing_state == -1) return;
                 int[] new_key = key_transforms.get(
-                    ui.showSelectionDialog("Applies to all song, not fully accurate.", "Scale transform", 
+                    ui.showSelectionDialog("Applies to whole song, not fully accurate.", "Scale transform", 
                         new ArrayList<String>(key_transforms.keySet())
                     )
                 );
