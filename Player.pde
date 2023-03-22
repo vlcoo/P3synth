@@ -40,10 +40,6 @@ class Player {
     float last_freqDetune = 0.0;
     float last_noteDetune = 0.0;
     String custom_info_msg = "";
-    boolean file_is_GM = false;
-    boolean file_is_GM2 = false;
-    boolean file_is_XG = false;
-    boolean file_is_GS = false;
     HashMap<String, String> metadata_map;
     long epoch_at_begin = 0;
     
@@ -113,20 +109,21 @@ class Player {
     protected void set_params_from_sysex(byte[] arr) {
         print("syse...");
         int man_id = arr[0];
+        println(man_id);
         switch(man_id) {
             case 67:        // Yamh, XG
-            file_is_XG = true;
+            metadata_map.put("Manufacturer ID", metadata_map.getOrDefault("Manufacturer ID", "") + " XG");
             break;
             
             case 65:        // Rold, GS
-            file_is_GS = true;
+            metadata_map.put("Manufacturer ID", metadata_map.getOrDefault("Manufacturer ID", "") + " GS");
             break;
             
             default:        // check if GM or GM2
-            if (arr[2] == 9) {
-                file_is_GM = arr[3] == 1 ? true : false;
-                file_is_GM2 = arr[3] == 3 ? true : false;
-            }
+            if (arr[2] == 9) 
+                metadata_map.put("Manufacturer ID", 
+                    metadata_map.getOrDefault("Manufacturer ID", "") +
+                    (arr[3] == 1 ? " GM" : arr[3] == 3 ? " GM2" : ""));
             break;
         }
     }
@@ -440,11 +437,6 @@ class Player {
         epoch_at_begin = 0;
         
         reset_looppoints();
-        
-        file_is_GM = false;
-        file_is_GM2 = false;
-        file_is_XG = false;
-        file_is_GS = false;
     }
     
     
@@ -615,6 +607,10 @@ class Player {
                     }
                 }
             }
+            
+            else if (msg instanceof SysexMessage) {
+                set_params_from_sysex(((SysexMessage)msg).getData());
+            }
         }
         
         void close() {}
@@ -664,7 +660,6 @@ class Player {
                 mid_scale = data[data.length - 1];
                 if (mid_scale == 0) mid_rootnote = major_rootnotes[data[0] + 7];
                 else if (mid_scale == 1) mid_rootnote = minor_rootnotes[data[0] + 7];
-                println(data[0]);
                 metadata_map.put("Key signature", NOTE_NAMES[mid_rootnote] + " " + (mid_scale == 0 ? "major" : "minor"));
                 return;
             }

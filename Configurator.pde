@@ -105,7 +105,7 @@ void open_config_dialog() {
         "Share Discord activity",
         Arrays.asList("No", "Yes (private)", "Yes (detailed)")
     )
-    .addLabel("* The options marked will have effect only on startup.")
+    .addLabel("* The options marked will apply after restart.")
     .setCloseListener(new FormCloseListener() { public void onClose(Form form) {
         String th = form.getByIndex(0).asString();
         String vs = form.getByIndex(1).asString();
