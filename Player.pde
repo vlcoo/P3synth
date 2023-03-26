@@ -379,9 +379,9 @@ class Player {
             c.disp.redraw(false);
         }
         
-        if (!vu_anim_returning && vu_anim_val <= 1.0) vu_anim_val += 0.1;
+        if (!vu_anim_returning && vu_anim_val <= 0.99) vu_anim_val = 1 - (1 - vu_anim_val) * 0.76;
         else vu_anim_returning = true;
-        if (vu_anim_returning) vu_anim_val -= 0.05;
+        if (vu_anim_returning) vu_anim_val *= 0.9;
     }
     
     
@@ -641,7 +641,7 @@ class Player {
             }
             
             else if (type == 4) {        // Instrument name
-                metadata_map.put("Channel's " + meta_channel_prefix + " instrument", bytes_to_text(data));
+                metadata_map.put("Ch. " + (meta_channel_prefix+1) + "'s instrument", bytes_to_text(data));
             }
             
             else if (type == 1 || type == 5 || type == 6 || type == 7) {        // Lyrics or text

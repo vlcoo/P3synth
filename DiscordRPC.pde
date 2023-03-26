@@ -26,7 +26,7 @@ void updateDiscordActivity() {
         small_image_txt = player.system_synth ? "SF2/DLS \"" + player.sf_filename + "\"" : "Osc synth";
     }
     else if (howDetailed.equals("Yes (private)")) {
-        details = player.playing_state == -1 ? "Stopped" : "Playing";
+        details = player.playing_state == -1 ? "Stopped" : "Playing MIDI file";
         small_image_txt = player.system_synth ? "SF2/DLS" : "Osc synth";
     }
     else return;
