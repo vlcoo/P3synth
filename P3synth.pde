@@ -190,11 +190,16 @@ void setup_alt_resources() {
         samples[i-1] = new SoundFile(PARENT, "samples/" + i + ".wav");
     }
     
-    key_transforms.put("Major", new int[] {0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
+    key_transforms.put("Major", new int[] {-1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
     key_transforms.put("Minor", new int[] {-1, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0});
-    key_transforms.put("Reduce", new int[] {6, 5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5});
-    key_transforms.put("Weird shuffle", new int[] {12, 10, 8, 6, 4, 2, 0, -2, -4, -6, -8, -10});
-    key_transforms.put("None", new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+    key_transforms.put("Natural minor (Aeolian)", new int[] {-1, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0});
+    key_transforms.put("Lydian", new int[] {0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1});
+    key_transforms.put("Mixolydian", new int[] {0, 0, -1, 0, 0, 0, 1, 0, 0, 0, 0, 1});
+    key_transforms.put("Dorian", new int[] {0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 1});
+    key_transforms.put("Phrygian", new int[] {-1, 0, -1, 0, 0, -1, 0, -1, 0, 0, 0, 0});
+    key_transforms.put("Locrian", new int[] {-1, 0, -1, 0, 0, -1, 0, -1, 0, 0, -1, 0});
+    key_transforms.put("Monotonic", new int[] {6, 5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5});
+    key_transforms.put("** Restore original", new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
 }
 
 

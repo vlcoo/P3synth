@@ -18,7 +18,7 @@ void setup_config() {
     else frameRate(75);
     t.set_theme(prefs.get("theme", "Fresh Blue"));
     
-    channel_disp_type = ChannelDisplayTypes.valueOf(prefs.get("visualization style", "VUWindows"));
+    channel_disp_type = ChannelDisplayTypes.valueOf(prefs.get("viz style v2", "VUWindows"));
     set_small_height(channel_disp_type == ChannelDisplayTypes.None);
     
     String p = prefs.get("loop snap", "Yes (fine)");
@@ -63,7 +63,7 @@ void open_config_dialog() {
         new ArrayList(t.available_themes.keySet())
     )
     .addSelection(
-        "Visualization style",
+        "viz style v2",
         Arrays.toString(ChannelDisplayTypes.class.getEnumConstants()).replaceAll("^.|.$", "").split(", ")
     )
     .addSelection(
@@ -126,7 +126,7 @@ void open_config_dialog() {
         prefs.put("discord rpc", da);
         
         t.set_theme(th);
-        if (!vs.equals(prefs.get("visualization style", "VUWindows")) || !md.equals(prefs.get("meter decay", "Smooth"))) {
+        if (!vs.equals(prefs.get("viz style v2", "VUWindows")) || !md.equals(prefs.get("meter decay", "Smooth"))) {
             channel_disp_type = ChannelDisplayTypes.valueOf(vs);
             player.create_visualizer();
             set_small_height(vs.equals("None"));
@@ -136,7 +136,7 @@ void open_config_dialog() {
                 } 
             }
         }
-        prefs.put("visualization style", vs);
+        prefs.put("viz style v2", vs);
         prefs.put("meter decay", md);
         
         snap_loop_mult = snl.equals("No") ? 0 : snl.equals("Yes (coarse)") ? 8 : 2;
@@ -152,7 +152,7 @@ void open_config_dialog() {
     .run();
     
     dialog_settings.getByIndex(0).setValue(prefs.get("theme", "Fresh Blue"));
-    dialog_settings.getByIndex(1).setValue(prefs.get("visualization style", "VUWindows"));
+    dialog_settings.getByIndex(1).setValue(prefs.get("viz style v2", "VUWindows"));
     dialog_settings.getByIndex(2).setValue(prefs.get("meter decay", "Smooth"));
     dialog_settings.getByIndex(3).setValue(prefs.getBoolean("low framerate", false));
     dialog_settings.getByIndex(4).setValue(prefs.getBoolean("remember", true));
