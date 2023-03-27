@@ -48,28 +48,15 @@ public class ChannelOsc {
     
     
     void create_display(int id, ChannelDisplayTypes type) {
-        ChannelDisplay d;
-        switch (type) {
-            case ORIGINAL:
-                d = new ChannelDisplayOriginal(id, this);
-                break;
-            case VERTICAL_BARS:
-                d = new ChannelDisplayVBars(id, this);
-                break;
-            case NONE:
-                d = new ChannelDisplay(id, this);
-                break;
-            default:
-                return;
-        }
-        this.disp = d;
+        this.disp = get_new_display(type, id, this);
         this.id = id;
     }
     
     
     void redraw_playing() {
         if (this.disp == null) return;
-        this.disp.redraw(true);    // draw meters with updated values
+        this.disp.update_all_values();
+        this.disp.redraw();    // draw meters with updated values
         try {
             for (RTSoundObject s : current_notes.values()) {
                 s.tick();

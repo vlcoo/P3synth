@@ -84,7 +84,7 @@ class Player {
             }
             
             channels[i].create_display(i, channel_disp_type);
-            if (also_osc_objects) channels[i].disp.redraw(false);    // draw meters at value 0
+            if (also_osc_objects) channels[i].disp.redraw();    // draw meters at value 0
             else if (playing_state == -1) {
                 vu_anim_val = 0.0;
                 vu_anim_returning = false;
@@ -371,12 +371,8 @@ class Player {
         if (locked_vis_redraw) return;
         
         for (ChannelOsc c : channels) {
-            if (channel_disp_type == ChannelDisplayTypes.ORIGINAL)
-                ((ChannelDisplayOriginal)(c.disp)).meter_vu_lerped = vu_anim_val;
-            else if (channel_disp_type == ChannelDisplayTypes.VERTICAL_BARS)
-                ((ChannelDisplayVBars)(c.disp)).meter_vu_lerped = vu_anim_val;
-            else c.disp.meter_vu_target = vu_anim_val;
-            c.disp.redraw(false);
+            c.disp.meter_vu_lerped = vu_anim_val;
+            c.disp.redraw();
         }
         
         if (!vu_anim_returning && vu_anim_val <= 0.99) vu_anim_val = 1 - (1 - vu_anim_val) * 0.76;

@@ -151,6 +151,21 @@ int note_code_to_percussion(int note_code) {
 }
 
 
+ChannelDisplay get_new_display(ChannelDisplayTypes type, int id, ChannelOsc obj) {
+    switch (type) {
+        case VUWindows:
+            return new ChannelDisplayVUWindows(id, obj);
+        case VerticalBars:
+            return new ChannelDisplayVerticalBars(id, obj);
+        case None:
+            return new ChannelDisplayNone(id, obj);
+        // Add more cases as needed
+        default:
+            return null;
+    }
+}
+
+
 HashMap<String, int[]> key_transforms = new HashMap<String, int[]>();
 
 Sequence transform_sequence(Sequence og_seq, int[] new_key) {

@@ -18,20 +18,8 @@ void setup_config() {
     else frameRate(75);
     t.set_theme(prefs.get("theme", "Fresh Blue"));
     
-    switch (prefs.get("visualization style", "VU windows")) {
-        case "VU windows":
-            channel_disp_type = ChannelDisplayTypes.ORIGINAL;
-            set_small_height(false);
-            break;
-        case "Vertical bars":
-            channel_disp_type = ChannelDisplayTypes.VERTICAL_BARS;
-            set_small_height(false);
-            break;
-        default:
-            channel_disp_type = ChannelDisplayTypes.NONE;
-            set_small_height(true);
-            break;
-    }
+    channel_disp_type = ChannelDisplayTypes.valueOf(prefs.get("visualization style", "VUWindows"));
+    set_small_height(channel_disp_type == ChannelDisplayTypes.None);
     
     String p = prefs.get("loop snap", "Yes (fine)");
     snap_loop_mult = p.equals("No") ? 0 : p.equals("Yes (coarse)") ? 4 : 2;
@@ -76,7 +64,7 @@ void open_config_dialog() {
     )
     .addSelection(
         "Visualization style",
-        Arrays.asList("None", "VU windows", "Vertical bars")
+        Arrays.toString(ChannelDisplayTypes.class.getEnumConstants()).replaceAll("^.|.$", "").split(", ")
     )
     .addSelection(
         "VU meter decay rate",
@@ -138,29 +126,14 @@ void open_config_dialog() {
         prefs.put("discord rpc", da);
         
         t.set_theme(th);
-        if (!vs.equals(prefs.get("visualization style", "VU windows")) || !md.equals(prefs.get("meter decay", "Smooth"))) {
-            switch (vs) {
-                case "VU windows":
-                    channel_disp_type = ChannelDisplayTypes.ORIGINAL;
-                    player.create_visualizer();
-                    for (ChannelOsc c : player.channels) { 
-                        ((ChannelDisplayOriginal)(c.disp)).recalc_quickness(md);
-                    } 
-                    set_small_height(false);
-                    break;
-                case "Vertical bars":
-                    channel_disp_type = ChannelDisplayTypes.VERTICAL_BARS;
-                    player.create_visualizer();
-                    for (ChannelOsc c : player.channels) { 
-                        ((ChannelDisplayVBars)(c.disp)).recalc_quickness(md);
-                    } 
-                    set_small_height(false);
-                    break;
-                default:
-                    channel_disp_type = ChannelDisplayTypes.NONE;
-                    player.create_visualizer();
-                    set_small_height(true);
-                    break;
+        if (!vs.equals(prefs.get("visualization style", "VUWindows")) || !md.equals(prefs.get("meter decay", "Smooth"))) {
+            channel_disp_type = ChannelDisplayTypes.valueOf(vs);
+            player.create_visualizer();
+            set_small_height(vs.equals("None"));
+            if (!vs.equals("None")) {
+                for (ChannelOsc c : player.channels) { 
+                    c.disp.recalc_quickness(md);
+                } 
             }
         }
         prefs.put("visualization style", vs);
@@ -179,7 +152,7 @@ void open_config_dialog() {
     .run();
     
     dialog_settings.getByIndex(0).setValue(prefs.get("theme", "Fresh Blue"));
-    dialog_settings.getByIndex(1).setValue(prefs.get("visualization style", "VU windows"));
+    dialog_settings.getByIndex(1).setValue(prefs.get("visualization style", "VUWindows"));
     dialog_settings.getByIndex(2).setValue(prefs.get("meter decay", "Smooth"));
     dialog_settings.getByIndex(3).setValue(prefs.getBoolean("low framerate", false));
     dialog_settings.getByIndex(4).setValue(prefs.getBoolean("remember", true));

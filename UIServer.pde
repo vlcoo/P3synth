@@ -14,18 +14,22 @@ UiBooster ui = new UiBooster(
 );
 
 enum ChannelDisplayTypes {
-    ORIGINAL, VERTICAL_BARS, NONE
+    VUWindows, VerticalBars, None
 }
 
 
-class ChannelDisplay {
+abstract class ChannelDisplay {
     int x, y;
     int id;
     ChannelOsc parent;
     Button button_mute;
     
+    float METER_LERP_QUICKNESS;
+    float METER_LERP_DECAYNESS;
+    
     // meter values to be drawn...:
     float meter_vu_target = 0.0;
+    float meter_vu_lerped = 0.0;
     float meter_ch_volume = 1.0;    // aka channel's curr_global_amp
     float meter_velocity = 0.0;     // aka channel's last_amp
     String label_note = "";
@@ -45,7 +49,7 @@ class ChannelDisplay {
     }
     
     
-    private void update_all_values() {
+    void update_all_values() {
         //if (abs(meter_vu_lerped - meter_vu_target) < METER_LERP_QUICKNESS)
         //    meter_vu_lerped = meter_vu_target;
         
@@ -93,9 +97,8 @@ class ChannelDisplay {
     }
     
     
-    void redraw(boolean renew_values) {
-        
-    }
+    abstract void redraw();
+    abstract void recalc_quickness(String md);
     
     
     void check_buttons(int mButton) {
@@ -106,15 +109,20 @@ class ChannelDisplay {
     }
 }
 
-
-class ChannelDisplayOriginal extends ChannelDisplay {
-    float meter_vu_lerped = 0.0;
+class ChannelDisplayNone extends ChannelDisplay {
+    ChannelDisplayNone(int id, ChannelOsc parent) {
+        super(id, parent);
+    }
     
-    float METER_LERP_QUICKNESS;
-    float METER_LERP_DECAYNESS;
+    void redraw() {}
+    void recalc_quickness(String md) {}
+}
+
+
+class ChannelDisplayVUWindows extends ChannelDisplay {
     final int METER_VU_LENGTH = 30;
     
-    ChannelDisplayOriginal(int id, ChannelOsc parent) {
+    ChannelDisplayVUWindows(int id, ChannelOsc parent) {
         super(id, parent);
         x = 12 + 180 * (id / 4);
         y = 64 + 72 * (id % 4);
@@ -129,7 +137,7 @@ class ChannelDisplayOriginal extends ChannelDisplay {
     }
     
     
-    private void update_all_values() {
+    void update_all_values() {
         if (parent.last_note.isEmpty())
             meter_vu_target = 0;
         else
@@ -150,9 +158,7 @@ class ChannelDisplayOriginal extends ChannelDisplay {
     }
     
     
-    void redraw(boolean renew_values) {
-        if (renew_values) update_all_values();
-        
+    void redraw() {
         // drawing all the meters here...
         // try to use as little changing functions as possible (reuse)
         /*fill(t.theme[2]);
@@ -293,13 +299,8 @@ class ChannelDisplayOriginal extends ChannelDisplay {
 }
 
 
-class ChannelDisplayVBars extends ChannelDisplay {
-    float meter_vu_lerped = 0.0;
-    
-    float METER_LERP_QUICKNESS;
-    float METER_LERP_DECAYNESS;
-    
-    ChannelDisplayVBars(int id, ChannelOsc parent) {
+class ChannelDisplayVerticalBars extends ChannelDisplay {
+    ChannelDisplayVerticalBars(int id, ChannelOsc parent) {
         super(id, parent);
         x = 11 + 44 * id;
         y = 66;
@@ -314,7 +315,7 @@ class ChannelDisplayVBars extends ChannelDisplay {
     }
     
     
-    private void update_all_values() {
+    void update_all_values() {
         if (parent.last_note.isEmpty())
             meter_vu_target = 0;
         else
@@ -335,9 +336,7 @@ class ChannelDisplayVBars extends ChannelDisplay {
     }
     
     
-    void redraw(boolean renew_values) {
-        if (renew_values) update_all_values();
-        
+    void redraw() {
         stroke(t.theme[0]);
         fill(t.theme[1]);
         rect(x, y, 44, 32, 6, 6, 0, 0);
