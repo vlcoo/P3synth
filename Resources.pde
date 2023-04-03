@@ -157,11 +157,12 @@ ChannelDisplay get_new_display(ChannelDisplayTypes type, int id, ChannelOsc obj)
             return new ChannelDisplayVUWindows(id, obj);
         case VerticalBars:
             return new ChannelDisplayVerticalBars(id, obj);
+        // ← Add more cases as needed here...
+        default:
+            println("P3synth warning: an invalid visualizer was found in user's settings.");
+            prefs.put("viz style v2", "None");
         case None:
             return new ChannelDisplayNone(id, obj);
-        // Add more cases as needed
-        default:
-            return null;
     }
 }
 

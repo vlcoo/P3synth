@@ -50,13 +50,27 @@ abstract class ChannelDisplay {
     
     
     void update_all_values() {
-        //if (abs(meter_vu_lerped - meter_vu_target) < METER_LERP_QUICKNESS)
-        //    meter_vu_lerped = meter_vu_target;
+        if (parent.last_note.isEmpty())
+            meter_vu_target = 0;
+        else
+            try {
+                meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_note.get(parent.last_note.lastKey());
+            }
+            catch (NullPointerException npe) {
+                println("npe at renew");
+            }
+        
+        if (METER_LERP_QUICKNESS > 0) {
+            if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
+            if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/METER_LERP_DECAYNESS * abs(meter_vu_lerped - meter_vu_target);
+        }
+        else meter_vu_lerped = meter_vu_target;
         
         // stop if silenced... not worth it updating the rest of the stuff
         if (parent.silenced) {
             label_note = "-";
             meter_velocity = 0.0;
+            meter_vu_target = 0.0;
             return;
         }
         
@@ -98,7 +112,6 @@ abstract class ChannelDisplay {
     
     
     abstract void redraw();
-    abstract void recalc_quickness(String md);
     
     
     void check_buttons(int mButton) {
@@ -106,6 +119,20 @@ abstract class ChannelDisplay {
             if (mButton == LEFT) player.set_channel_muted(!button_mute.pressed, parent.id);
             else if (mButton == RIGHT) player.set_channel_solo(!button_mute.pressed, parent.id);
         }
+    }
+    
+    
+    void recalc_quickness(String md) {
+        float value = md.equals("Instant") ? 0.5 : md.equals("Slow") ? 6 : 2;
+        
+        METER_LERP_DECAYNESS = value;
+        if (value < 1) METER_LERP_QUICKNESS = -1;
+        else METER_LERP_QUICKNESS = 0.5;
+    }
+    
+    
+    void recalc_quickness_from_settings() {
+        recalc_quickness(prefs.get("meter decay", "Smooth"));
     }
 }
 
@@ -115,7 +142,6 @@ class ChannelDisplayNone extends ChannelDisplay {
     }
     
     void redraw() {}
-    void recalc_quickness(String md) {}
 }
 
 
@@ -128,33 +154,9 @@ class ChannelDisplayVUWindows extends ChannelDisplay {
         y = 64 + 72 * (id % 4);
         
         button_mute = new Button(x+4, y+37, "mute", "");
-        if (id < 10) {
-            int hint = id + 1;
-            if (id == 9) hint = 0;
-            button_mute.set_key_hint(Integer.toString(hint));
-        }
+        if (id < 10) 
+            button_mute.set_key_hint(Integer.toString(id == 9 ? 0 : id + 1));
         recalc_quickness_from_settings();
-    }
-    
-    
-    void update_all_values() {
-        if (parent.last_note.isEmpty())
-            meter_vu_target = 0;
-        else
-            try {
-                meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_note.get(parent.last_note.lastKey());
-            }
-            catch (NullPointerException npe) {
-                println("npe at renew");
-            }
-        
-        if (METER_LERP_QUICKNESS > 0) {
-            if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
-            if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/METER_LERP_DECAYNESS * abs(meter_vu_lerped - meter_vu_target);
-        }
-        else meter_vu_lerped = meter_vu_target;
-        
-        super.update_all_values();
     }
     
     
@@ -282,20 +284,6 @@ class ChannelDisplayVUWindows extends ChannelDisplay {
         
         button_mute.redraw();
     }
-    
-    
-    void recalc_quickness(String md) {
-        float value = md.equals("Instant") ? 0.5 : md.equals("Slow") ? 6 : 2;
-        
-        METER_LERP_DECAYNESS = value;
-        if (value < 1) METER_LERP_QUICKNESS = -1;
-        else METER_LERP_QUICKNESS = 0.5;
-    }
-    
-    
-    void recalc_quickness_from_settings() {
-        recalc_quickness(prefs.get("meter decay", "Smooth"));
-    }
 }
 
 
@@ -306,33 +294,9 @@ class ChannelDisplayVerticalBars extends ChannelDisplay {
         y = 66;
         
         button_mute = new Button(x+20, y+5, "mute", "");
-        if (id < 10) {
-            int hint = id + 1;
-            if (id == 9) hint = 0;
-            button_mute.set_key_hint(Integer.toString(hint));
-        }
+        if (id < 10) 
+            button_mute.set_key_hint(Integer.toString(id == 9 ? 0 : id + 1));
         recalc_quickness_from_settings();
-    }
-    
-    
-    void update_all_values() {
-        if (parent.last_note.isEmpty())
-            meter_vu_target = 0;
-        else
-            try {
-                meter_vu_target = parent.curr_global_amp * parent.amp_multiplier * parent.last_note.get(parent.last_note.lastKey());
-            }
-            catch (NullPointerException npe) {
-                println("npe at renew");
-            }
-        
-        if (METER_LERP_QUICKNESS > 0) {
-            if (meter_vu_lerped < meter_vu_target) meter_vu_lerped += METER_LERP_QUICKNESS * abs(meter_vu_lerped - meter_vu_target);
-            if (meter_vu_lerped > meter_vu_target) meter_vu_lerped -= METER_LERP_QUICKNESS/METER_LERP_DECAYNESS * abs(meter_vu_lerped - meter_vu_target);
-        }
-        else meter_vu_lerped = meter_vu_target;
-        
-        super.update_all_values();
     }
     
     
@@ -437,20 +401,6 @@ class ChannelDisplayVerticalBars extends ChannelDisplay {
         }
         
         button_mute.redraw();
-    }
-    
-    
-    void recalc_quickness(String md) {
-        float value = md.equals("Instant") ? 0.5 : md.equals("Slow") ? 6 : 2;
-        
-        METER_LERP_DECAYNESS = value;
-        if (value < 1) METER_LERP_QUICKNESS = -1;
-        else METER_LERP_QUICKNESS = 0.5;
-    }
-    
-    
-    void recalc_quickness_from_settings() {
-        recalc_quickness(prefs.get("meter decay", "Smooth"));
     }
 }
 

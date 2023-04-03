@@ -63,7 +63,7 @@ void open_config_dialog() {
         new ArrayList(t.available_themes.keySet())
     )
     .addSelection(
-        "viz style v2",
+        "Visualization style",
         Arrays.toString(ChannelDisplayTypes.class.getEnumConstants()).replaceAll("^.|.$", "").split(", ")
     )
     .addSelection(

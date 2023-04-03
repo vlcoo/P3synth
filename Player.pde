@@ -108,6 +108,7 @@ class Player {
     
     protected void set_params_from_sysex(byte[] arr) {
         int man_id = arr[0];
+        if (man_id < 0) return;
         String s = metadata_map.getOrDefault("Manufacturer ID", "");
         
         switch(man_id) {
