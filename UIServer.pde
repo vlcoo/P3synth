@@ -694,6 +694,72 @@ class PlayerDisplay {
 }
 
 
+class VGMPlayerDisplay {
+    final int START_X = 180;
+    final int START_Y = 100;
+
+    VGMPlayer parent;
+    Button b_prev, b_next, b_stop;
+
+
+    VGMPlayerDisplay(VGMPlayer player) {
+        b_prev = new Button(START_X + 273, START_Y + 76, "previous", "");
+        b_stop = new Button(START_X + 288, START_Y + 68, "stop", "");
+        b_next = new Button(START_X + 318, START_Y + 76, "next", "");
+        parent = player;
+    }
+    
+
+    private void redraw() {
+        push();
+        fill(0);
+        rect(START_X + 10, START_Y + 10, 350, 100, 6);
+        fill(t.theme[2]);
+        stroke(t.theme[0]);
+        strokeWeight(2);
+        rect(START_X, START_Y, 350, 100, 6);
+        fill(t.theme[1]);
+        noStroke();
+        rect(START_X + 2, START_Y + 2, 347, 20, 2, 2, 0, 0);
+        textFont(fonts[4]);
+        fill(t.theme[4]);
+        text("VGM Mode: Unknown format", START_X + 175, START_Y + 19);
+        textFont(fonts[1]);
+        fill(t.theme[0]);
+        textAlign(LEFT);
+        try {
+            text("Playing track " + parent.getCurrentTrack() + " now: " + parent.getCurrentTime() + "s elapsed.", START_X + 6, START_Y + 30, 338, 58);
+        }
+        catch (NullPointerException npe) {
+            text("Unknown", START_X + 6, START_Y + 30, 338, 58);
+        }
+        b_prev.redraw();
+        b_next.redraw();
+        b_stop.redraw();
+        pop();
+    }
+
+
+    void check_buttons(int mButton) {
+        if (parent.isPlaying() && mButton == LEFT) {
+            try {
+                if (b_prev.collided()) parent.startTrack(constrain(parent.getCurrentTrack() - 1, 0, parent.getTrackCount()), 120);
+                if (b_next.collided()) parent.startTrack(constrain(parent.getCurrentTrack() + 1, 0, parent.getTrackCount()), 120);
+                if (b_stop.collided()) {
+                    parent.stop();
+                    player.curr_filename = player.DEFAULT_STOPPED_MSG;
+                }
+            }
+            catch (Exception e) {
+                println("exception in vgm mode");
+            }
+        }
+        
+        if (!parent.isPlaying()) player.vgm_mode = false;
+    }
+}
+
+
 class Knob {
     int x, y;
     boolean show_label = true;
