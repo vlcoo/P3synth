@@ -723,7 +723,7 @@ class VGMPlayerDisplay {
         rect(START_X + 2, START_Y + 2, 347, 20, 2, 2, 0, 0);
         textFont(fonts[4]);
         fill(t.theme[4]);
-        text("VGM Mode: Unknown format", START_X + 175, START_Y + 19);
+        text("VGM Mode: " + player.vgm_emu_type, START_X + 175, START_Y + 19);
         textFont(fonts[1]);
         fill(t.theme[0]);
         textAlign(LEFT);

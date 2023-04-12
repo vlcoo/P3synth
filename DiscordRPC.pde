@@ -11,23 +11,43 @@ void beginDiscordActivity() {
     DiscordRPC.discordRegister(APP_ID, "");
 }
 
+void updateDiscordActivityVGM() {
+    String status = "";
+    String howDetailed = prefs.get("discord rpc", "No");
+    if (howDetailed.equals("Yes (detailed)")) 
+        status = "\"" + player.disp.label_filename + "\"";
+    else if (howDetailed.equals("No")) return;
+
+    DiscordRPC.discordRunCallbacks();
+    DiscordRichPresence.Builder presence = new DiscordRichPresence.Builder(status);
+    presence.setDetails("Playing " + player.vgm_emu_type.replace("Emu", "").toUpperCase() + " file");
+    presence.setBigImage("icon", "");
+    presence.setSmallImage("midi_program", "VGM Mode");
+    DiscordRPC.discordUpdatePresence(presence.build());
+    discordTimer = 0;
+}
+
 void updateDiscordActivity() {
     discordTimer++;
     while (discordTimer < 120) return;
+    
+    if (player.vgm_mode) {
+        updateDiscordActivityVGM();
+        return;
+    }
     
     String status = "";
     String details = "";
     String small_image_txt = "";
     String howDetailed = prefs.get("discord rpc", "No");
-    String media_label = player.vgm_mode ? "VGM" : "MIDI";
     if (howDetailed.equals("Yes (detailed)")) {
         status = player.playing_state == -1 ? "" : "\"" + player.disp.label_filename + "\"";
         details = player.playing_state == -1 ? "Stopped" : 
-            (win_plist != null && win_plist.active ? "In playlist: " + player.disp.queue_bottom_str : "Playing " + media_label + " file");
+            (win_plist != null && win_plist.active ? "In playlist: " + player.disp.queue_bottom_str : "Playing MIDI file");
         small_image_txt = player.system_synth ? "SF2/DLS \"" + player.sf_filename + "\"" : "Osc synth";
     }
     else if (howDetailed.equals("Yes (private)")) {
-        details = player.playing_state == -1 ? "Stopped" : "Playing " + media_label + " file";
+        details = player.playing_state == -1 ? "Stopped" : "Playing MIDI file";
         small_image_txt = player.system_synth ? "SF2/DLS" : "Osc synth";
     }
     else return;
@@ -36,7 +56,7 @@ void updateDiscordActivity() {
     DiscordRichPresence.Builder presence = new DiscordRichPresence.Builder(status);
     presence.setDetails(details);
     presence.setBigImage("icon", "");
-    presence.setSmallImage("midi_program", media_label.equals("MIDI") ? small_image_txt : "");
+    presence.setSmallImage("midi_program", small_image_txt);
     presence.setStartTimestamps(player.epoch_at_begin);
     DiscordRPC.discordUpdatePresence(presence.build());
     discordTimer = 0;

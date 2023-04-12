@@ -25,6 +25,7 @@ class Player {
     long prev_position;
     String curr_filename = DEFAULT_STOPPED_MSG;
     String sf_filename = "Default";
+    String vgm_emu_type = "";
     int curr_rpn = 0;
     int curr_bank = 0;
     int mid_rootnote = 0;      // C
@@ -217,6 +218,7 @@ class Player {
             vgm_player.stop();
             vgm_player.loadFile(filename);
             vgm_player.startTrack(0, 120);
+            vgm_emu_type = vgm_player.getEmuName();
         }
         catch (Exception e) {
             return "Impossible";
