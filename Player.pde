@@ -67,7 +67,7 @@ class Player {
         if (system_synth) load_soundfont(new File(prefs.get("sf path", "")), false);
         
         vgm_player = new VGMPlayer(44100);
-        vgm_player.setVolume(0.2);
+        vgm_player.setVolume(0.5);
         vgm_disp = new VGMPlayerDisplay(vgm_player);
     }
     

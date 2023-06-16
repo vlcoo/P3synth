@@ -712,8 +712,8 @@ class VGMPlayerDisplay {
 
     private void redraw() {
         push();
-        fill(0);
-        rect(START_X + 10, START_Y + 10, 350, 100, 6);
+        fill(0 - 0x40000000);
+        rect(START_X + 6, START_Y + 6, 350, 100, 6);
         fill(t.theme[2]);
         stroke(t.theme[0]);
         strokeWeight(2);
