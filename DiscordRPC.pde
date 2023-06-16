@@ -20,9 +20,9 @@ void updateDiscordActivity() {
     String small_image_txt = "";
     String howDetailed = prefs.get("discord rpc", "No");
     if (howDetailed.equals("Yes (detailed)")) {
-        status = player.playing_state == -1 ? "" : "\"" + player.disp.label_filename + "\"";
+        status = player.playing_state == -1 ? "" : "\"" + (win_plist != null && win_plist.active && !win_plist.album_title.equals("") ? win_plist.album_title : player.disp.label_filename) + "\"";
         details = player.playing_state == -1 ? "Stopped" : 
-            (win_plist != null && win_plist.active ? "In playlist: " + player.disp.queue_bottom_str : "Playing MIDI file");
+            (win_plist != null && win_plist.active ? "Playing playlist: " + player.disp.queue_bottom_str : "Playing MIDI file");
         small_image_txt = player.system_synth ? "SF2/DLS \"" + player.sf_filename + "\"" : "Osc synth";
     }
     else if (howDetailed.equals("Yes (private)")) {

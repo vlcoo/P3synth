@@ -20,6 +20,7 @@ public class PlaylistModule extends PApplet {
     PlaylistItem pending_removal;
     int current_item = -1;
     String custom_msg = "";
+    String album_title = "";
     
     final float SCROLL_LERP_QUICKNESS = 0.5; 
     float scroll_offset_target = 0;
@@ -300,6 +301,7 @@ public class PlaylistModule extends PApplet {
             
             else if (buttons_bottom.collided("Clear", this)) {
                 items.clear();
+                album_title = "";
                 if (active) player.set_playing_state(-1);
                 set_current_item(-1);
             }
@@ -307,7 +309,7 @@ public class PlaylistModule extends PApplet {
             else if (buttons_bottom.collided("Save", this)) {
                 String msg = items.isEmpty() ? 
                     "Playlist is empty" : 
-                    save_as_m3u(ui.showFileSelection("Playlist files", "m3u"));
+                    save_as_m3u(ui.showFileSelection("Playlist files", "m3u"), ui.showTextInputDialog("Playlist album title?"));
                 if (!msg.equals("")) ui.showErrorDialog(msg, "Can't save");
             }
             
@@ -381,6 +383,7 @@ public class PlaylistModule extends PApplet {
     
     void add_folder(boolean recursive, boolean replace, File folder) {
         if (folder == null) return;
+        album_title = "";
         ArrayList<PlaylistItem> aux = add_folder_to_list(recursive, folder);
         
         if (!aux.isEmpty()) {
@@ -436,7 +439,7 @@ public class PlaylistModule extends PApplet {
     }
     
     
-    String save_as_m3u(File out) {
+    String save_as_m3u(File out, String title) {
         if (out == null) return "";
         if (out.exists() &&
             !ui.showConfirmDialog("File already exists. Overwrite?", "Saving playlist")
@@ -446,6 +449,8 @@ public class PlaylistModule extends PApplet {
             String path = out.getAbsolutePath();
             if (!path.toLowerCase().endsWith(".m3u")) path += ".m3u";
             FileWriter writer = new FileWriter(path);
+            if (!title.equals("")) writer.write("#EXTM3U\n#EXTALB:" + title + "\n");
+            album_title = title;
             for (PlaylistItem item : items) {
                 writer.write(item.file.getAbsolutePath() + "\n");
             }
@@ -460,14 +465,28 @@ public class PlaylistModule extends PApplet {
     
     
     String load_m3u(File in) {
+        album_title = "";
         if (in == null) return "";
         ArrayList<PlaylistItem> aux = new ArrayList<>();
         
         try {
             BufferedReader reader = new BufferedReader(new FileReader(in.getAbsolutePath()));
             String l = reader.readLine();
+            boolean expecting_extm3u = false;
             
             while (l != null) {
+                if (l.equals("#EXTM3U")) {
+                    expecting_extm3u = true;
+                    l = reader.readLine();
+                    continue;
+                }
+                
+                if (expecting_extm3u && l.startsWith("#EXTALB:")) {
+                    album_title = l.split(":", 2)[1];
+                    l = reader.readLine();
+                    continue;
+                }
+                
                 try { Paths.get(l); }
                 catch (InvalidPathException | NullPointerException pex) { break; }
                 

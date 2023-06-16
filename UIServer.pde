@@ -778,11 +778,14 @@ class Button {
     PImage texture;
     boolean pressed = false;
     boolean show_label = true;
+    PImage texture_up;
+    PImage texture_down;
     
     
     Button(String icon, String label) {
         this.icon_filename = icon;
         this.label = label;
+        load_textures();
         set_pressed(false);
     }
     
@@ -792,6 +795,7 @@ class Button {
         this.y = y;
         this.icon_filename = icon;
         this.label = label;
+        load_textures();
         set_pressed(false);
     }
     
@@ -801,17 +805,15 @@ class Button {
     }
     
     
+    void load_textures() {
+        texture_up = loadImage("buttons/" + icon_filename + "Up.png");
+        texture_down = loadImage("buttons/" + icon_filename + "Down.png");
+    }
+    
+    
     void set_pressed(boolean pressed) {
         this.pressed = pressed;
-        
-        String texture_path = "";
-        if (pressed) {
-            texture_path = "buttons/" + icon_filename + "Down.png";
-        } else {
-            texture_path = "buttons/" + icon_filename + "Up.png";
-        }
-        
-        texture = loadImage(texture_path);
+        texture = pressed ? texture_down : texture_up;
         this.width = texture.width;
         this.height = texture.height;
     }
