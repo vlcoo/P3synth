@@ -52,12 +52,15 @@ public class LabsModule extends PApplet {
         else this.background(t.theme[2]);
         this.fill(t.theme[0]);
         this.textFont(fonts[2]);
+        this.text("x", 110, KNOB_Y_POS + 10);
+        this.text("x", 180, KNOB_Y_POS + 10);
         this.text("x", 250, KNOB_Y_POS + 10);
         this.text("x", 320, KNOB_Y_POS + 10);
         this.text("Experimental options! Use at your own risk.", 210, 17);
         
         for (Knob k : all_knobs) {
-            if ((k == k_rt_adsr || k == k_rt_mod) && player.system_synth) continue;
+            if ((k == k_rt_adsr || k == k_rt_mod) && (player.system_synth || player.vgm_mode)) continue;
+            if ((k == k_player_speed || k == k_pitchbend) && player.vgm_mode) continue;
             k.redraw(this);
         }
         
@@ -202,6 +205,7 @@ public class LabsModule extends PApplet {
             catch (InvalidMidiDataException imde) {
                 println("imde on labs vol!!");
             }
+            if (player.vgm_player.isPlaying()) player.vgm_player.setVolume(k_volume.value/2);
         }
         else if (curr_knob == k_rt_adsr && !player.system_synth) {
             RTSoundObject.amp_env_start_ticks = (int)(k_rt_adsr.value);

@@ -11,9 +11,30 @@ void beginDiscordActivity() {
     DiscordRPC.discordRegister(APP_ID, "");
 }
 
+void updateDiscordActivityVGM() {
+    String status = "";
+    String howDetailed = prefs.get("discord rpc", "No");
+    if (howDetailed.equals("Yes (detailed)")) 
+        status = "\"" + player.disp.label_filename + "\"";
+    else if (howDetailed.equals("No")) return;
+
+    DiscordRPC.discordRunCallbacks();
+    DiscordRichPresence.Builder presence = new DiscordRichPresence.Builder(status);
+    presence.setDetails("Playing " + player.vgm_emu_type.replace("Emu", "").toUpperCase() + " file");
+    presence.setBigImage("icon", "");
+    presence.setSmallImage("midi_program", "VGM Mode");
+    DiscordRPC.discordUpdatePresence(presence.build());
+    discordTimer = 0;
+}
+
 void updateDiscordActivity() {
     discordTimer++;
     while (discordTimer < 120) return;
+    
+    if (player.vgm_mode) {
+        updateDiscordActivityVGM();
+        return;
+    }
     
     String status = "";
     String details = "";

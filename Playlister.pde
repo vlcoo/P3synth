@@ -515,6 +515,9 @@ public class PlaylistModule extends PApplet {
 
 
 boolean is_valid_midi(File mid) {
+    if (vgm_extensions.contains(mid.getName().toLowerCase().substring(mid.getName().lastIndexOf(".")+1)))
+        return true;
+    
     try {
         MidiSystem.getSequence(mid);
     }

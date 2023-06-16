@@ -4,6 +4,8 @@ import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
 
 
+java.util.List vgm_extensions = Arrays.asList("vgm", "nsf", "spc", "gbs");
+
 int snap_number(int num, int mult) {
     if (mult == 0) return num;
     return ((num + mult - 1) / mult) * mult;

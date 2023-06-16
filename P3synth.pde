@@ -460,6 +460,7 @@ void mousePressed() {
     else if (player.disp.b_next.collided()) curr_mid_pressed = player.disp.b_next;
     
     if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
+    else if (player != null) player.vgm_disp.check_buttons(mouseButton);
 }
 
 

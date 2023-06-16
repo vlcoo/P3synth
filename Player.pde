@@ -1,5 +1,5 @@
 import javax.sound.midi.*;
-import java.net.*;
+import uk.co.kernite.VGM.*;
 import java.util.LinkedHashMap;
 
 
@@ -9,12 +9,14 @@ class Player {
     final String DEFAULT_STOPPED_MSG = "Drag and drop a file to play...";
     final String DEFAULT_EMPTY_MSGS = "• no messages •";
     
+    VGMPlayer vgm_player;
     boolean new_engine = false;
     Sequencer seq;
     Sequence mid;
     javax.sound.midi.Synthesizer alt_syn;
     MidiFileFormat metadata;
     PlayerDisplay disp;
+    VGMPlayerDisplay vgm_disp;
     int midi_resolution;
     int meta_channel_prefix = 0;
     int meta_curr_track = 0;
@@ -23,12 +25,14 @@ class Player {
     long prev_position;
     String curr_filename = DEFAULT_STOPPED_MSG;
     String sf_filename = "Default";
+    String vgm_emu_type = "";
     int curr_rpn = 0;
     int curr_bank = 0;
     int mid_rootnote = 0;      // C
     int mid_scale = 0;         // major
     int playing_state = -1;    // -1 no loaded, 0 paused, 1 playing
     boolean system_synth = false;
+    boolean vgm_mode = false;
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
     float osc_synth_volume_mult = 1.0;
@@ -61,6 +65,10 @@ class Player {
             disp.b_loop.set_pressed(false);
         }
         if (system_synth) load_soundfont(new File(prefs.get("sf path", "")), false);
+        
+        vgm_player = new VGMPlayer(44100);
+        vgm_player.setVolume(0.5);
+        vgm_disp = new VGMPlayerDisplay(vgm_player);
     }
     
     
@@ -168,6 +176,9 @@ class Player {
             play_wav(filename);
             return "";
         }
+        else if (vgm_extensions.contains(filename.toLowerCase().substring(filename.lastIndexOf(".")+1))) {
+            return play_vgm(filename);
+        }
         
         File file = new File(filename);
         if (system_synth && prefs.getBoolean("autoload sf", true)) try_match_soundfont(filename);
@@ -185,6 +196,7 @@ class Player {
             setTicks(0);
             epoch_at_begin = java.time.Instant.now().getEpochSecond();
             set_playing_state(keep_paused ? 0 : 1);
+            vgm_player.stop();
         }
         catch(InvalidMidiDataException imde) {
             return "Invalid MIDI data!";
@@ -192,8 +204,27 @@ class Player {
         catch(IOException ioe) {
             return "I/O Exception!";
         }
+        catch (Exception e) {}
         
+        vgm_mode = false;
         metadata_map.put("Song tempo", Integer.toString(floor(seq.getTempoInBPM())) + " BPM");
+        return "";
+    }
+    
+    
+    String play_vgm(String filename) {
+        try {
+            vgm_player.stop();
+            vgm_player.loadFile(filename);
+            vgm_player.startTrack(0, 60);
+            vgm_emu_type = vgm_player.getEmuName();
+        }
+        catch (Exception e) {
+            return "Impossible";
+        }
+        vgm_mode = true;
+        set_playing_state(-1);
+        curr_filename = filename;
         return "";
     }
     
@@ -510,6 +541,7 @@ class Player {
         }
         
         this.disp.redraw(true);
+        if (vgm_mode) this.vgm_disp.redraw();
     }
     
     
