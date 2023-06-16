@@ -733,6 +733,7 @@ class VGMPlayerDisplay {
         catch (NullPointerException npe) {
             text("Unknown", START_X + 6, START_Y + 30, 338, 58);
         }
+        if (parent.getCurrentTime() >= 62 && win_plist != null && win_plist.active) win_plist.set_current_item(win_plist.current_item + 1);
         b_prev.redraw();
         b_next.redraw();
         b_stop.redraw();

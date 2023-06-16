@@ -216,7 +216,7 @@ class Player {
         try {
             vgm_player.stop();
             vgm_player.loadFile(filename);
-            vgm_player.startTrack(0, 120);
+            vgm_player.startTrack(0, 60);
             vgm_emu_type = vgm_player.getEmuName();
         }
         catch (Exception e) {
