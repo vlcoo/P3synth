@@ -171,18 +171,20 @@ class Player {
     }
     
     
+    java.util.List vgm_extensions = Arrays.asList("vgm", "nsf", "spc", "gbs");
     String play_file(String filename, boolean keep_paused) {
-        vgm_mode = false;
         if (filename.toLowerCase().endsWith("wav")) {
             play_wav(filename);
             return "";
+        }
+        else if (vgm_extensions.contains(filename.toLowerCase().substring(filename.lastIndexOf(".")+1))) {
+            return play_vgm(filename);
         }
         
         File file = new File(filename);
         if (system_synth && prefs.getBoolean("autoload sf", true)) try_match_soundfont(filename);
         
         try {
-            vgm_player.stop();
             mid = MidiSystem.getSequence(file);
             prep_javax_midi(false);
             num_tracks = mid.getTracks().length;
@@ -195,9 +197,9 @@ class Player {
             setTicks(0);
             epoch_at_begin = java.time.Instant.now().getEpochSecond();
             set_playing_state(keep_paused ? 0 : 1);
+            vgm_player.stop();
         }
         catch(InvalidMidiDataException imde) {
-            if (play_vgm(filename).equals("")) return "";
             return "Invalid MIDI data!";
         }
         catch(IOException ioe) {
@@ -205,15 +207,13 @@ class Player {
         }
         catch (Exception e) {}
         
+        vgm_mode = false;
         metadata_map.put("Song tempo", Integer.toString(floor(seq.getTempoInBPM())) + " BPM");
         return "";
     }
     
     
     String play_vgm(String filename) {
-        vgm_mode = true;
-        set_playing_state(-1);
-        curr_filename = filename;
         try {
             vgm_player.stop();
             vgm_player.loadFile(filename);
@@ -223,6 +223,9 @@ class Player {
         catch (Exception e) {
             return "Impossible";
         }
+        vgm_mode = true;
+        set_playing_state(-1);
+        curr_filename = filename;
         return "";
     }
     
