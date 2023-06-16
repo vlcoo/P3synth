@@ -171,7 +171,6 @@ class Player {
     }
     
     
-    java.util.List vgm_extensions = Arrays.asList("vgm", "nsf", "spc", "gbs");
     String play_file(String filename, boolean keep_paused) {
         if (filename.toLowerCase().endsWith("wav")) {
             play_wav(filename);
