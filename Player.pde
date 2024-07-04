@@ -265,7 +265,7 @@ class Player {
                 }
                 
                 if (right_now) {
-                    event_listener.send(new ShortMessage(176, i, 91, 0), 0);
+                    event_listener.send(new ShortMessage(176, i, 91, 1), 0);
                     event_listener.send(new SysexMessage(
                         new byte[] {(byte)0xf0, 0x7f, 0x7f, 0x04, 0x01, 0x00, (byte)vol, (byte)0xf7}, 8)
                     , 0);

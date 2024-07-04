@@ -196,3 +196,96 @@ Sequence transform_sequence(Sequence og_seq, int[] new_key) {
     player.set_playing_state(1);
     return og_seq;
 }
+
+Random rng = new Random();
+
+Sequence beat_skip_sequence(Sequence og_seq, int every_nth) {
+    if (player.seq == null || player.playing_state == -1) return null;
+    int beat_marker = player.midi_resolution;
+    
+    player.set_playing_state(0);
+    for (Track track : og_seq.getTracks()) {
+        for (int i = 0; i < track.size(); i++) {
+            MidiEvent event = track.get(i);
+            MidiMessage msg = event.getMessage();
+            if (!(msg instanceof ShortMessage)) continue;
+            
+            ShortMessage note = (ShortMessage)msg;
+            if (!(note.getCommand() == ShortMessage.NOTE_ON || note.getCommand() == ShortMessage.NOTE_OFF)) continue;
+            
+            if ((event.getTick() + 1) % (beat_marker * every_nth) > beat_marker) {
+                try {
+                    int new_note = note.getData1();
+                    note.setMessage(note.getCommand(), note.getChannel(), new_note, 0);
+                }
+                catch (InvalidMidiDataException imde) {
+                    println("imde on beat skip mute");
+                }
+            }
+            long substract_ticks = (floor(event.getTick() / beat_marker)) / every_nth;
+            substract_ticks *= beat_marker;
+            //if ((event.getTick()) % (beat_marker * every_nth) < beat_marker) substract_ticks -= beat_marker;
+            event.setTick(event.getTick() - substract_ticks);
+        }
+    }
+    
+    try_play_file(save_sequence_to_file(og_seq));
+    return og_seq;
+}
+
+
+Sequence beat_swap_sequence(Sequence og_seq, int swap_a, int swap_b) {
+    if (player.seq == null || player.playing_state == -1) return null;
+    int beat_marker = player.midi_resolution * 4;
+    ArrayList already_processed_events = new ArrayList<MidiEvent>();
+    boolean last_note_was_on = false;
+    long last_diff = 0;
+    
+    player.set_playing_state(0);
+    for (Track track : og_seq.getTracks()) {
+        last_diff = 0;
+        for (int i = 0; i < track.size(); i++) {
+            MidiEvent event = track.get(i);
+            if (already_processed_events.contains(event)) continue;
+            MidiMessage msg = event.getMessage();
+            if (!(msg instanceof ShortMessage)) continue;
+            
+            ShortMessage note = (ShortMessage)msg;
+            if (!(note.getCommand() == ShortMessage.NOTE_ON || note.getCommand() == ShortMessage.NOTE_OFF)) continue;
+            
+            if (!(note.getCommand() == ShortMessage.NOTE_OFF && (note.getCommand() == ShortMessage.NOTE_ON && note.getData2() == 0))) {
+                if ((event.getTick()) % (beat_marker * 2) < beat_marker) last_diff = beat_marker;
+                else last_diff = -beat_marker;
+            }
+            
+            event.setTick(event.getTick() + last_diff);
+            
+            already_processed_events.add(event);
+            last_note_was_on = note.getCommand() == ShortMessage.NOTE_ON;
+        }
+    }
+    
+    try_play_file(save_sequence_to_file(og_seq));
+    return og_seq;
+}
+
+
+File save_sequence_to_file(Sequence sequence) {
+    File f = new File("/home/victor/out.mid");
+    try {
+        int[] fileTypes = MidiSystem.getMidiFileTypes(sequence);
+        if (fileTypes.length == 0) {
+            println("Can't save sequence");
+        } else {
+            if (MidiSystem.write(sequence, fileTypes[0], f) == -1) {
+                throw new IOException("Problems writing to file");
+            }
+        }
+    } catch (SecurityException ex) {
+        ex.printStackTrace();
+    } catch (Exception ex) {
+        ex.printStackTrace();
+    }
+    return f;
+}
+        

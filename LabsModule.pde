@@ -1,4 +1,5 @@
 import javax.swing.JFrame;
+import java.util.Random;
 
 
 public class LabsModule extends PApplet {
@@ -12,6 +13,7 @@ public class LabsModule extends PApplet {
     Knob k_rt_adsr;
     Knob k_rt_mod;
     Button b_set;
+    Button b_beat;
     
     Knob[] all_knobs;
     Knob curr_knob = null;
@@ -25,7 +27,7 @@ public class LabsModule extends PApplet {
     
     
     public void settings() {
-        this.size(422, 100);
+        this.size(482, 100);
     }
     
     
@@ -65,6 +67,7 @@ public class LabsModule extends PApplet {
         }
         
         b_set.redraw(this);
+        b_beat.redraw(this);
         
         /*if (curr_knob == null) {
             k_player_speed.value = player.seq.getTempoFactor();
@@ -74,8 +77,8 @@ public class LabsModule extends PApplet {
     
     
     void setup_buttons() {
-        k_player_speed = new Knob(110, KNOB_Y_POS, "Playback\nspeed", 0.0, 4.0, 1.0);
-        k_pitchbend = new Knob(180, KNOB_Y_POS, "Pitchbend\noverride", -1.0, 1.0, 0);
+        k_player_speed = new Knob(110, KNOB_Y_POS, "Playback\nspeed", 0.1, 4.0, 1.0);
+        k_pitchbend = new Knob(180, KNOB_Y_POS, "Pitchbend\noverride", -2.0, 2.0, 0);
         k_volume = new Knob(40, KNOB_Y_POS, "Master\nvolume", 0.0, 2.0, 1.0);
         k_rt_adsr = new Knob(250, KNOB_Y_POS, "RT Env\nstrength", 0.0, 2.0, 0.0);
         k_rt_mod = new Knob(320, KNOB_Y_POS, "RT Mod\nstrength", 0.0, 2.0, 0.0);
@@ -83,6 +86,7 @@ public class LabsModule extends PApplet {
         all_knobs = new Knob[] {k_player_speed, k_pitchbend, k_volume, k_rt_adsr, k_rt_mod};
         
         b_set = new Button(372, KNOB_Y_POS + 6, "blank", "T.form\n");
+        b_beat = new Button(432, KNOB_Y_POS + 6, "blank", "Beat\nMachine");
     }
     
     
@@ -117,6 +121,7 @@ public class LabsModule extends PApplet {
         }
         
         if (mouseButton == LEFT && b_set.collided(this)) curr_mid_pressed = b_set;
+        if (mouseButton == LEFT && b_beat.collided(this)) curr_mid_pressed = b_beat;
         
         if (curr_knob != null) starting_knob_value = curr_knob.value;
         if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
@@ -164,6 +169,30 @@ public class LabsModule extends PApplet {
                     player.set_seq_synth(player.system_synth);    // a bit ugly but this is the labs module after all...
                     transform_sequence(player.mid, new_key);
                 }
+            }
+            
+            if (b_beat.collided(this)) {
+                if (player.playing_state == -1) return;
+                ui.createForm("Beat modifiers")
+                .addSelection(
+                    "Operation",
+                    Arrays.asList("Skip", "Swap")
+                )
+                .addLabel("* every 2nd or 1st with 2nd.")
+                .setCloseListener(new FormCloseListener() { public void onClose(Form form) {
+                    String op = form.getByIndex(0).asString();
+                    player.set_seq_synth(player.system_synth);
+                    switch (op) {
+                        case "Skip":
+                            beat_skip_sequence(player.mid, 2);
+                            break;
+                            
+                        case "Swap":
+                            beat_swap_sequence(player.mid, 1, 2);
+                            break;
+                    }
+                }})
+                .show();
             }
         }
     }
