@@ -437,6 +437,7 @@ class PlayerDisplay {
     boolean label_XG = false;
     boolean label_GS = false;
     String queue_bottom_str = "Empty";
+    boolean is_dragging_loopbar = false;
     
     
     PlayerDisplay(int x, int y, Player parent) {
@@ -482,20 +483,40 @@ class PlayerDisplay {
             if (parent.seq.getLoopEndPoint() == -1) meter_loop_end = 1.0;
             else meter_loop_end = map(parent.seq.getLoopEndPoint(), 0, player.seq.getTickLength(), 0.0, 1.0);
             
-            long secLen = player.seq.getMicrosecondLength() / 1000000;
-            long secPos = player.seq.getMicrosecondPosition() / 1000000;
-            //this.label_timestamp = ((secPos < 0 && secPos > -60) ? "-" : "") + secPos / 60 + ":" + String.format("%02d", Math.abs(secPos % 60));
-            this.label_timestamp = remaining_instead_of_elapsed ? 
-                ("-" + (secPos - secLen) / -60 + ":" + String.format("%02d", -(secPos - secLen) % 60)) : 
-                (secPos / 60 + ":" + String.format("%02d", secPos % 60));
-            this.label_timelength = secLen / 60 + ":" + String.format("%02d", secLen % 60);
+            if (is_dragging_loopbar) {
+                this.label_timestamp = "Loop start " + str(int(player.seq.getLoopStartPoint()));
+                long loop_end = player.seq.getLoopEndPoint();
+                if (loop_end == -1) loop_end = player.seq.getTickLength();
+                this.label_timelength = "Loop end " + str(int(loop_end));
+            }
+            else {
+                if (ticks_instead_of_minsec) {
+                    this.label_timestamp = remaining_instead_of_elapsed ? str(int(player.seq.getTickPosition() - player.seq.getTickLength())) : str(int(player.seq.getTickPosition()));
+                    this.label_timelength = str(int(player.seq.getTickLength()));
+                }
+                else {
+                    long secLen = player.seq.getMicrosecondLength() / 1000000;
+                    long secPos = player.seq.getMicrosecondPosition() / 1000000;
+                    //this.label_timestamp = ((secPos < 0 && secPos > -60) ? "-" : "") + secPos / 60 + ":" + String.format("%02d", Math.abs(secPos % 60));
+                    this.label_timestamp = remaining_instead_of_elapsed ? 
+                        ("-" + (secPos - secLen) / -60 + ":" + String.format("%02d", -(secPos - secLen) % 60)) : 
+                        (secPos / 60 + ":" + String.format("%02d", secPos % 60));
+                    this.label_timelength = secLen / 60 + ":" + String.format("%02d", secLen % 60);
+                }
+            }
         }
         else {
             meter_loop_begin = 0.0;
             meter_loop_end = 1.0;
             
-            this.label_timestamp = "-:--";
-            this.label_timelength = "-:--";
+            if (ticks_instead_of_minsec) {
+                this.label_timestamp = "--";
+                this.label_timelength = "--";
+            }
+            else {
+                this.label_timestamp = "-:--";
+                this.label_timelength = "-:--";
+            }
         }
         meter_loop_begin_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_begin);
         meter_loop_end_X = x + POS_X_POSBAR + (WIDTH_POSBAR * meter_loop_end);
@@ -544,6 +565,7 @@ class PlayerDisplay {
             }
             
             int handle_no = collided_loopset_bar();
+            is_dragging_loopbar = handle_no != 0 && mousePressed;
             try {
                 int snap = snap_loop_mult * (player.is_song_long() ? 2 : 1);
                 
@@ -1022,4 +1044,9 @@ void gradientRect(int x, int y, int w, int h, int c1, int c2, int axis, PApplet 
         win.line(i, y, i, y+h);
       }
     }
+}
+
+
+void tooltip(String msg) {
+    text(msg, mouseX + 32, mouseY + 16);
 }

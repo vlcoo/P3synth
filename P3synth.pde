@@ -6,7 +6,7 @@ import java.awt.*;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
-final float VERCODE = 23.35;
+final float VERCODE = 23.36;
 final float OVERALL_VOL = 0.8;
 final float HIRES_MULT = 2;
 
@@ -120,7 +120,8 @@ void exit() {
     super.exit();
 }
     
-    
+
+double div = 4;
 void draw() {
     updateDiscordActivity();
     if (!frame.isVisible()) return;
@@ -128,7 +129,7 @@ void draw() {
     redraw_all();
     
     if (player.playing_state == 1) {
-        int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/4)) % 8;
+        int n = (int) (player.seq.getTickPosition() / (player.midi_resolution/div)) % 8;
         image(logo_anim[abs(n)], 311, 10);
     }
     else {

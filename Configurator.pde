@@ -5,6 +5,7 @@ int snap_loop_mult = 0;
 int snap_pos_mult = 0;
 int knob_sensitivity = 40;
 boolean remaining_instead_of_elapsed = false;
+boolean ticks_instead_of_minsec = false;
 ChannelDisplayTypes channel_disp_type;
 HashMap<String, Integer> media_keys = new HashMap<>();
 String mk_setup = "";
@@ -24,6 +25,7 @@ void setup_config() {
     String p = prefs.get("loop snap", "Yes (fine)");
     snap_loop_mult = p.equals("No") ? 0 : p.equals("Yes (coarse)") ? 4 : 2;
     remaining_instead_of_elapsed = prefs.getBoolean("remaining timer", false);
+    ticks_instead_of_minsec = prefs.getBoolean("ticks timer", false);
     p = prefs.get("pos snap", "No");
     snap_pos_mult = p.equals("Yes (fine)") ? 2 : p.equals("Yes (coarse)") ? 4 : 0;
     
@@ -83,6 +85,7 @@ void open_config_dialog() {
         Arrays.asList("No", "Yes (fine)", "Yes (coarse)")
     )
     .addCheckbox("Show remaining time instead of elapsed")
+    .addCheckbox("Show ticks instead of minutes and seconds")
     .addCheckbox("Adding folder to playlist is recursive")
     .addCheckbox("Adding folder to playlist clears it first")
     .addCheckbox("Listen to media keys globally *")
@@ -94,7 +97,7 @@ void open_config_dialog() {
         "Share Discord activity",
         Arrays.asList("No", "Yes (private)", "Yes (detailed)")
     )
-    .addLabel("* The options marked will apply after restart.")
+    .addLabel("* Options marked will apply after a reboot.")
     .setCloseListener(new FormCloseListener() { public void onClose(Form form) {
         String th = form.getByIndex(0).asString();
         String vs = form.getByIndex(1).asString();
@@ -106,11 +109,12 @@ void open_config_dialog() {
         String snl = form.getByIndex(7).asString();
         String snp = form.getByIndex(8).asString();
         boolean rt = (boolean) form.getByIndex(9).getValue();
-        boolean rf = (boolean) form.getByIndex(10).getValue();
-        boolean cf = (boolean) form.getByIndex(11).getValue();
-        boolean mk = (boolean) form.getByIndex(12).getValue();
-        String ks = form.getByIndex(13).asString();
-        String da = form.getByIndex(14).asString();
+        boolean tt = (boolean) form.getByIndex(10).getValue();
+        boolean rf = (boolean) form.getByIndex(11).getValue();
+        boolean cf = (boolean) form.getByIndex(12).getValue();
+        boolean mk = (boolean) form.getByIndex(13).getValue();
+        String ks = form.getByIndex(14).asString();
+        String da = form.getByIndex(15).asString();
         
         prefs.put("theme", th);
         prefs.putBoolean("low framerate", lf);
@@ -120,6 +124,7 @@ void open_config_dialog() {
         prefs.put("loop snap", snl);
         prefs.put("pos snap", snp);
         prefs.putBoolean("remaining timer", rt);
+        prefs.putBoolean("ticks timer", tt);
         prefs.putBoolean("recursive folder", rf);
         prefs.putBoolean("replace playlist", cf);
         prefs.put("knob sensitivity", ks);
@@ -142,6 +147,7 @@ void open_config_dialog() {
         snap_loop_mult = snl.equals("No") ? 0 : snl.equals("Yes (coarse)") ? 8 : 2;
         snap_pos_mult = snp.equals("Yes (fine)") ? 2 : snp.equals("Yes (coarse)") ? 8 : 0;
         remaining_instead_of_elapsed = rt;
+        ticks_instead_of_minsec = tt;
         knob_sensitivity = ks.equals("High") ? 20 : ks.equals("Low") ? 80 : 40;
         if (da.equals("No")) DiscordRPC.discordShutdown();
         else beginDiscordActivity();
@@ -161,11 +167,12 @@ void open_config_dialog() {
     dialog_settings.getByIndex(7).setValue(prefs.get("loop snap", "Yes (fine)"));
     dialog_settings.getByIndex(8).setValue(prefs.get("pos snap", "No"));
     dialog_settings.getByIndex(9).setValue(prefs.getBoolean("remaining timer", false));
-    dialog_settings.getByIndex(10).setValue(prefs.getBoolean("recursive folder", false));
-    dialog_settings.getByIndex(11).setValue(prefs.getBoolean("replace playlist", true));
-    dialog_settings.getByIndex(12).setValue(prefs.getBoolean("media keys", false));
-    dialog_settings.getByIndex(13).setValue(prefs.get("knob sensitivity", "Medium"));
-    dialog_settings.getByIndex(14).setValue(prefs.get("discord rpc", "No"));
+    dialog_settings.getByIndex(10).setValue(prefs.getBoolean("ticks timer", false));
+    dialog_settings.getByIndex(11).setValue(prefs.getBoolean("recursive folder", false));
+    dialog_settings.getByIndex(12).setValue(prefs.getBoolean("replace playlist", true));
+    dialog_settings.getByIndex(13).setValue(prefs.getBoolean("media keys", false));
+    dialog_settings.getByIndex(14).setValue(prefs.get("knob sensitivity", "Medium"));
+    dialog_settings.getByIndex(15).setValue(prefs.get("discord rpc", "No"));
     
-    dialog_settings.getWindow().setSize(300, 880);
+    dialog_settings.getWindow().setSize(340, 920);
 }
