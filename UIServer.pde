@@ -791,6 +791,60 @@ class VGMPlayerDisplay {
 }
 
 
+class ModPlayerDisplay {
+    final int START_X = 180;
+    final int START_Y = 100;
+
+    micromod.Player parent;
+    Button b_stop;
+
+
+    ModPlayerDisplay(micromod.Player player) {
+        b_stop = new Button(START_X + 318, START_Y + 68, "stop", "");
+        parent = player;
+    }
+    
+
+    private void redraw() {
+        push();
+        fill(0 - 0x40000000);
+        rect(START_X + 6, START_Y + 6, 350, 100, 6);
+        fill(t.theme[2]);
+        stroke(t.theme[0]);
+        strokeWeight(2);
+        rect(START_X, START_Y, 350, 100, 6);
+        fill(t.theme[1]);
+        noStroke();
+        rect(START_X + 2, START_Y + 2, 347, 20, 2, 2, 0, 0);
+        textFont(fonts[4]);
+        fill(t.theme[4]);
+        text("MOD Mode", START_X + 175, START_Y + 19);
+        textFont(fonts[1]);
+        fill(t.theme[0]);
+        textAlign(LEFT);
+        text("Playing now.", START_X + 6, START_Y + 30, 338, 58);
+        b_stop.redraw();
+        pop();
+    }
+
+
+    void check_buttons(int mButton) {
+        if (mButton == LEFT) {
+            try {
+                if (b_stop.collided()) {
+                    parent.stop();
+                    player.curr_filename = player.DEFAULT_STOPPED_MSG;
+                    player.mod_mode = false;
+                }
+            }
+            catch (Exception e) {
+                println("exception in vgm mode");
+            }
+        }
+    }
+}
+
+
 class Knob {
     int x, y;
     boolean show_label = true;

@@ -14,6 +14,7 @@ class Player {
     final String DEFAULT_EMPTY_MSGS = "• no messages •";
     
     VGMPlayer vgm_player;
+    micromod.Player mod_player;
     boolean new_engine = false;
     Sequencer seq;
     Sequence mid;
@@ -21,6 +22,7 @@ class Player {
     MidiFileFormat metadata;
     PlayerDisplay disp;
     VGMPlayerDisplay vgm_disp;
+    ModPlayerDisplay mod_disp;
     int midi_resolution;
     int meta_channel_prefix = 0;
     int meta_curr_track = 0;
@@ -38,6 +40,7 @@ class Player {
     int playing_state = -1;    // -1 no loaded, 0 paused, 1 playing
     boolean system_synth = false;
     boolean vgm_mode = false;
+    boolean mod_mode = false;
     float vu_anim_val = 0.0;
     boolean vu_anim_returning = false;
     float osc_synth_volume_mult = 1.0;
@@ -186,6 +189,9 @@ class Player {
         else if (vgm_extensions.contains(filename.toLowerCase().substring(filename.lastIndexOf(".")+1))) {
             return play_vgm(filename);
         }
+        else if (mod_extensions.contains(filename.toLowerCase().substring(filename.lastIndexOf(".")+1))) {
+            return play_mod(filename);
+        }
         
         set_playing_state(-1);
         File file = new File(filename);
@@ -215,6 +221,25 @@ class Player {
         
         vgm_mode = false;
         metadata_map.put("Song tempo", Integer.toString(floor(seq.getTempoInBPM())) + " BPM");
+        return "";
+    }
+    
+    
+    String play_mod(String filename) {
+        try {
+            if (mod_player != null) mod_player.stop();
+            mod_player = new micromod.Player(new micromod.Module(new FileInputStream(filename)), true, true);
+            mod_disp = new ModPlayerDisplay(mod_player);
+            Thread t = new Thread(mod_player);
+            t.start();
+        }
+        catch(Exception e) {
+            print(e.toString());
+            return "Impossible";
+        }
+        mod_mode = true;
+        set_playing_state(-1);
+        curr_filename = filename;
         return "";
     }
     
@@ -557,6 +582,7 @@ class Player {
         
         this.disp.redraw(true);
         if (vgm_mode) this.vgm_disp.redraw();
+        if (mod_mode) this.mod_disp.redraw();
     }
     
     
