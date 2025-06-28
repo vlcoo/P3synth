@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 
 UiBooster ui = new UiBooster(
-    UiBoosterOptions.Theme.OS_NATIVE,
+    UiBoosterOptions.Theme.SWING,
     "data/graphics/icon_warn.png"
 );
 
@@ -571,12 +571,12 @@ class PlayerDisplay {
                 
                 if (handle_no == -1) {
                     int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-                    parent.seq.setLoopStartPoint(snap_number(new_pos, player.midi_resolution*snap));
+                    parent.seq.setLoopStartPoint(snap_number(snap_number(new_pos, player.midi_resolution*snap), player.marker_timestamps));
                 }
                 
                 else if (handle_no == 1) {
                     int new_pos = int( map(mouseX, x + POS_X_POSBAR, x + POS_X_POSBAR + WIDTH_POSBAR, 0, parent.seq.getTickLength()) );
-                    parent.seq.setLoopEndPoint(snap_number(new_pos, player.midi_resolution*snap));
+                    parent.seq.setLoopEndPoint(snap_number(snap_number(new_pos, player.midi_resolution*snap), player.marker_timestamps));
                 }
             }
             catch (IllegalArgumentException iae) { }
@@ -637,6 +637,14 @@ class PlayerDisplay {
             stroke(t.theme[0]);
             triangle(meter_loop_begin_X, meter_loop_begin_Y, meter_loop_begin_X - 4, meter_loop_begin_Y - 16, meter_loop_begin_X + 4, meter_loop_begin_Y - 16);
             triangle(meter_loop_end_X, meter_loop_end_Y, meter_loop_end_X - 4, meter_loop_end_Y + 16, meter_loop_end_X + 4, meter_loop_end_Y + 16);
+        
+        // Markers
+            for (long marker : player.marker_timestamps) {
+                float marker_percent = map(marker, 0, parent.seq.getTickLength(), 0.0, 1.0);
+                stroke(t.theme[0]);
+                float line_x = map(marker_percent, 0.0, 1.0, x+1 + POS_X_POSBAR, x+1 + POS_X_POSBAR + WIDTH_POSBAR);
+                line(line_x, POS_Y_POSBAR - 6, line_x, POS_Y_POSBAR - 2);
+            }
             
         // File name label
             fill(t.theme[0]);

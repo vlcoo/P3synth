@@ -1,6 +1,10 @@
 import javax.sound.midi.*;
+import javax.sound.midi.Sequence;
 import uk.co.kernite.VGM.*;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
+import javax.sound.sampled.*;
+import java.lang.reflect.Method;
 
 
 class Player {
@@ -24,6 +28,7 @@ class Player {
     ChannelOsc[] channels;
     long prev_position;
     String curr_filename = DEFAULT_STOPPED_MSG;
+    Soundbank current_soundfont;
     String sf_filename = "Default";
     String vgm_emu_type = "";
     int curr_rpn = 0;
@@ -46,11 +51,13 @@ class Player {
     String custom_info_msg = "";
     HashMap<String, String> metadata_map;
     long epoch_at_begin = 0;
+    HashSet<Long> marker_timestamps; 
     
     
     Player() {
         channels = new ChannelOsc[16];
         metadata_map = new LinkedHashMap();
+        marker_timestamps = new HashSet();
         
         create_visualizer(true);
         create_display(0, 318);
@@ -180,6 +187,7 @@ class Player {
             return play_vgm(filename);
         }
         
+        set_playing_state(-1);
         File file = new File(filename);
         if (system_synth && prefs.getBoolean("autoload sf", true)) try_match_soundfont(filename);
         
@@ -187,7 +195,6 @@ class Player {
             mid = MidiSystem.getSequence(file);
             prep_javax_midi(false);
             num_tracks = mid.getTracks().length;
-            set_playing_state(-1);
             seq.setSequence(mid);
             if (seq.getTempoInBPM() >= TEMPO_LIMIT) throw new InvalidMidiDataException();
             
@@ -216,7 +223,7 @@ class Player {
         try {
             vgm_player.stop();
             vgm_player.loadFile(filename);
-            vgm_player.startTrack(0, 60);
+            vgm_player.startTrack(0, disp.b_loop.pressed ? 3600 : 60);
             vgm_emu_type = vgm_player.getEmuName();
         }
         catch (Exception e) {
@@ -311,14 +318,15 @@ class Player {
     
     String load_soundfont(File file, boolean switch_mode) {
         try {
-            Soundbank sf = MidiSystem.getSoundbank(file);
+            if (current_soundfont != null) alt_syn.unloadAllInstruments(current_soundfont);
+            current_soundfont = MidiSystem.getSoundbank(file);
             if (switch_mode) set_seq_synth(true);
-            alt_syn.loadAllInstruments(sf);
+            alt_syn.loadAllInstruments(current_soundfont);
             sf_filename = check_and_shrink_string(file.getName().replaceFirst("[.][^.]+$", ""), 16);
             
-            metadata_map.put("SF Name", sf.getName());
-            metadata_map.put("SF Description", sf.getDescription());
-            metadata_map.put("SF Vendor", sf.getVendor());
+            metadata_map.put("SF Name", current_soundfont.getName());
+            metadata_map.put("SF Description", current_soundfont.getDescription());
+            metadata_map.put("SF Vendor", current_soundfont.getVendor());
         }
         catch (InvalidMidiDataException imd) {
             return "Invalid SF data!";
@@ -452,6 +460,12 @@ class Player {
         for (ChannelOsc c : channels) c.shut_up();
     }
     
+    void quit_all() {
+        set_playing_state(-1);
+        seq.close();
+        alt_syn.close();
+    }
+    
     
     void reset_all_params() {
         for (ChannelOsc c : channels) c.reset_params();
@@ -474,6 +488,7 @@ class Player {
         last_text_message = DEFAULT_EMPTY_MSGS;
         history_text_messages = "";
         if (dialog_meta_msgs != null) dialog_meta_msgs.setLargeMessage("");
+        marker_timestamps.clear();
     }
     
     
@@ -542,6 +557,90 @@ class Player {
         
         this.disp.redraw(true);
         if (vgm_mode) this.vgm_disp.redraw();
+    }
+    
+    
+    void export_to_wav() {
+        float s = 44100;
+        int b = 16;
+        int c = 2;
+        boolean si = true;
+        boolean be = false;
+        AudioFormat f = new AudioFormat(s, b, c, si, be);
+        
+        HashMap<String, Object> info = new HashMap<String, Object>();
+        info.put("interpolation", "linear");
+        info.put("max polyphony", "128");
+        
+        AudioInputStream stream = null;
+        try {
+            Synthesizer w_syn = MidiSystem.getSynthesizer();
+            Method m = w_syn.getClass().getMethod("openStream", javax.sound.sampled.AudioFormat.class, java.util.Map.class);
+            stream = (AudioInputStream)m.invoke(w_syn, f, info);
+            Sequencer w_seq = MidiSystem.getSequencer(false);
+            w_seq.getTransmitter().setReceiver(w_syn.getReceiver());
+            w_seq.open();
+            w_syn.loadAllInstruments(current_soundfont);
+            final double total = w_send(mid, w_syn.getReceiver());
+            long l = mid.getMicrosecondLength();
+            long fr = (long)(l * f.getFrameRate() / 1000000);
+            stream = new AudioInputStream(stream, f, fr);
+            AudioSystem.write(stream, AudioFileFormat.Type.WAVE, ui.showDirectorySelection().toPath().resolve(sf_filename + ".wav").toFile());
+        }
+        catch (Exception e) {println(e);}
+        finally {
+            if (stream != null) try {
+                stream.close();
+            }
+            catch (IOException e) {}
+        }
+    }
+    
+    double w_send(final Sequence s, final Receiver r) {
+        final float divtype = s.getDivisionType();
+        final Track[] tracks = s.getTracks();
+
+        final int[] trackspos = new int[tracks.length];
+        int mpq = 500000;
+        final int seqres = s.getResolution();
+        long lasttick = 0;
+        long curtime = 0;
+        while (true) {
+            MidiEvent selevent = null;
+            int seltrack = -1;
+            for (int i = 0; i < tracks.length; i++) {
+                final int trackpos = trackspos[i];
+                final Track track = tracks[i];
+                if (trackpos < track.size()) {
+                    final MidiEvent event = track.get(trackpos);
+                    if (selevent == null || event.getTick() < selevent.getTick()) {
+                        selevent = event;
+                        seltrack = i;
+                    }
+                }
+            }
+            if (seltrack == -1) {
+                break;
+            }
+            trackspos[seltrack]++;
+            final long tick = selevent.getTick();
+            if (divtype == Sequence.PPQ) {
+                curtime += (tick - lasttick) * mpq / seqres;
+            } else {
+                curtime = (long) (tick * 1000000.0 * divtype / seqres);
+            }
+            lasttick = tick;
+            final MidiMessage msg = selevent.getMessage();
+            if (msg instanceof MetaMessage) {
+                if (divtype == Sequence.PPQ && ((MetaMessage) msg).getType() == 0x51) {
+                    final byte[] data = ((MetaMessage) msg).getData();
+                    mpq = (data[0] & 0xff) << 16 | (data[1] & 0xff) << 8 | data[2] & 0xff;
+                }
+            } else if (r != null) {
+                r.send(msg, curtime);
+            }
+        }
+        return curtime / 1000000.0;
     }
     
     
@@ -675,7 +774,10 @@ class Player {
             
             else if (type == 1 || type == 5 || type == 6 || type == 7) {        // Lyrics or text
                 String text = bytes_to_text(data);
-                if (type == 6 || type == 7) text = "• " + text + " •";
+                if (type == 6 || type == 7) {
+                    text = "• " + text + " •";
+                    marker_timestamps.add(seq.getTickPosition());
+                }
                 if (!text.equals("")) {
                     last_text_message = text;
                     history_text_messages += text + "\n";
@@ -696,7 +798,6 @@ class Player {
             }
             
             else if (type == 47) {        // End
-                set_playing_state(-1);
                 if (win_plist != null && win_plist.active) win_plist.set_current_item(win_plist.current_item + 1);
                 return;
             }

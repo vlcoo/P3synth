@@ -14,6 +14,7 @@ public class LabsModule extends PApplet {
     Knob k_rt_mod;
     Button b_set;
     Button b_beat;
+    Button b_export;
     
     Knob[] all_knobs;
     Knob curr_knob = null;
@@ -27,7 +28,7 @@ public class LabsModule extends PApplet {
     
     
     public void settings() {
-        this.size(482, 100);
+        this.size(542, 100);
     }
     
     
@@ -68,6 +69,7 @@ public class LabsModule extends PApplet {
         
         b_set.redraw(this);
         b_beat.redraw(this);
+        b_export.redraw(this);
         
         /*if (curr_knob == null) {
             k_player_speed.value = player.seq.getTempoFactor();
@@ -87,13 +89,14 @@ public class LabsModule extends PApplet {
         
         b_set = new Button(372, KNOB_Y_POS + 6, "blank", "T.form\n");
         b_beat = new Button(432, KNOB_Y_POS + 6, "blank", "Beat\nMachine");
+        b_export = new Button(492, KNOB_Y_POS + 6, "blank", "To WAV\n");
     }
     
     
     void reposition() {
         int x = this.parentFrame.getX();
         int y = this.parentFrame.getY();
-        this.getSurface().setLocation((x + 156), (y > parentFrame.getHeight() + this.height ? y - this.height - 30 : y + parentFrame.getHeight() - 18));
+        this.getSurface().setLocation((x + 96), (y > parentFrame.getHeight() + this.height ? y - this.height - 30 : y + parentFrame.getHeight() - 18));
     }
     
     
@@ -122,6 +125,7 @@ public class LabsModule extends PApplet {
         
         if (mouseButton == LEFT && b_set.collided(this)) curr_mid_pressed = b_set;
         if (mouseButton == LEFT && b_beat.collided(this)) curr_mid_pressed = b_beat;
+        if (mouseButton == LEFT && b_export.collided(this)) curr_mid_pressed = b_export;
         
         if (curr_knob != null) starting_knob_value = curr_knob.value;
         if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
@@ -193,6 +197,11 @@ public class LabsModule extends PApplet {
                     }
                 }})
                 .show();
+            }
+            
+            if (b_export.collided(this)) {
+                if (player.playing_state == -1) return;
+                player.export_to_wav();
             }
         }
     }

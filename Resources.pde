@@ -4,7 +4,8 @@ import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
 
 
-java.util.List vgm_extensions = Arrays.asList("vgm", "nsf", "spc", "gbs");
+java.util.List vgm_extensions = Arrays.asList("vgm", "nsf", "spc", "gbs", "nes");
+java.util.List mod_extensions = Arrays.asList("mod");
 
 int snap_number(int num, int mult) {
     if (mult == 0) return num;
@@ -15,6 +16,20 @@ int snap_number(int num, int mult) {
 float snap_number(float num, float mult) {
     if (mult == 0) return num;
     return ((num + mult - 1) / mult) * mult;
+}
+
+
+long snap_number(long num, HashSet<Long> array) {
+    float distance = 1000;
+    long snapped = num;
+    for (long i : array) {
+        float num_distance = abs(i - num);
+        if (num_distance < distance) {
+            snapped = i;
+            distance = num_distance;
+        }
+    }
+    return snapped;
 }
 
 
@@ -271,7 +286,7 @@ Sequence beat_swap_sequence(Sequence og_seq, int swap_a, int swap_b) {
 
 
 File save_sequence_to_file(Sequence sequence) {
-    File f = new File("/home/victor/out.mid");
+    File f = new File("./out.mid");
     try {
         int[] fileTypes = MidiSystem.getMidiFileTypes(sequence);
         if (fileTypes.length == 0) {
@@ -288,4 +303,5 @@ File save_sequence_to_file(Sequence sequence) {
     }
     return f;
 }
+
         

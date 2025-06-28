@@ -3,6 +3,7 @@ import drop.*;
 import java.io.*;
 import java.util.Map.*;
 import java.awt.*;
+import java.awt.Frame;
 import processing.awt.PSurfaceAWT;
 
 final processing.core.PApplet PARENT = this;
@@ -64,6 +65,12 @@ void setup() {
     frame = ( (PSurfaceAWT.SmoothCanvas)surface.getNative() ).getFrame();
     frame.setSize(new Dimension(724, 460));
     frame_height = frame.getSize().height;
+    frame.addWindowListener(new java.awt.event.WindowAdapter() {
+        public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+            player.quit_all();
+            print("Closed");
+        }
+    });
     
     setup_images();
     setup_buttons();
@@ -139,8 +146,8 @@ void draw() {
         }
     }
     
-    if (dnd_mid.draggedOnto) player.custom_info_msg = "OK! (MID file)";
-    else if (dnd_sf.draggedOnto) player.custom_info_msg = "OK! (Soundfont)";
+    if (dnd_mid.draggedOnto) player.custom_info_msg = "OK! (Audio file)";
+    else if (dnd_sf.draggedOnto) player.custom_info_msg = "OK! (MIDI Soundfont)";
     else player.custom_info_msg = "";
 }
 
@@ -200,6 +207,7 @@ void setup_alt_resources() {
     key_transforms.put("Phrygian", new int[] {-1, 0, -1, 0, 0, -1, 0, -1, 0, 0, 0, 0});
     key_transforms.put("Locrian", new int[] {-1, 0, -1, 0, 0, -1, 0, -1, 0, 0, -1, 0});
     key_transforms.put("Monotonic", new int[] {6, 5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5});
+    key_transforms.put("Reversed", new int[] {12, 10, 8, 6, 4, 2, 0, -2, -4, -6, -8, -10});
     key_transforms.put("** Restore original", new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
 }
 
@@ -461,7 +469,10 @@ void mousePressed() {
     else if (player.disp.b_next.collided()) curr_mid_pressed = player.disp.b_next;
     
     if (curr_mid_pressed != null) curr_mid_pressed.set_pressed(true);
-    else if (player != null) player.vgm_disp.check_buttons(mouseButton);
+    else if (player != null) {
+        player.vgm_disp.check_buttons(mouseButton);
+        if (player.mod_disp != null) player.mod_disp.check_buttons(mouseButton);
+    }
 }
 
 
