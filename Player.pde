@@ -182,11 +182,7 @@ class Player {
     
     
     String play_file(String filename, boolean keep_paused) {
-        if (filename.toLowerCase().endsWith("wav")) {
-            play_wav(filename);
-            return "";
-        }
-        else if (vgm_extensions.contains(filename.toLowerCase().substring(filename.lastIndexOf(".")+1))) {
+        if (vgm_extensions.contains(filename.toLowerCase().substring(filename.lastIndexOf(".")+1))) {
             return play_vgm(filename);
         }
         else if (mod_extensions.contains(filename.toLowerCase().substring(filename.lastIndexOf(".")+1))) {
@@ -210,6 +206,7 @@ class Player {
             epoch_at_begin = java.time.Instant.now().getEpochSecond();
             set_playing_state(keep_paused ? 0 : 1);
             vgm_player.stop();
+            if (mod_player != null) mod_player.stop();
         }
         catch(InvalidMidiDataException imde) {
             return "Invalid MIDI data!";
@@ -220,6 +217,7 @@ class Player {
         catch (Exception e) {}
         
         vgm_mode = false;
+        mod_mode = false;
         metadata_map.put("Song tempo", Integer.toString(floor(seq.getTempoInBPM())) + " BPM");
         return "";
     }
@@ -227,6 +225,8 @@ class Player {
     
     String play_mod(String filename) {
         try {
+            vgm_player.stop();
+            vgm_mode = false;
             if (mod_player != null) mod_player.stop();
             mod_player = new micromod.Player(new micromod.Module(new FileInputStream(filename)), true, true);
             mod_disp = new ModPlayerDisplay(mod_player);
@@ -246,6 +246,8 @@ class Player {
     
     String play_vgm(String filename) {
         try {
+            if (mod_player != null) mod_player.stop();
+            mod_mode = false;
             vgm_player.stop();
             vgm_player.loadFile(filename);
             vgm_player.startTrack(0, disp.b_loop.pressed ? 3600 : 60);
@@ -587,12 +589,7 @@ class Player {
     
     
     void export_to_wav() {
-        float s = 44100;
-        int b = 16;
-        int c = 2;
-        boolean si = true;
-        boolean be = false;
-        AudioFormat f = new AudioFormat(s, b, c, si, be);
+        AudioFormat f = new AudioFormat(44100, 16, 2, true, false);
         
         HashMap<String, Object> info = new HashMap<String, Object>();
         info.put("interpolation", "linear");
@@ -611,7 +608,7 @@ class Player {
             long l = mid.getMicrosecondLength();
             long fr = (long)(l * f.getFrameRate() / 1000000);
             stream = new AudioInputStream(stream, f, fr);
-            AudioSystem.write(stream, AudioFileFormat.Type.WAVE, ui.showDirectorySelection().toPath().resolve(sf_filename + ".wav").toFile());
+            AudioSystem.write(stream, AudioFileFormat.Type.WAVE, ui.showDirectorySelection().toPath().resolve(disp.label_filename + ".wav").toFile());
         }
         catch (Exception e) {println(e);}
         finally {
